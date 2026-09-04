@@ -7,8 +7,9 @@ import FeaturedListings from "@/components/FeaturedListings";
 import BookingProcess from "@/components/BookingProcess";
 import Footer from "@/components/footer";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LISTINGS, ROUTES } from "@/components/homeData";
+import { supabase } from "@/app/lib/supabase";
 
 function townFromRoute(route: string): string | null {
   if (route === "All towns") return null;
@@ -21,6 +22,7 @@ export default function HomePage() {
   const [checkIn, setCheckIn] = useState<string>("");
 
   const town = townFromRoute(selectedRoute);
+
   const filteredListings = town
     ? LISTINGS.filter((item) => item.loc.split(",")[0].trim() === town)
     : LISTINGS;
@@ -28,6 +30,21 @@ export default function HomePage() {
   const scrollToListings = () => {
     document.getElementById("listings")?.scrollIntoView({ behavior: "smooth" });
   };
+
+  useEffect(() => {
+    async function getBookings() {
+      if (!supabase) return;
+
+      const { data: bookings, error } = await supabase
+        .from("bookings")
+        .select("*");
+
+      console.log("Bookings:", bookings);
+      console.log("Error:", error);
+    }
+
+    getBookings();
+  }, []);
 
   return (
     <>
@@ -42,7 +59,7 @@ export default function HomePage() {
       <QuickRoutes />
       <FeaturedListings listings={filteredListings} />
       <BookingProcess />
-      <Footer/>
+      <Footer />
     </>
   );
 }
