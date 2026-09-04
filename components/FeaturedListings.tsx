@@ -29,14 +29,14 @@ export default function FeaturedListings({ listings }: FeaturedListingsProps) {
           No listings match that location yet — try a different town.
         </p>
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-6">
+        <div className="mx-auto grid max-w-[1280px] grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-6">
           {listings.map((item: Listing) => (
             <Link
               key={item.id}
               href={`/apartments/${item.id}`}
-              className="block overflow-hidden rounded-2xl border border-[#E9E6DD] bg-white transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#E89A1C]"
+              className="block max-w-[320px] overflow-hidden rounded-2xl border border-[#E9E6DD] bg-white transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#E89A1C]"
             >
-              <article className="relative cursor-pointer">
+              <article className="relative flex h-full flex-col cursor-pointer">
                 <div className="absolute left-[14px] top-[14px] z-10 rounded-md border border-[#E9E6DD] bg-white px-[10px] py-[6px] font-mono text-[12px] tracking-[1px] text-[#1B1A2E]">
                   {item.price}
                 </div>
@@ -44,7 +44,7 @@ export default function FeaturedListings({ listings }: FeaturedListingsProps) {
                 <img
                   src={item.img}
                   alt={item.name}
-                  className="block h-[190px] w-full object-cover"
+                  className="block h-[260px] w-full object-cover"
                 />
 
                 <div className="p-[18px]">
