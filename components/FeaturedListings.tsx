@@ -1,13 +1,15 @@
 "use client";
 
 import { MessageCircle } from "lucide-react";
-import { LISTINGS, Listing } from "./homeData";
+import { Listing } from "./homeData";
 
 interface FeaturedListingsProps {
+  listings: Listing[];
   onSelectListing: (id: Listing["id"]) => void;
 }
 
 export default function FeaturedListings({
+  listings,
   onSelectListing,
 }: FeaturedListingsProps) {
   return (
@@ -25,8 +27,13 @@ export default function FeaturedListings({
         </a>
       </div>
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-6">
-        {LISTINGS.map((item: Listing) => (
+      {listings.length === 0 ? (
+        <p className="text-[15px] text-[#3A3856]/70">
+          No listings match that location yet — try a different town.
+        </p>
+      ) : (
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-6">
+          {listings.map((item: Listing) => (
           <article
             key={item.id}
             role="button"
@@ -53,12 +60,12 @@ export default function FeaturedListings({
             <div className="p-[18px]">
               <h4 className="mb-1 text-[17px] text-[#36454F]">{item.name}</h4>
 
-              <div className="mb-3 text-[13px] text-[#3A3856]/65">
+              <div className="mb-3 text-[13px] text-[#36454F]/65">
                 {item.loc}
               </div>
 
               <div className="flex items-center justify-between gap-3">
-                <div className="font-mono text-[15px] font-bold text-[#708090]">
+                <div className="font-mono text-[15px] font-bold text-[#D3D3D3]">
                   {item.detail}
                 </div>
 
@@ -76,7 +83,8 @@ export default function FeaturedListings({
             </div>
           </article>
         ))}
-      </div>
+        </div>
+      )}
     </section>
   );
 }
