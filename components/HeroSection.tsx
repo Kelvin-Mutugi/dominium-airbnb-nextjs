@@ -13,7 +13,7 @@ export default function HeroSection() {
             key={src}
             src={src}
             alt=""
-            className="absolute inset-0 h-full w-full object-cover opacity-0 animate-sk-hero-fade"
+            className="absolute inset-0 h-full w-full object-cover opacity-100 animate-sk-hero-fade"
             style={{
               animationDelay: index === 0 ? "0s" : index === 1 ? "-6s" : "-12s",
             }}
