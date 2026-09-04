@@ -5,6 +5,8 @@ import HeroSection from "@/components/HeroSection";
 import QuickRoutes from "@/components/QuickRoutes";
 import FeaturedListings from "@/components/FeaturedListings";
 import BookingProcess from "@/components/BookingProcess";
+import Footer from "@/components/footer";
+
 import { useState } from "react";
 import { LISTINGS, ROUTES } from "@/components/homeData";
 
@@ -39,8 +41,8 @@ export default function HomePage() {
       />
       <QuickRoutes />
       <FeaturedListings listings={filteredListings} />
-
       <BookingProcess />
+      <Footer/>
     </>
   );
 }
