@@ -10,9 +10,20 @@ import {
   Video,
   Wifi,
 } from "lucide-react";
+import { Listing } from "./homeData";
 
-export default function ApartmentDetails({ listing, onBack }) {
-  const [selectedImage, setSelectedImage] = useState(listing.gallery[0]);
+interface ApartmentDetailsProps {
+  listing: Listing;
+  onBack: () => void;
+}
+
+export default function ApartmentDetails({
+  listing,
+  onBack,
+}: ApartmentDetailsProps) {
+  const [selectedImage, setSelectedImage] = useState<string>(
+    listing.gallery[0] ?? "",
+  );
 
   if (!listing) return null;
 
@@ -40,7 +51,7 @@ export default function ApartmentDetails({ listing, onBack }) {
               </div>
 
               <div className="mt-4 grid grid-cols-4 gap-3">
-                {listing.gallery.map((image, index) => (
+                {listing.gallery.map((image: string, index: number) => (
                   <button
                     key={`${listing.id}-${index}`}
                     type="button"
@@ -149,7 +160,7 @@ export default function ApartmentDetails({ listing, onBack }) {
             </h2>
 
             <ul className="space-y-3 text-[15px] text-[#3A3856]">
-              {listing.features.map((feature) => (
+              {listing.features.map((feature: string) => (
                 <li key={feature} className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-[#E89A1C]" />
                   {feature}
