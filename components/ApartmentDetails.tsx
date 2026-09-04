@@ -30,15 +30,6 @@ export default function ApartmentDetails({
   return (
     <div className="min-h-screen bg-[#F8F7F4] text-[#1B1A2E]">
       <div className="mx-auto w-full max-w-[1500px] px-[3%] py-6 md:px-[4%] md:py-8">
-        <button
-          type="button"
-          onClick={onBack}
-          className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#E9E6DD] bg-white px-4 py-2 text-sm font-semibold text-[#1B1A2E] shadow-sm"
-        >
-          <ArrowLeft size={16} />
-          Back to listings
-        </button>
-
         <div className="overflow-hidden rounded-[28px] border border-[#E9E6DD] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.08)]">
           <div className="grid gap-0 lg:grid-cols-[1.35fr_0.65fr]">
             <div className="p-4 md:p-5">
