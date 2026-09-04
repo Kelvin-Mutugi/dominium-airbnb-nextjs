@@ -13,6 +13,8 @@ export const ROUTES: string[] = [
   "Nakuru — Section 58",
 ];
 
+export type Amenity = "wifi" | "ac" | "pool" | "parking";
+
 export interface Listing {
   id: string;
   name: string;
@@ -25,6 +27,17 @@ export interface Listing {
   description: string;
   features: string[];
   host: string;
+  // Card-display fields — derived from the fields above, kept explicit here
+  // so the card doesn't have to parse strings like "Verified host · 4.9 rating".
+  rating?: number;
+  reviewCount?: number;
+  verified?: boolean;
+  rareFind?: boolean;
+  rareFindNote?: string;
+  guests?: number;
+  beds?: number;
+  baths?: number;
+  amenities?: Amenity[];
 }
 
 export const LISTINGS: Listing[] = [
@@ -53,6 +66,12 @@ export const LISTINGS: Listing[] = [
       "Air conditioning",
     ],
     host: "Verified host · 4.9 rating",
+    rating: 4.9,
+    verified: true,
+    guests: 4,
+    beds: 2,
+    baths: 2,
+    amenities: ["wifi", "ac", "parking"],
   },
   {
     id: "beachfront-studio",
@@ -79,6 +98,11 @@ export const LISTINGS: Listing[] = [
       "Housekeeping",
     ],
     host: "Local host · 5.0 rating",
+    rating: 5.0,
+    verified: false,
+    guests: 2,
+    beds: 1,
+    amenities: [],
   },
   {
     id: "milimani-garden-flat",
@@ -105,6 +129,10 @@ export const LISTINGS: Listing[] = [
       "Workspace",
     ],
     host: "Verified host · 4.8 rating",
+    rating: 4.8,
+    verified: true,
+    guests: 3,
+    amenities: [],
   },
   {
     id: "westlands-loft",
@@ -131,6 +159,10 @@ export const LISTINGS: Listing[] = [
       "Late check-in",
     ],
     host: "Superhost · 4.9 rating",
+    rating: 4.9,
+    verified: false,
+    guests: 2,
+    amenities: ["wifi"],
   },
   {
     id: "nyali-bay-house",
@@ -157,6 +189,11 @@ export const LISTINGS: Listing[] = [
       "Dedicated parking",
     ],
     host: "Verified host · 5.0 rating",
+    rating: 5.0,
+    verified: true,
+    guests: 5,
+    beds: 3,
+    amenities: ["pool", "parking"],
   },
   {
     id: "kili-view-flat",
@@ -183,59 +220,69 @@ export const LISTINGS: Listing[] = [
       "Close to cafes",
     ],
     host: "Verified host · 4.8 rating",
+    rating: 4.8,
+    verified: true,
+    guests: 2,
+    amenities: [],
   },
   {
-  id: "westlands-modern-studio",
-  name: "Westlands Modern Studio",
-  loc: "Westlands, Nairobi",
-  price: "KES 4,000 / night",
-  detail: "Sleeps 2 · city views",
-  img: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&q=60",
-  gallery: [
-    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80",
-    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80",
-    "https://images.unsplash.com/photo-1560185008-b033106af5c3?w=1200&q=80",
-    "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200&q=80",
-  ],
-  video: "https://www.w3schools.com/html/movie.mp4",
-  description:
-    "A stylish modern studio in the heart of Westlands, offering a comfortable stay with easy access to restaurants, malls, and entertainment.",
-  features: [
-    "2 guests",
-    "City views",
-    "High-speed Wi-Fi",
-    "Workspace",
-    "Secure parking",
-    "Near restaurants and malls",
-  ],
-  host: "Verified host · 4.9 rating",
-},
-
-{
-  id: "kileleshwa-garden-apartment",
-  name: "Kileleshwa Garden Apartment",
-  loc: "Kileleshwa, Nairobi",
-  price: "KES 3,600 / night",
-  detail: "Sleeps 3 · garden setting",
-  img: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=500&q=60",
-  gallery: [
-    "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200&q=80",
-    "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=1200&q=80",
-    "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200&q=80",
-    "https://images.unsplash.com/photo-1484101403633-562f891dc89a?w=1200&q=80",
-  ],
-  video: "https://www.w3schools.com/html/movie.mp4",
-  description:
-    "A peaceful and spacious apartment surrounded by greenery, ideal for guests looking for a relaxing stay while remaining close to Nairobi's main attractions.",
-  features: [
-    "3 guests",
-    "Garden setting",
-    "Fast Wi-Fi",
-    "Fully equipped kitchen",
-    "Laundry",
-    "24/7 security",
-  ],
-  host: "Verified host · 4.7 rating",
-},
-  
+    id: "westlands-modern-studio",
+    name: "Westlands Modern Studio",
+    loc: "Westlands, Nairobi",
+    price: "KES 4,000 / night",
+    detail: "Sleeps 2 · city views",
+    img: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&q=60",
+    gallery: [
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80",
+      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80",
+      "https://images.unsplash.com/photo-1560185008-b033106af5c3?w=1200&q=80",
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200&q=80",
+    ],
+    video: "https://www.w3schools.com/html/movie.mp4",
+    description:
+      "A stylish modern studio in the heart of Westlands, offering a comfortable stay with easy access to restaurants, malls, and entertainment.",
+    features: [
+      "2 guests",
+      "City views",
+      "High-speed Wi-Fi",
+      "Workspace",
+      "Secure parking",
+      "Near restaurants and malls",
+    ],
+    host: "Verified host · 4.9 rating",
+    rating: 4.9,
+    verified: true,
+    guests: 2,
+    amenities: ["wifi", "parking"],
+  },
+  {
+    id: "kileleshwa-garden-apartment",
+    name: "Kileleshwa Garden Apartment",
+    loc: "Kileleshwa, Nairobi",
+    price: "KES 3,600 / night",
+    detail: "Sleeps 3 · garden setting",
+    img: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=500&q=60",
+    gallery: [
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200&q=80",
+      "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=1200&q=80",
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200&q=80",
+      "https://images.unsplash.com/photo-1484101403633-562f891dc89a?w=1200&q=80",
+    ],
+    video: "https://www.w3schools.com/html/movie.mp4",
+    description:
+      "A peaceful and spacious apartment surrounded by greenery, ideal for guests looking for a relaxing stay while remaining close to Nairobi's main attractions.",
+    features: [
+      "3 guests",
+      "Garden setting",
+      "Fast Wi-Fi",
+      "Fully equipped kitchen",
+      "Laundry",
+      "24/7 security",
+    ],
+    host: "Verified host · 4.7 rating",
+    rating: 4.7,
+    verified: true,
+    guests: 3,
+    amenities: ["wifi"],
+  },
 ];
