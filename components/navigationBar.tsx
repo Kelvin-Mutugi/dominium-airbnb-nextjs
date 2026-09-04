@@ -25,7 +25,7 @@ export default function Navbar() {
     <div className="sticky top-0 z-[100] font-sans">
       <nav className="flex items-center justify-between gap-5 px-[6%] py-4 bg-white border-b border-[#E9E6DD]">
         {/* Logo */}
-        <div className="font-display text-xl tracking-wide text-[#1B1A2E] whitespace-nowrap shrink-0 max-[380px]:text-[17px]">
+        <div className="font-display text-xl tracking-wide text-[#36454F] whitespace-nowrap shrink-0 max-[380px]:text-[17px]">
           DOMINIUM<span className="text-[#E23E85]"> AIRBNB</span>
         </div>
 

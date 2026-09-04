@@ -1,10 +1,10 @@
-export const HERO_IMAGES = [
+export const HERO_IMAGES: string[] = [
   "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1400&q=70",
   "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1400&q=70",
   "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1400&q=70",
 ];
 
-export const ROUTES = [
+export const ROUTES: string[] = [
   "All towns",
   "Nairobi — Kilimani",
   "Nairobi — Westlands",
@@ -13,7 +13,21 @@ export const ROUTES = [
   "Nakuru — Section 58",
 ];
 
-export const LISTINGS = [
+export interface Listing {
+  id: string;
+  name: string;
+  loc: string;
+  price: string;
+  detail: string;
+  img: string;
+  gallery: string[];
+  video: string;
+  description: string;
+  features: string[];
+  host: string;
+}
+
+export const LISTINGS: Listing[] = [
   {
     id: "riverside-2br",
     name: "Riverside 2BR Apartment",
@@ -29,7 +43,7 @@ export const LISTINGS = [
     ],
     video: "https://www.w3schools.com/html/mov_bbb.mp4",
     description:
-      "A bright, modern apartment with open-plan living, a private balcony, and easy access to the city’s best cafes, supermarkets, and nightlife.",
+      "A bright, modern apartment with open-plan living, a private balcony, and easy access to the city's best cafes, supermarkets, and nightlife.",
     features: [
       "2 bedrooms",
       "2 bathrooms",
@@ -170,4 +184,58 @@ export const LISTINGS = [
     ],
     host: "Verified host · 4.8 rating",
   },
+  {
+  id: "westlands-modern-studio",
+  name: "Westlands Modern Studio",
+  loc: "Westlands, Nairobi",
+  price: "KES 4,000 / night",
+  detail: "Sleeps 2 · city views",
+  img: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&q=60",
+  gallery: [
+    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80",
+    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80",
+    "https://images.unsplash.com/photo-1560185008-b033106af5c3?w=1200&q=80",
+    "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200&q=80",
+  ],
+  video: "https://www.w3schools.com/html/movie.mp4",
+  description:
+    "A stylish modern studio in the heart of Westlands, offering a comfortable stay with easy access to restaurants, malls, and entertainment.",
+  features: [
+    "2 guests",
+    "City views",
+    "High-speed Wi-Fi",
+    "Workspace",
+    "Secure parking",
+    "Near restaurants and malls",
+  ],
+  host: "Verified host · 4.9 rating",
+},
+
+{
+  id: "kileleshwa-garden-apartment",
+  name: "Kileleshwa Garden Apartment",
+  loc: "Kileleshwa, Nairobi",
+  price: "KES 3,600 / night",
+  detail: "Sleeps 3 · garden setting",
+  img: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=500&q=60",
+  gallery: [
+    "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200&q=80",
+    "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=1200&q=80",
+    "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200&q=80",
+    "https://images.unsplash.com/photo-1484101403633-562f891dc89a?w=1200&q=80",
+  ],
+  video: "https://www.w3schools.com/html/movie.mp4",
+  description:
+    "A peaceful and spacious apartment surrounded by greenery, ideal for guests looking for a relaxing stay while remaining close to Nairobi's main attractions.",
+  features: [
+    "3 guests",
+    "Garden setting",
+    "Fast Wi-Fi",
+    "Fully equipped kitchen",
+    "Laundry",
+    "24/7 security",
+  ],
+  host: "Verified host · 4.7 rating",
+},
+  
 ];
