@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { LogIn, Menu, UserPlus, X } from "lucide-react";
+import { createClient } from "@/app/lib/supabase/client";
 
 interface NavLink {
   label: string;
@@ -19,7 +21,37 @@ const LINKS: NavLink[] = [
 ];
 
 export default function Navbar() {
+  const router = useRouter();
   const [open, setOpen] = useState<boolean>(false);
+  const [isSignedIn, setIsSignedIn] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    async function loadUser() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setIsSignedIn(Boolean(user));
+    }
+
+    void loadUser();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsSignedIn(Boolean(session?.user));
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setIsSignedIn(false);
+    router.push("/");
+  }
 
   return (
     <div className="sticky top-0 z-[100] font-sans">
@@ -45,21 +77,34 @@ export default function Navbar() {
 
         {/* Desktop CTA */}
         <div className="hidden min-[681px]:flex items-center gap-3 ml-auto">
-          <Link
-            href="/signin"
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-[#D9D5CF] bg-white px-[18px] py-[10px] text-[13px] font-semibold text-[#1B1A2E] no-underline shadow-[0_8px_18px_rgba(27,26,46,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#B8B2A9] hover:bg-[#F7F5F2]"
-          >
-            <LogIn size={15} />
-            Sign in
-          </Link>
+          {isSignedIn ? (
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-[#D9D5CF] bg-white px-[18px] py-[10px] text-[13px] font-semibold text-[#1B1A2E] no-underline shadow-[0_8px_18px_rgba(27,26,46,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#B8B2A9] hover:bg-[#F7F5F2]"
+            >
+              <LogIn size={15} />
+              Sign out
+            </button>
+          ) : (
+            <>
+              <Link
+                href="/signin"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-[#D9D5CF] bg-white px-[18px] py-[10px] text-[13px] font-semibold text-[#1B1A2E] no-underline shadow-[0_8px_18px_rgba(27,26,46,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#B8B2A9] hover:bg-[#F7F5F2]"
+              >
+                <LogIn size={15} />
+                Sign in
+              </Link>
 
-          <Link
-            href="/signup"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-[#E23E85] px-[20px] py-[10px] text-[13px] font-semibold text-white no-underline shadow-[0_14px_28px_rgba(226,62,133,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#cf2f74]"
-          >
-            <UserPlus size={15} />
-            Sign up
-          </Link>
+              <Link
+                href="/signup"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#E23E85] px-[20px] py-[10px] text-[13px] font-semibold text-white no-underline shadow-[0_14px_28px_rgba(226,62,133,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#cf2f74]"
+              >
+                <UserPlus size={15} />
+                Sign up
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile toggle */}
@@ -86,22 +131,38 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
-          <Link
-            href="/signin"
-            onClick={() => setOpen(false)}
-            className="mt-3 flex items-center justify-center gap-2 rounded-full border border-[#D9D5CF] bg-white px-[18px] py-[12px] text-[13px] font-semibold text-[#1B1A2E] no-underline"
-          >
-            <LogIn size={15} />
-            Sign in
-          </Link>
-          <Link
-            href="/signup"
-            onClick={() => setOpen(false)}
-            className="mt-2 flex items-center justify-center gap-2 rounded-full bg-[#E23E85] px-[18px] py-[12px] text-[13px] font-semibold text-white no-underline shadow-[0_12px_24px_rgba(226,62,133,0.2)]"
-          >
-            <UserPlus size={15} />
-            Sign up
-          </Link>
+          {isSignedIn ? (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                void handleSignOut();
+              }}
+              className="mt-3 flex items-center justify-center gap-2 rounded-full border border-[#D9D5CF] bg-white px-[18px] py-[12px] text-[13px] font-semibold text-[#1B1A2E] no-underline"
+            >
+              <LogIn size={15} />
+              Sign out
+            </button>
+          ) : (
+            <>
+              <Link
+                href="/signin"
+                onClick={() => setOpen(false)}
+                className="mt-3 flex items-center justify-center gap-2 rounded-full border border-[#D9D5CF] bg-white px-[18px] py-[12px] text-[13px] font-semibold text-[#1B1A2E] no-underline"
+              >
+                <LogIn size={15} />
+                Sign in
+              </Link>
+              <Link
+                href="/signup"
+                onClick={() => setOpen(false)}
+                className="mt-2 flex items-center justify-center gap-2 rounded-full bg-[#E23E85] px-[18px] py-[12px] text-[13px] font-semibold text-white no-underline shadow-[0_12px_24px_rgba(226,62,133,0.2)]"
+              >
+                <UserPlus size={15} />
+                Sign up
+              </Link>
+            </>
+          )}
         </div>
       )}
     </div>

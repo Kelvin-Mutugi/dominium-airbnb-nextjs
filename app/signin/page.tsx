@@ -224,6 +224,15 @@ export default function SigninPage() {
                 />
               </label>
 
+              <div className="flex justify-end">
+                <Link
+                  href="/forgot-password"
+                  className="text-[12px] font-medium text-[#12231d] no-underline hover:text-[#ec1561]"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+
               {error && (
                 <p role="alert" className="text-[#a3352b] text-[13px] -mt-1.5">
                   {error}
