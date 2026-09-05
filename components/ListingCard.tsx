@@ -153,7 +153,7 @@ export default function ListingCard({ item, id }: ListingCardProps) {
 
         <div className="relative h-[260px] w-full overflow-hidden">
           <Image
-            src={listing.img || "/placeholder.jpg"}
+            src={listing.img || "/placeholder.svg"}
             alt={listing.name}
             fill
             className="object-cover"

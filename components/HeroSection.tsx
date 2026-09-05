@@ -27,11 +27,14 @@ export default function HeroSection({
         {HERO_IMAGES.map((src: string, index: number) => (
           <img
             key={src}
-            src={src}
+            src={src || "/placeholder.svg"}
             alt=""
             className="hero-slide"
             style={{
               animationDelay: index === 0 ? "0s" : index === 1 ? "-6s" : "-12s",
+            }}
+            onError={(event) => {
+              event.currentTarget.src = "/placeholder.svg";
             }}
           />
         ))}
