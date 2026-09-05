@@ -2,12 +2,27 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+function getSafeRedirectPath(value: string | null) {
+  if (!value) return "/";
+  if (
+    value.startsWith("http://") ||
+    value.startsWith("https://") ||
+    value.startsWith("//")
+  ) {
+    return "/";
+  }
+  return value.startsWith("/") ? value : "/";
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+  const next = getSafeRedirectPath(searchParams.get("next"));
 
   if (!code) {
-    return NextResponse.redirect(`${origin}/signup?error=missing_code`);
+    return NextResponse.redirect(
+      `${origin}/signin?redirectTo=${encodeURIComponent(next)}`,
+    );
   }
 
   const cookieStore = await cookies();
@@ -29,13 +44,11 @@ export async function GET(request: Request) {
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error || !data.user) {
-    return NextResponse.redirect(`${origin}/signup?error=auth_failed`);
+    return NextResponse.redirect(
+      `${origin}/signin?redirectTo=${encodeURIComponent(next)}`,
+    );
   }
 
-  // The profiles row already exists at this point — the on_auth_user_created
-  // trigger creates it the moment Supabase inserts into auth.users, which
-  // happens as part of the OAuth exchange above. Google doesn't provide
-  // phone, so a first-time sign-in always needs to complete that step.
   const { data: profile } = await supabase
     .from("profiles")
     .select("phone")
@@ -46,5 +59,5 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/complete-profile`);
   }
 
-  return NextResponse.redirect(`${origin}/`);
+  return NextResponse.redirect(`${origin}${next}`);
 }
