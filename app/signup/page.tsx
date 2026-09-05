@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/app/lib/supabase/client";
 
@@ -19,9 +22,46 @@ const heroImages = [
 ];
 
 export default function SignupPage() {
+  const router = useRouter();
   const supabase = createClient();
+  const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function handleEmailSignup(event: React.FormEvent) {
+    event.preventDefault();
+    setError(null);
+
+    if (form.password.length < 8) {
+      setError("Password must be at least 8 characters long.");
+      return;
+    }
+
+    setLoading(true);
+
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    setLoading(false);
+
+    if (signUpError) {
+      setError(signUpError.message);
+      return;
+    }
+
+    if (data.user && !data.session) {
+      router.push("/check-email");
+      return;
+    }
+
+    router.push("/complete-profile");
+  }
 
   async function handleGoogleSignup() {
     setError(null);
@@ -68,7 +108,7 @@ export default function SignupPage() {
           <span className="font-display text-[20px] tracking-wide">
             DOMINIUM <span className="text-[#ec1561]">AIRBNB</span>
           </span>
-        </div> 
+        </div>
 
         <div className="relative z-10 flex flex-1 items-center justify-center">
           <div className="w-full animate-rise-in motion-reduce:animate-none [animation-delay:180ms]">
@@ -97,7 +137,7 @@ export default function SignupPage() {
             <span className="font-display text-[16px] text-[#12231d] tracking-wide">
               DOMINIUM <span className="text-[#ec1561]">AIRBNB</span>
             </span>
-          </div> 
+          </div>
 
           <div className="bg-[#ffffff] rounded-[18px] px-8 py-10 text-center border border-[#ece8e2] shadow-[0_20px_50px_rgba(18,35,29,0.06)] animate-rise-in motion-reduce:animate-none [animation-delay:120ms]">
             <h1 className="font-display text-[26px] text-[#12231d] mb-2 tracking-wide">
@@ -149,15 +189,85 @@ export default function SignupPage() {
               )}
             </button>
 
-            {error && (
-              <p role="alert" className="text-[#a3352b] text-[13px] mt-4">
-                {error}
-              </p>
-            )}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-[#dfe5df]" />
+              </div>
+              <div className="relative flex justify-center text-[11px] uppercase tracking-[0.2em] text-[#6b706a]">
+                <span className="bg-white px-2">or with email</span>
+              </div>
+            </div>
 
-            <p className="text-[#4b5850] text-[13px] mt-8">
-              We'll ask for your phone number and a couple of other details
-              right after you sign in.
+            <form
+              onSubmit={handleEmailSignup}
+              noValidate
+              className="space-y-[18px] text-left"
+            >
+              <label className="flex flex-col gap-1.5 text-[13px] text-[#4b5850]">
+                <span>Email</span>
+                <input
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={form.email}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, email: e.target.value }))
+                  }
+                  placeholder="you@example.com"
+                  className="text-[15px] px-3 py-2.5 rounded-[3px] border border-[#cfd3c9] bg-white text-[#12231d] focus:outline-none focus:ring-2 focus:ring-[#12231d] focus:ring-offset-1"
+                />
+              </label>
+
+              <label className="flex flex-col gap-1.5 text-[13px] text-[#4b5850]">
+                <span>Password</span>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    required
+                    value={form.password}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, password: e.target.value }))
+                    }
+                    placeholder="Minimum 8 characters"
+                    className="w-full pr-10 text-[15px] px-3 py-2.5 rounded-[3px] border border-[#cfd3c9] bg-white text-[#12231d] focus:outline-none focus:ring-2 focus:ring-[#12231d] focus:ring-offset-1"
+                  />
+                  <button
+                    type="button"
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#4b5850] hover:text-[#12231d]"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </label>
+
+              {error && (
+                <p role="alert" className="text-[#a3352b] text-[13px] mt-4">
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 rounded-[3px] bg-[#12231d] text-[#f6f4ee] text-[15px] disabled:opacity-60 disabled:cursor-default"
+              >
+                {loading ? "Creating account…" : "Create account"}
+              </button>
+            </form>
+
+            <p className="text-[#4b5850] text-[13px] mt-8 text-center">
+              Already have an account?{" "}
+              <Link
+                href="/signin"
+                className="font-medium text-[#12231d] no-underline hover:text-[#ec1561]"
+              >
+                Sign in
+              </Link>
             </p>
           </div>
         </div>
