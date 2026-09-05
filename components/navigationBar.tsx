@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X, MessageCircle } from "lucide-react";
+import { LogIn, Menu, UserPlus, X } from "lucide-react";
 
 interface NavLink {
   label: string;
@@ -44,13 +44,23 @@ export default function Navbar() {
         </ul>
 
         {/* Desktop CTA */}
-        <Link
-          href="#contact"
-          className="hidden min-[681px]:flex items-center gap-2 bg-[#128C7E] text-white text-[13px] font-semibold px-[18px] py-[10px] rounded-lg no-underline whitespace-nowrap shrink-0"
-        >
-          <MessageCircle size={14} />
-          WhatsApp Us
-        </Link>
+        <div className="hidden min-[681px]:flex items-center gap-3 ml-auto">
+          <Link
+            href="/signin"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-[#D9D5CF] bg-white px-[18px] py-[10px] text-[13px] font-semibold text-[#1B1A2E] no-underline shadow-[0_8px_18px_rgba(27,26,46,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#B8B2A9] hover:bg-[#F7F5F2]"
+          >
+            <LogIn size={15} />
+            Sign in
+          </Link>
+
+          <Link
+            href="/signup"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-[#E23E85] px-[20px] py-[10px] text-[13px] font-semibold text-white no-underline shadow-[0_14px_28px_rgba(226,62,133,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#cf2f74]"
+          >
+            <UserPlus size={15} />
+            Sign up
+          </Link>
+        </div>
 
         {/* Mobile toggle */}
         <button
@@ -77,12 +87,20 @@ export default function Navbar() {
             </Link>
           ))}
           <Link
-            href="#contact"
+            href="/signin"
             onClick={() => setOpen(false)}
-            className="flex items-center justify-center gap-2 bg-[#128C7E] text-white text-[13px] font-semibold px-[18px] py-[14px] rounded-lg no-underline mt-2.5"
+            className="mt-3 flex items-center justify-center gap-2 rounded-full border border-[#D9D5CF] bg-white px-[18px] py-[12px] text-[13px] font-semibold text-[#1B1A2E] no-underline"
           >
-            <MessageCircle size={14} />
-            WhatsApp Us
+            <LogIn size={15} />
+            Sign in
+          </Link>
+          <Link
+            href="/signup"
+            onClick={() => setOpen(false)}
+            className="mt-2 flex items-center justify-center gap-2 rounded-full bg-[#E23E85] px-[18px] py-[12px] text-[13px] font-semibold text-white no-underline shadow-[0_12px_24px_rgba(226,62,133,0.2)]"
+          >
+            <UserPlus size={15} />
+            Sign up
           </Link>
         </div>
       )}
