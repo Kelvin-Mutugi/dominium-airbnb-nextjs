@@ -42,9 +42,9 @@ export async function GET(req: Request) {
   }
 
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("admin_roles")
     .select("privilege")
-    .eq("id", user.id)
+    .eq("user_id", user.id)
     .maybeSingle();
 
   if (!profile || profile.privilege !== true) {

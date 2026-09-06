@@ -44,13 +44,13 @@ export default async function AdminPage() {
     redirect(signinUrl.toString());
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
+  const { data: roleRow } = await supabase
+    .from("admin_roles")
     .select("privilege")
-    .eq("id", user!.id)
+    .eq("user_id", user!.id)
     .maybeSingle();
 
-  if (!profile || profile.privilege !== true) {
+  if (!roleRow || roleRow.privilege !== true) {
     // Do not reveal the admin page — render Next.js 404 instead
     notFound();
   }

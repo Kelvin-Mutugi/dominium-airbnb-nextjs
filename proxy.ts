@@ -64,13 +64,13 @@ export async function proxy(request: NextRequest) {
 
   // If this is an admin route, verify the user's `privilege` flag is true
   if (pathname.startsWith("/admin")) {
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
+    const { data: roleRow, error: roleError } = await supabase
+      .from("admin_roles")
       .select("privilege")
-      .eq("id", user.id)
+      .eq("user_id", user.id)
       .maybeSingle();
 
-    if (profileError || !profile || profile.privilege !== true) {
+    if (roleError || !roleRow || roleRow.privilege !== true) {
       // Signed-in but not privileged — return 404 to hide admin route existence
       if (isApiRequest) {
         return new NextResponse(null, { status: 404 });
