@@ -1,0 +1,96 @@
+import { NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+
+function parseCookieHeader(header: string | null | undefined) {
+  if (!header) return [];
+  return header.split("; ").map((pair) => {
+    const idx = pair.indexOf("=");
+    const name = idx > -1 ? pair.slice(0, idx) : pair;
+    const value = idx > -1 ? pair.slice(idx + 1) : "";
+    return { name, value };
+  });
+}
+
+export async function GET(req: Request) {
+  const supabaseKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
+  const cookieHeader = req.headers.get("cookie");
+  const cookieArray = parseCookieHeader(cookieHeader);
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    supabaseKey,
+    {
+      cookies: {
+        getAll: () => cookieArray,
+      },
+    },
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const now = new Date().toISOString();
+
+  if (!user) {
+    // Log unauthenticated attempt (console stub)
+    console.warn(`[admin-audit] unauthenticated access attempt at ${now}`);
+    // Return 404 to hide admin endpoint existence
+    return new NextResponse(null, { status: 404 });
+  }
+
+  const { data: profile } = await supabase
+    .from("admin_roles")
+    .select("privilege")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!profile || profile.privilege !== true) {
+    // Log forbidden attempt
+    console.warn(`[admin-audit] forbidden access by user=${user.id} at ${now}`);
+
+    // Attempt to insert audit log into `admin_access_logs` table (best-effort)
+    try {
+      await supabase.from("admin_access_logs").insert([
+        {
+          user_id: user.id,
+          action: "GET /api/admin/stats",
+          success: false,
+          created_at: now,
+        },
+      ]);
+    } catch (e) {
+      // ignore insertion errors
+    }
+
+    // Return 404 to hide admin endpoint existence
+    return new NextResponse(null, { status: 404 });
+  }
+
+  // At this point the user is privileged — perform admin action (example data)
+  // Example: count number of profiles (requires service role or appropriate RLS)
+  const { data: countData } = await supabase
+    .from("profiles")
+    .select("id", { count: "exact", head: false });
+
+  // Log successful access
+  try {
+    await supabase.from("admin_access_logs").insert([
+      {
+        user_id: user.id,
+        action: "GET /api/admin/stats",
+        success: true,
+        created_at: now,
+      },
+    ]);
+  } catch (e) {
+    // ignore
+  }
+
+  return NextResponse.json({
+    ok: true,
+    profilesCount: Array.isArray(countData) ? countData.length : null,
+  });
+}
