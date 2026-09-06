@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { createClient } from "@/app/lib/supabase/client";
+import { supabase } from "@/app/lib/supabase/client";
 
 const heroImages = [
   {
@@ -23,7 +23,6 @@ const heroImages = [
 
 export default function SignupPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);

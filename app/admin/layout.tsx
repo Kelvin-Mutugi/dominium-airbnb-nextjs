@@ -1,7 +1,7 @@
 // app/admin/layout.tsx — one gate for the whole admin route group
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/app/lib/supabase/server";
-import { createAdminClient } from "@/app/lib/supabase/admin";
+import { supabaseAdmin } from "@/app/lib/supabase/admin";
 import { AdminSidebar } from "@/components/admin/sidebar";
 
 export default async function AdminLayout({
@@ -23,7 +23,7 @@ export default async function AdminLayout({
     redirect(signinUrl.toString());
   }
 
-  const admin = createAdminClient();
+  const admin = supabaseAdmin;
   const { data: roleRow } = await admin
     .from("admin_roles")
     .select("privilege")

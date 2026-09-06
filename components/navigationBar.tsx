@@ -13,7 +13,7 @@ import {
   UserPlus,
   X,
 } from "lucide-react";
-import { createClient } from "@/app/lib/supabase/client";
+import { supabase } from "@/app/lib/supabase/client";
 
 interface NavLink {
   label: string;
@@ -39,8 +39,6 @@ export default function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
-    const supabase = createClient();
-
     function syncUserState(user: any) {
       const nextName =
         user?.user_metadata?.full_name ||
@@ -96,7 +94,6 @@ export default function Navbar() {
       .join("") || "U";
 
   async function handleSignOut() {
-    const supabase = createClient();
     await supabase.auth.signOut();
     setIsSignedIn(false);
     setUserName("User");

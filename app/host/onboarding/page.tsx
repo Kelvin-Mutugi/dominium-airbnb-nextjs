@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/app/lib/supabase/client";
+import { supabase } from "@/app/lib/supabase/client";
 
 type FormState = {
   businessName: string;
@@ -26,7 +26,6 @@ const initialState: FormState = {
 
 export default function HostOnboardingPage() {
   const router = useRouter();
-  const supabase = createClient();
 
   const [form, setForm] = useState<FormState>(initialState);
   const [submitting, setSubmitting] = useState(false);

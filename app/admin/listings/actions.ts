@@ -3,12 +3,12 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/app/lib/admin-auth";
-import { createAdminClient } from "@/app/lib/supabase/admin";
+import { supabaseAdmin } from "@/app/lib/supabase/admin";
 
 // add to app/admin/listings/actions.ts
 export async function reinstateListing(listingId: string) {
   await requireAdmin();
-  const admin = createAdminClient();
+  const admin = supabaseAdmin;
   const { error } = await admin
     .from("listings")
     .update({ status: "published" })
@@ -20,7 +20,7 @@ export async function reinstateListing(listingId: string) {
 
 export async function rejectListing(listingId: string) {
   await requireAdmin();
-  const admin = createAdminClient();
+  const admin = supabaseAdmin;
   const { error } = await admin
     .from("listings")
     .update({ status: "draft" })
@@ -32,7 +32,7 @@ export async function rejectListing(listingId: string) {
 
 export async function archiveListing(listingId: string) {
   await requireAdmin();
-  const admin = createAdminClient();
+  const admin = supabaseAdmin;
   const { error } = await admin
     .from("listings")
     .update({ status: "archived" })
@@ -43,7 +43,7 @@ export async function archiveListing(listingId: string) {
 
 export async function suspendListing(listingId: string) {
   await requireAdmin();
-  const admin = createAdminClient();
+  const admin = supabaseAdmin;
   const { error } = await admin
     .from("listings")
     .update({ status: "suspended" })
@@ -54,7 +54,7 @@ export async function suspendListing(listingId: string) {
 // app/admin/listings/actions.ts — updated approve/reject
 export async function approveListing(listingId: string) {
   await requireAdmin();
-  const admin = createAdminClient();
+  const admin = supabaseAdmin;
   const { error } = await admin
     .from("listings")
     .update({ status: "published" })

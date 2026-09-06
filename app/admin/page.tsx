@@ -1,9 +1,9 @@
 // app/admin/page.tsx
-import { createAdminClient } from "@/app/lib/supabase/admin";
+import { supabaseAdmin } from "@/app/lib/supabase/admin";
 import Link from "next/link";
 
 async function getDashboardStats() {
-  const admin = createAdminClient();
+  const admin = supabaseAdmin;
 
   const [
     { count: totalListings },

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/app/lib/supabase/client";
+import { supabase } from "@/app/lib/supabase/client";
 
 const heroImages = [
   {
@@ -21,7 +21,6 @@ const heroImages = [
 
 export default function CompleteProfilePage() {
   const router = useRouter();
-  const supabase = createClient();
 
   const [phone, setPhone] = useState("");
   const [wantsToHost, setWantsToHost] = useState(false);

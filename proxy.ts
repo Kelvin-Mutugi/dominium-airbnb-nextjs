@@ -16,14 +16,9 @@ export async function proxy(request: NextRequest) {
 
   const response = NextResponse.next();
 
-  // Prefer using a server-only service role key for server-side checks when available.
-  const supabaseKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
-
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    supabaseKey,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookies: {
         getAll() {

@@ -14,7 +14,7 @@ import {
   type Amenity,
   type Listing,
 } from "@/components/homeData";
-import { supabase } from "@/app/lib/supabase";
+import { supabase } from "@/app/lib/supabase/client";
 
 function normalizeAmenities(value: unknown): Amenity[] {
   if (!Array.isArray(value)) {

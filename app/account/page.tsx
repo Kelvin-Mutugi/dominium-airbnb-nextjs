@@ -4,11 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LogOut, Mail, ShieldCheck, UserRound } from "lucide-react";
-import { createClient } from "@/app/lib/supabase/client";
+import { supabase } from "@/app/lib/supabase/client";
 
 export default function AccountPage() {
   const router = useRouter();
-  const supabase = createClient();
 
   const [userName, setUserName] = useState("User");
   const [email, setEmail] = useState("");

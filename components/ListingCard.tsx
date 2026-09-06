@@ -5,7 +5,7 @@ import Link from "next/link";
 import { MessageCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { MouseEvent } from "react";
-import { supabase } from "@/app/lib/supabase";
+import { supabase } from "@/app/lib/supabase/client";
 import type { Amenity, Listing } from "./homeData";
 
 function normalizeAmenities(value: unknown): Amenity[] {
@@ -156,6 +156,7 @@ export default function ListingCard({ item, id }: ListingCardProps) {
             src={listing.img || "/placeholder.svg"}
             alt={listing.name}
             fill
+            unoptimized={listing.img.includes("placehold.co")}
             className="object-cover"
             sizes="(max-width: 768px) 100vw, 320px"
           />

@@ -1,32 +1,8 @@
 import { NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@/app/lib/supabase/server";
 
-function parseCookieHeader(header: string | null | undefined) {
-  if (!header) return [];
-  return header.split("; ").map((pair) => {
-    const idx = pair.indexOf("=");
-    const name = idx > -1 ? pair.slice(0, idx) : pair;
-    const value = idx > -1 ? pair.slice(idx + 1) : "";
-    return { name, value };
-  });
-}
-
-export async function GET(req: Request) {
-  const supabaseKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
-  const cookieHeader = req.headers.get("cookie");
-  const cookieArray = parseCookieHeader(cookieHeader);
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    supabaseKey,
-    {
-      cookies: {
-        getAll: () => cookieArray,
-      },
-    },
-  );
+export async function GET() {
+  const supabase = await createClient();
 
   const {
     data: { user },
