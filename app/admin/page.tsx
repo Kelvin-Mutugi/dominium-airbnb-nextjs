@@ -1,78 +1,131 @@
-import { headers } from "next/headers";
-import { redirect, notFound } from "next/navigation";
-import { createServerClient } from "@supabase/ssr";
+// app/admin/page.tsx
+import { createAdminClient } from "@/app/lib/supabase/admin";
+import Link from "next/link";
 
-export default async function AdminPage() {
-  const supabaseKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
+async function getDashboardStats() {
+  const admin = createAdminClient();
 
-  function parseCookieHeader(header: string | null | undefined) {
-    if (!header) return [];
-    return header.split("; ").map((pair) => {
-      const idx = pair.indexOf("=");
-      const name = idx > -1 ? pair.slice(0, idx) : pair;
-      const value = idx > -1 ? pair.slice(idx + 1) : "";
-      return { name, value };
-    });
-  }
+  const [
+    { count: totalListings },
+    { count: pendingListings },
+    { count: pendingBookings },
+    { count: activeUsers },
+    { data: payoutRows },
+    { data: recentBookings },
+  ] = await Promise.all([
+    admin.from("listings").select("*", { count: "exact", head: true }),
+    admin
+      .from("listings")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "pending"),
+    admin
+      .from("bookings")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "pending"),
+    admin
+      .from("profiles")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "active"),
+    admin.from("payouts").select("amount").eq("status", "owed"),
+    admin
+      .from("bookings")
+      .select("id, check_in, check_out, status, total_amount, listing_id, guest_id")
+      .order("created_at", { ascending: false })
+      .limit(5),
+  ]);
 
-  const hdr = await headers();
-  const cookieHeader = hdr.get("cookie");
-  const cookieArray = parseCookieHeader(cookieHeader);
+  const payoutsOwed =
+    payoutRows?.reduce((sum, row) => sum + Number(row.amount), 0) ?? 0;
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    supabaseKey,
-    {
-      cookies: {
-        getAll: () => cookieArray,
-      },
-    },
+  return {
+    totalListings: totalListings ?? 0,
+    pendingListings: pendingListings ?? 0,
+    pendingBookings: pendingBookings ?? 0,
+    activeUsers: activeUsers ?? 0,
+    payoutsOwed,
+    recentBookings: recentBookings ?? [],
+  };
+}
+
+function StatCard({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value: string | number;
+  href?: string;
+}) {
+  const content = (
+    <div className="p-4 border rounded-lg bg-white shadow-sm hover:shadow transition">
+      <p className="text-sm text-gray-500">{label}</p>
+      <p className="text-2xl font-semibold mt-1">{value}</p>
+    </div>
   );
+  return href ? <Link href={href}>{content}</Link> : content;
+}
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    const signinUrl = new URL(
-      "/signin",
-      process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-    );
-    signinUrl.searchParams.set("redirectTo", "/admin");
-    redirect(signinUrl.toString());
-  }
-
-  const { data: roleRow } = await supabase
-    .from("admin_roles")
-    .select("privilege")
-    .eq("user_id", user!.id)
-    .maybeSingle();
-
-  if (!roleRow || roleRow.privilege !== true) {
-    // Do not reveal the admin page — render Next.js 404 instead
-    notFound();
-  }
+export default async function AdminDashboardPage() {
+  const stats = await getDashboardStats();
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-[#f6f6f6]">
-      <div className="max-w-3xl w-full p-8 bg-white rounded-lg shadow">
-        <h1 className="text-2xl font-semibold mb-4">Admin Dashboard</h1>
-        <p className="text-sm text-gray-600 mb-6">
-          This area is restricted to users with the <strong>privilege</strong>{" "}
-          flag.
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-semibold">Dashboard</h1>
+        <p className="text-sm text-gray-600">
+          Overview of listings, bookings, and payouts.
         </p>
+      </div>
 
-        <div className="space-y-3">
-          <div className="p-4 border rounded">
-            Manage users, listings and more.
-          </div>
-          <div className="p-4 border rounded">
-            Audit logs and site settings.
-          </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard
+          label="Total Listings"
+          value={stats.totalListings}
+          href="/admin/listings"
+        />
+        <StatCard
+          label="Pending Approval"
+          value={stats.pendingListings}
+          href="/admin/listings?status=pending"
+        />
+        <StatCard
+          label="Pending Bookings"
+          value={stats.pendingBookings}
+          href="/admin/bookings?status=pending"
+        />
+        <StatCard
+          label="Active Users"
+          value={stats.activeUsers}
+          href="/admin/users"
+        />
+      </div>
+
+      <StatCard
+        label="Payouts Owed to Hosts"
+        value={`KES ${stats.payoutsOwed.toLocaleString()}`}
+        href="/admin/payouts"
+      />
+
+      <div>
+        <h2 className="text-lg font-semibold mb-3">Recent Bookings</h2>
+        <div className="bg-white rounded-lg shadow-sm divide-y">
+          {stats.recentBookings.length === 0 && (
+            <p className="p-4 text-sm text-gray-500">No bookings yet.</p>
+          )}
+          {stats.recentBookings.map((b) => (
+            <div
+              key={b.id}
+              className="p-4 flex items-center justify-between text-sm"
+            >
+              <span>
+                {b.check_in} → {b.check_out}
+              </span>
+              <span className="capitalize text-gray-500">{b.status}</span>
+              <span>KES {Number(b.total_amount).toLocaleString()}</span>
+            </div>
+          ))}
         </div>
       </div>
-    </main>
+    </div>
   );
 }
