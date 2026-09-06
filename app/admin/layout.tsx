@@ -15,7 +15,12 @@ export default async function AdminLayout({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/signin?redirectTo=%2Fadmin");
+    const signinUrl = new URL(
+      "/signin",
+      process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    );
+    signinUrl.searchParams.set("redirectTo", "/admin");
+    redirect(signinUrl.toString());
   }
 
   const admin = getSupabaseAdmin();
