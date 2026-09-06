@@ -26,7 +26,7 @@ export default async function AdminListingsPage({
     <div>
       <h1 className="text-2xl font-semibold mb-1">Listings</h1>
       <p className="text-sm text-gray-600 mb-4">
-        Review submissions, and manage what's live on the site.
+        Review submissions, and manage whats live on the site.
       </p>
 
       <ListingTabs />
