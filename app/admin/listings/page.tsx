@@ -1,5 +1,5 @@
 // app/admin/listings/page.tsx
-import { supabaseAdmin } from "@/app/lib/supabase/admin";
+import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 import { ListingTabs } from "@/components/admin/listings/tabs";
 import { ListingRowActions } from "@/components/admin/listings/listing-row-actions";
 
@@ -11,7 +11,7 @@ export default async function AdminListingsPage({
   const { status } = await searchParams;
   const activeStatus = status ?? "draft";
 
-  const admin = supabaseAdmin;
+  const admin = getSupabaseAdmin();
   const { data: listings } = await admin
     .from("listings")
     .select(

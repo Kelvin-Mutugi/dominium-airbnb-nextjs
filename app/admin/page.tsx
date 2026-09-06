@@ -1,9 +1,9 @@
 // app/admin/page.tsx
-import { supabaseAdmin } from "@/app/lib/supabase/admin";
+import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 import Link from "next/link";
 
 async function getDashboardStats() {
-  const admin = supabaseAdmin;
+  const admin = getSupabaseAdmin();
 
   const [
     { count: totalListings },

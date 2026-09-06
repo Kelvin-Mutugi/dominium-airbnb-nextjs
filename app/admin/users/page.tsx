@@ -1,5 +1,5 @@
 // app/admin/users/page.tsx
-import { supabaseAdmin } from "@/app/lib/supabase/admin";
+import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 import { UserTabs } from "@/components/admin/users/tabs";
 import { UserRowActions } from "@/components/admin/users/user-row-actions";
 
@@ -11,7 +11,7 @@ export default async function AdminUsersPage({
   const { tab } = await searchParams;
   const role = tab === "hosts" ? "host" : "guest";
 
-  const admin = supabaseAdmin;
+  const admin = getSupabaseAdmin();
   const { data: profiles } = await admin
     .from("profiles")
     .select(

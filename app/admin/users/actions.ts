@@ -3,11 +3,11 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/app/lib/admin-auth";
-import { supabaseAdmin } from "@/app/lib/supabase/admin";
+import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 
 export async function suspendUser(userId: string, reason: string) {
   await requireAdmin();
-  const admin = supabaseAdmin;
+  const admin = getSupabaseAdmin();
   const { error } = await admin
     .from("profiles")
     .update({ status: "suspended", suspended_reason: reason })
@@ -18,7 +18,7 @@ export async function suspendUser(userId: string, reason: string) {
 
 export async function reactivateUser(userId: string) {
   await requireAdmin();
-  const admin = supabaseAdmin;
+  const admin = getSupabaseAdmin();
   const { error } = await admin
     .from("profiles")
     .update({ status: "active", suspended_reason: null })
@@ -29,7 +29,7 @@ export async function reactivateUser(userId: string) {
 
 export async function verifyHost(userId: string) {
   await requireAdmin();
-  const admin = supabaseAdmin;
+  const admin = getSupabaseAdmin();
   const { error } = await admin
     .from("profiles")
     .update({ host_verified_at: new Date().toISOString() })
