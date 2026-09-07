@@ -176,9 +176,9 @@ export default function ListingCard({ item, id }: ListingCardProps) {
 
             <span
               onClick={handleWhatsAppClick}
-              className="flex items-center gap-[6px] rounded-lg bg-[#128C7E] px-[14px] py-[9px] text-[12px] font-semibold text-white no-underline"
+              className="flex items-center gap-[6px] rounded-lg bg-[#1B1A2E] px-[14px] py-[9px] text-[12px] font-semibold text-white no-underline"
             >
-              <MessageCircle size={13} />
+              {/* <MessageCircle size={13} /> */}
               Reserve
             </span>
           </div>

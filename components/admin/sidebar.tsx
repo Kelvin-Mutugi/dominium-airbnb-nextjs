@@ -25,7 +25,7 @@ export function AdminSidebar() {
   return (
     <aside className="w-64 shrink-0 bg-white border-r min-h-screen flex flex-col">
       <div className="p-6 border-b">
-        <span className="text-lg font-semibold">Dominium Admin</span>
+        <span className="text-lg font-semibold text-[#1B1A2E]">Dominium <span className="text-[#E23E85]">Admin</span> </span>
       </div>
 
       <nav className="flex-1 p-3 space-y-1">

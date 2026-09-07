@@ -59,7 +59,7 @@ function StatCard({
   const content = (
     <div className="p-4 border rounded-lg bg-white shadow-sm hover:shadow transition">
       <p className="text-sm text-gray-500">{label}</p>
-      <p className="text-2xl font-semibold mt-1">{value}</p>
+      <p className="mt-1 text-2xl font-semibold text-gray-500">{value}</p>
     </div>
   );
   return href ? <Link href={href}>{content}</Link> : content;
@@ -71,7 +71,7 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
+        <h1 className="text-2xl font-semibold text-[#E23E85]">Dashboard</h1>
         <p className="text-sm text-gray-600">
           Overview of listings, bookings, and payouts.
         </p>
@@ -107,21 +107,21 @@ export default async function AdminDashboardPage() {
       />
 
       <div>
-        <h2 className="text-lg font-semibold mb-3">Recent Bookings</h2>
+        <h2 className="text-2xl font-semibold text-[#E23E85] mb-4 mt-6">Recent Bookings</h2>
         <div className="bg-white rounded-lg shadow-sm divide-y">
           {stats.recentBookings.length === 0 && (
             <p className="p-4 text-sm text-gray-500">No bookings yet.</p>
           )}
           {stats.recentBookings.map((b) => (
-            <div
+            <div 
               key={b.id}
-              className="p-4 flex items-center justify-between text-sm"
+              className="p-4 flex items-center justify-between text-sm text-gray-200"
             >
-              <span>
+              <span className="text-gray-500">
                 {b.check_in} → {b.check_out}
               </span>
               <span className="capitalize text-gray-500">{b.status}</span>
-              <span>KES {Number(b.total_amount).toLocaleString()}</span>
+              <span className="text-gray-500">KES {Number(b.total_amount).toLocaleString()}</span>
             </div>
           ))}
         </div>

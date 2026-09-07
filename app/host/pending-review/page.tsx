@@ -56,7 +56,7 @@ export default function PendingReviewPage() {
             </h2>
             <p className="text-[#e4e4e4] text-[14px] leading-relaxed max-w-[34ch]">
               We’ll review your host profile, payout details, and ID information
-              before your listings can go live.
+              before you can start listing with us.
             </p>
           </div>
         </div>
@@ -89,8 +89,7 @@ export default function PendingReviewPage() {
             <div className="space-y-4 text-[#4b5850] text-[15px] leading-relaxed">
               <p>
                 Thank you for submitting your host details. Our team is reviewing
-                your profile and payout information before your listings can go
-                live.
+                your profile and payout information before you can start listings.
               </p>
 
               <div className="rounded-[12px] border border-[#ece8e2] bg-[#f7f4ef] p-4 text-[14px]">

@@ -22,7 +22,7 @@ export default async function AdminUsersPage({
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-1">Users</h1>
+      <h1 className="text-2xl font-semibold mb-1 text-[#E23E85]">Users</h1>
       <p className="text-sm text-gray-600 mb-4">
         Manage guests and hosts, verify hosts, and suspend accounts.
       </p>
@@ -44,10 +44,10 @@ export default async function AdminUsersPage({
           <tbody className="divide-y">
             {(profiles ?? []).map((p) => (
               <tr key={p.id}>
-                <td className="p-3">{p.full_name}</td>
-                <td className="p-3">{p.phone}</td>
+                <td className="p-3 text-[#1B1A2E]">{p.full_name}</td>
+                <td className="p-3 text-[#1B1A2E]">{p.phone}</td>
                 {role === "host" && (
-                  <td className="p-3">{p.business_name ?? "—"}</td>
+                  <td className="p-3 text-[#1B1A2E]">{p.business_name ?? "—"}</td>
                 )}
                 {role === "host" && (
                   <td className="p-3">

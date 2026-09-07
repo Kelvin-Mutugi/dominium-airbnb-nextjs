@@ -24,7 +24,7 @@ export default async function AdminListingsPage({
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-1">Listings</h1>
+      <h1 className="text-2xl font-semibold mb-1 text-[#E23E85]">Listings</h1>
       <p className="text-sm text-gray-600 mb-4">
         Review submissions, and manage whats live on the site.
       </p>
@@ -54,7 +54,7 @@ export default async function AdminListingsPage({
               </div>
 
               <div className="flex-1">
-                <p className="font-medium">{l.title}</p>
+                <p className="font-medium text-[#1B1A2E]">{l.title}</p>
                 <p className="text-sm text-gray-500">
                   {l.town}, {l.county} · KES {Number(l.price_per_night).toLocaleString()}/night
                 </p>

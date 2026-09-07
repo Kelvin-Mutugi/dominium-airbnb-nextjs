@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/app/lib/admin-auth";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 
+//suspend user
 export async function suspendUser(userId: string, reason: string) {
   await requireAdmin();
   const admin = getSupabaseAdmin();
@@ -16,6 +17,7 @@ export async function suspendUser(userId: string, reason: string) {
   revalidatePath("/admin/users");
 }
 
+// reactivate user
 export async function reactivateUser(userId: string) {
   await requireAdmin();
   const admin = getSupabaseAdmin();
@@ -27,6 +29,7 @@ export async function reactivateUser(userId: string) {
   revalidatePath("/admin/users");
 }
 
+//veryfy host
 export async function verifyHost(userId: string) {
   await requireAdmin();
   const admin = getSupabaseAdmin();
