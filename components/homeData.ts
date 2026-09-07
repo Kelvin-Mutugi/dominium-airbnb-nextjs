@@ -13,7 +13,7 @@ export const ROUTES: string[] = [
   "Nakuru — Section 58",
 ];
 
-export type Amenity = "wifi" | "ac" | "pool" | "parking";
+export type Amenity = string;
 
 export interface Listing {
   id: string;
@@ -46,7 +46,7 @@ export const LISTINGS: Listing[] = [
     name: "Riverside 2BR Apartment",
     loc: "Kilimani, Nairobi",
     price: "KES 3,500 / night",
-    detail: "Sleeps 4 · wifi · parking",
+    detail: "Max guests: 4 · wifi · parking",
     img: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&q=60",
     gallery: [
       "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&q=80",

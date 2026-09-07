@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/app/lib/admin-auth";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 
-// add to app/admin/listings/actions.ts
+//reinstatate listing
 export async function reinstateListing(listingId: string) {
   await requireAdmin();
   const admin = getSupabaseAdmin();
@@ -18,6 +18,20 @@ export async function reinstateListing(listingId: string) {
   revalidatePath("/admin/listings");
 }
 
+// approve listing
+export async function approveListing(listingId: string) {
+  await requireAdmin();
+  const admin = getSupabaseAdmin();
+  const { error } = await admin
+    .from("listings")
+    .update({ status: "published" })
+    .eq("id", listingId)
+    .eq("status", "pending_review");
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/listings");
+}
+
+//reject listing
 export async function rejectListing(listingId: string) {
   await requireAdmin();
   const admin = getSupabaseAdmin();
@@ -30,6 +44,7 @@ export async function rejectListing(listingId: string) {
   revalidatePath("/admin/listings");
 }
 
+//archive listing
 export async function archiveListing(listingId: string) {
   await requireAdmin();
   const admin = getSupabaseAdmin();
@@ -41,6 +56,7 @@ export async function archiveListing(listingId: string) {
   revalidatePath("/admin/listings");
 }
 
+//suspend listing
 export async function suspendListing(listingId: string) {
   await requireAdmin();
   const admin = getSupabaseAdmin();
@@ -51,16 +67,5 @@ export async function suspendListing(listingId: string) {
   if (error) throw new Error(error.message);
   revalidatePath("/admin/listings");
 }
-// app/admin/listings/actions.ts — updated approve/reject
-export async function approveListing(listingId: string) {
-  await requireAdmin();
-  const admin = getSupabaseAdmin();
-  const { error } = await admin
-    .from("listings")
-    .update({ status: "published" })
-    .eq("id", listingId)
-    .eq("status", "pending_review");
-  if (error) throw new Error(error.message);
-  revalidatePath("/admin/listings");
-}
+
 

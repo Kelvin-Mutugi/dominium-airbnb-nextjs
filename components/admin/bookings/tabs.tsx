@@ -1,20 +1,20 @@
-// components/admin/listings/tabs.tsx
+// components/admin/bookings/tabs.tsx
 "use client";
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 const STATUSES = [
-  { value: "pending_review", label: "Pending Review" },
-  { value: "published", label: "Live" },
-  { value: "archived", label: "Archived" },
-  { value: "suspended", label: "Suspended" },
+  { value: "pending", label: "Pending" },
+  { value: "confirmed", label: "Confirmed" },
+  { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
 ];
 
-export function ListingTabs() {
+export function BookingTabs() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const active = searchParams.get("status") ?? "pending_review";
+  const active = searchParams.get("status") ?? "pending";
 
   return (
     <div className="flex border-b mb-4">

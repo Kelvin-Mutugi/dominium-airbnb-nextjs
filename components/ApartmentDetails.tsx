@@ -105,10 +105,10 @@ export default function ApartmentDetails({
 
                 <a
                   href="#contact"
-                  className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#128C7E] px-5 py-3 font-semibold text-white no-underline"
+                  className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#1B1A2E] px-5 py-3 font-semibold text-white no-underline"
                 >
-                  <MessageCircle size={15} />
-                  WhatsApp host
+                  {/* <MessageCircle size={15} /> */}
+                  Researve
                 </a>
               </div>
             </div>
@@ -161,7 +161,7 @@ export default function ApartmentDetails({
           </aside>
         </div>
 
-        <section className="mt-10 rounded-[24px] border border-[#E9E6DD] bg-white p-6 shadow-sm">
+        {/* <section className="mt-10 rounded-[24px] border border-[#E9E6DD] bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2 text-[#1B1A2E]">
             <Video size={18} className="text-[#E23E85]" />
             <h2 className="font-['Anton',sans-serif] text-[28px] font-normal">
@@ -176,7 +176,7 @@ export default function ApartmentDetails({
             <source src={listing.video} type="video/mp4" />
             Your browser does not support the video tag.
           </video>
-        </section>
+        </section> */}
       </div>
     </div>
   );

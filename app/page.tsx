@@ -61,6 +61,7 @@ export default function HomePage() {
         .select(
           `
             id,
+            host_id,
             title,
             description,
             county,
@@ -71,9 +72,12 @@ export default function HomePage() {
             bedrooms,
             bathrooms,
             amenities,
+            created_at,
             listing_images ( url, sort_order )
           `,
         )
+        .eq("status", "published")
+        .order("created_at", { ascending: false })
         .order("sort_order", {
           foreignTable: "listing_images",
           ascending: true,
@@ -84,8 +88,31 @@ export default function HomePage() {
         return;
       }
 
-      if (data && data.length > 0) {
-        const normalizedListings: Listing[] = data.map((listing) => {
+      const publishedListings = data ?? [];
+      const hostIds = [...new Set(publishedListings.map((listing) => listing.host_id).filter(Boolean))];
+
+      let verifiedHostIds = new Set<string>();
+      if (hostIds.length > 0) {
+        const { data: profiles, error: profilesError } = await dbClient
+          .from("profiles")
+          .select("id, host_verified_at")
+          .in("id", hostIds)
+          .not("host_verified_at", "is", null);
+
+        if (profilesError) {
+          console.error("Failed to load host verification data:", profilesError);
+          return;
+        }
+
+        verifiedHostIds = new Set((profiles ?? []).map((profile) => profile.id));
+      }
+
+      const visibleListings = publishedListings.filter(
+        (listing) => listing.host_id && verifiedHostIds.has(listing.host_id),
+      );
+
+      if (visibleListings.length > 0) {
+        const normalizedListings: Listing[] = visibleListings.map((listing) => {
           const gallery = Array.isArray(listing.listing_images)
             ? listing.listing_images
                 .map((imageRow: { url?: string | null }) => imageRow?.url)
@@ -102,7 +129,7 @@ export default function HomePage() {
           }).format(price);
 
           const loc = [listing.town, listing.county].filter(Boolean).join(", ");
-          const detail = `Sleeps ${listing.max_guests ?? 0}${amenities.length ? ` · ${amenities.slice(0, 2).join(" · ")}` : ""}`;
+          const detail = `Max guests: ${listing.max_guests ?? 0}${amenities.length ? ` · ${amenities.slice(0, 2).join(" · ")}` : ""}`;
 
           return {
             id: String(listing.id),
