@@ -3,6 +3,11 @@ import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 import { ListingTabs } from "@/components/admin/listings/tabs";
 import { ListingRowActions } from "@/components/admin/listings/listing-row-actions";
 
+type ListingProfile = {
+  full_name?: string | null;
+  business_name?: string | null;
+};
+
 type ListingRow = {
   id: string;
   title: string;
@@ -11,10 +16,7 @@ type ListingRow = {
   price_per_night: number | string | null;
   status: string;
   created_at: string | null;
-  profiles?: {
-    full_name?: string | null;
-    business_name?: string | null;
-  } | null;
+  profiles?: ListingProfile | ListingProfile[] | null;
   listing_images?: Array<{
     url?: string | null;
     sort_order: number;
@@ -50,7 +52,10 @@ export default async function AdminListingsPage({
       <ListingTabs />
 
       <div className="grid gap-4">
-        {(listings ?? []).map((l: ListingRow) => {
+        {(listings ?? []).map((l) => {
+          const profile = Array.isArray(l.profiles)
+            ? l.profiles[0] ?? null
+            : l.profiles ?? null;
           const cover = [...(l.listing_images ?? [])].sort(
             (a, b) => a.sort_order - b.sort_order
           )[0];
@@ -77,7 +82,7 @@ export default async function AdminListingsPage({
                   {l.town}, {l.county} · KES {Number(l.price_per_night).toLocaleString()}/night
                 </p>
                 <p className="text-xs text-gray-400 mt-1">
-                  Host: {l.profiles?.business_name ?? l.profiles?.full_name}
+                  Host: {profile?.business_name ?? profile?.full_name}
                 </p>
               </div>
 
