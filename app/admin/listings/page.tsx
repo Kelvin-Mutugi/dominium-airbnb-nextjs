@@ -3,13 +3,31 @@ import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 import { ListingTabs } from "@/components/admin/listings/tabs";
 import { ListingRowActions } from "@/components/admin/listings/listing-row-actions";
 
+type ListingRow = {
+  id: string;
+  title: string;
+  county: string | null;
+  town: string | null;
+  price_per_night: number | string | null;
+  status: string;
+  created_at: string | null;
+  profiles?: {
+    full_name?: string | null;
+    business_name?: string | null;
+  } | null;
+  listing_images?: Array<{
+    url?: string | null;
+    sort_order: number;
+  }>;
+};
+
 export default async function AdminListingsPage({
   searchParams,
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
   const { status } = await searchParams;
-  const activeStatus = status ?? "draft";
+  const activeStatus = status ?? "pending_review";
 
   const admin = getSupabaseAdmin();
   const { data: listings } = await admin
@@ -32,7 +50,7 @@ export default async function AdminListingsPage({
       <ListingTabs />
 
       <div className="grid gap-4">
-        {(listings ?? []).map((l: any) => {
+        {(listings ?? []).map((l: ListingRow) => {
           const cover = [...(l.listing_images ?? [])].sort(
             (a, b) => a.sort_order - b.sort_order
           )[0];

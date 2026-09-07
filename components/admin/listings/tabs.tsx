@@ -14,7 +14,7 @@ const STATUSES = [
 export function ListingTabs() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const active = searchParams.get("status") ?? "draft";
+  const active = searchParams.get("status") ?? "pending_review";
 
   return (
     <div className="flex border-b mb-4">

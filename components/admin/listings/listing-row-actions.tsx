@@ -3,6 +3,7 @@
 
 import { useTransition } from "react";
 import {
+  approveListing,
   reinstateListing,
   rejectListing,
   archiveListing,
@@ -30,9 +31,9 @@ export function ListingRowActions({
 
   return (
     <div className="flex gap-2">
-      {status === "draft" && (
+      {(status === "draft" || status === "pending_review") && (
         <>
-          {btn("Approve", () => reinstateListing(listingId), "bg-green-600 hover:bg-green-700")}
+          {btn("Approve", () => approveListing(listingId), "bg-green-600 hover:bg-green-700")}
           {btn("Reject", () => rejectListing(listingId), "bg-gray-500 hover:bg-gray-600")}
         </>
       )}
