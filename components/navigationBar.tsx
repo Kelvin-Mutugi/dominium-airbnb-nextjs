@@ -24,8 +24,9 @@ const LINKS: NavLink[] = [
   { label: "Home", href: "/" },
   { label: "Listings", href: "/#listings" },
   { label: "Booking Process", href: "/#booking_process" },
-  { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
+  { label: "About", href: "/about" },
+  { label: "Privacy Policy", href: "/privacy" },
   { label: "Blog", href: "/blog" },
 ];
 
@@ -192,7 +193,7 @@ export default function Navbar() {
                         {userName}
                       </p>
                       <p className="truncate text-[11px] text-[#4b5850]">
-                        Signed in
+                        Loged in
                       </p>
                     </div>
                   </div>
@@ -258,7 +259,7 @@ export default function Navbar() {
                 className="inline-flex items-center justify-center gap-2 rounded-full border border-[#D9D5CF] bg-white px-[18px] py-[10px] text-[13px] font-semibold text-[#1B1A2E] no-underline shadow-[0_8px_18px_rgba(27,26,46,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#B8B2A9] hover:bg-[#F7F5F2]"
               >
                 <LogIn size={15} />
-                Sign in
+                Log in
               </Link>
 
               <Link
@@ -332,7 +333,7 @@ export default function Navbar() {
                 className="mt-2 flex items-center justify-center gap-2 rounded-full border border-[#D9D5CF] bg-white px-[18px] py-[12px] text-[13px] font-semibold text-[#1B1A2E] no-underline"
               >
                 <LogIn size={15} />
-                Sign out
+                Log out
               </button>
             </>
           ) : (
@@ -343,7 +344,7 @@ export default function Navbar() {
                 className="mt-3 flex items-center justify-center gap-2 rounded-full border border-[#D9D5CF] bg-white px-[18px] py-[12px] text-[13px] font-semibold text-[#1B1A2E] no-underline"
               >
                 <LogIn size={15} />
-                Sign in
+                Log in
               </Link>
               <Link
                 href="/signup"

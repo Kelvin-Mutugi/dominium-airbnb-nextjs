@@ -132,7 +132,7 @@ export default function SigninClient() {
 
           <div className="bg-[#ffffff] rounded-[18px] px-8 py-10 border border-[#ece8e2] shadow-[0_20px_50px_rgba(18,35,29,0.06)] animate-rise-in motion-reduce:animate-none [animation-delay:120ms]">
             <h1 className="font-display text-[26px] text-[#12231d] mb-2 tracking-wide text-center">
-              Sign in
+             log in
             </h1>
             <p className="text-[#4b5850] text-[15px] leading-relaxed mb-8 text-center">
               Access your saved stays and continue hosting with confidence.
@@ -248,7 +248,7 @@ export default function SigninClient() {
 
               {error && (
                 <p role="alert" className="text-[#a3352b] text-[13px] -mt-1.5">
-                  {error}
+                  {/* {error} */}
                 </p>
               )}
 
