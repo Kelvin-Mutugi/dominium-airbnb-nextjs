@@ -122,7 +122,6 @@ export default function ListingCard({ item, id, loading = false }: ListingCardPr
         detail: `Max guests: ${data.max_guests ?? 0}${amenities.length ? ` · ${amenities.slice(0, 2).join(" · ")}` : ""}`,
         img: gallery[0] ?? "/placeholder.svg",
         gallery,
-        video: "",
         description: data.description ?? "",
         features: [
           ...(data.bedrooms ? [`${data.bedrooms} bedroom${data.bedrooms > 1 ? "s" : ""}`] : []),
