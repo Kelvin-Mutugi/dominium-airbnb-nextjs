@@ -11,6 +11,8 @@ import {
   Wifi,
 } from "lucide-react";
 import { Listing } from "./homeData";
+import AmenitiesGrid from "./appartmentDetails/amenities";
+import { ListingPolicies } from "./appartmentDetails/ListingPolicies";
 
 interface ApartmentDetailsProps {
   listing: Listing;
@@ -74,9 +76,25 @@ export default function ApartmentDetails({
                   {listing.name}
                 </h1>
 
-                <div className="mt-3 flex items-center gap-2 text-[15px] text-[#3A3856]">
+                <div className="mt-6 flex items-center gap-2 text-[15px] text-[#3A3856]">
                   <MapPin size={16} className="text-[#E23E85]" />
                   {listing.loc}
+                </div>
+
+                <div className="mt-3 flex items-center gap-2 text-[15px] text-[#3A3856]">
+                  <ShieldCheck size={16} className="text-[#E23E85]" />
+                  {listing.host}
+                </div>
+
+                <div className="mt-6 flex items-center gap-2 text-[15px] text-[#3A3856]">
+                  <ul className="space-y-3 text-[15px] text-[#3A3856]">
+                      {listing.features.map((feature: string) => (
+                      <li key={feature} className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#E89A1C]" />
+                  {feature}
+                </li>
+              ))}
+            </ul>
                 </div>
 
                 <p className="mt-5 text-[16px] leading-7 text-[#3A3856]">
@@ -92,16 +110,12 @@ export default function ApartmentDetails({
                   {listing.price}
                 </div>
 
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="mt-4 grid gap-3 sm:grid-cols-1 hover:cursor-pointer">
                   <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm text-[#3A3856]">
-                    <CalendarDays size={15} className="text-[#E89A1C]" />
-                    Flexible dates
+                    <CalendarDays size={16} className="text-[#E89A1C]" />
+                    Check Available Dates
                   </div>
-                  <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm text-[#3A3856]">
-                    <ShieldCheck size={15} className="text-[#E89A1C]" />
-                    Verified stay
-                  </div>
-                </div>
+                </div> 
 
                 <a
                   href="#contact"
@@ -121,31 +135,20 @@ export default function ApartmentDetails({
               About this place
             </h2>
 
+            {/* amenities */}
+            <AmenitiesGrid listing={listing} />
+
+            {/* policies */}
+            <ListingPolicies listing={listing} />
+
+            {/* description */}
             <p className="text-[16px] leading-7 text-[#3A3856]">
               {listing.description}
             </p>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <div className="flex items-center gap-3 rounded-xl bg-[#FAF9F6] p-3">
-                <BedDouble size={18} className="text-[#E23E85]" />
-                <span className="text-[15px] text-[#1B1A2E]">2 bedrooms</span>
-              </div>
-              <div className="flex items-center gap-3 rounded-xl bg-[#FAF9F6] p-3">
-                <Bath size={18} className="text-[#E23E85]" />
-                <span className="text-[15px] text-[#1B1A2E]">2 bathrooms</span>
-              </div>
-              <div className="flex items-center gap-3 rounded-xl bg-[#FAF9F6] p-3">
-                <Wifi size={18} className="text-[#E23E85]" />
-                <span className="text-[15px] text-[#1B1A2E]">Fast Wi‑Fi</span>
-              </div>
-              <div className="flex items-center gap-3 rounded-xl bg-[#FAF9F6] p-3">
-                <ShieldCheck size={18} className="text-[#E23E85]" />
-                <span className="text-[15px] text-[#1B1A2E]">Secure stay</span>
-              </div>
-            </div>
           </section>
 
-          <aside className="rounded-[24px] border border-[#E9E6DD] bg-white p-6 shadow-sm">
+          {/* <aside className="rounded-[24px] border border-[#E9E6DD] bg-white p-6 shadow-sm">
             <h2 className="mb-5 font-['Anton',sans-serif] text-[28px] font-normal">
               Features
             </h2>
@@ -158,7 +161,7 @@ export default function ApartmentDetails({
                 </li>
               ))}
             </ul>
-          </aside>
+          </aside> */}
         </div>
 
         {/* <section className="mt-10 rounded-[24px] border border-[#E9E6DD] bg-white p-6 shadow-sm">
