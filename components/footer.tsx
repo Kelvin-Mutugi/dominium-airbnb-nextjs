@@ -1,3 +1,6 @@
+"use client";
+
+import Link from "next/link";
 import { useState } from "react";
 import {
   MapPin,
@@ -101,11 +104,11 @@ export default function Footer() {
         {/* Brand + newsletter — full width, compact on mobile */}
         <div className="border-b border-neutral-800 pb-6 sm:pb-8 lg:flex lg:items-start lg:justify-between lg:gap-10 lg:border-none lg:pb-0">
           <div className="lg:max-w-xs">
-            <a href="/" className="inline-flex items-center gap-2">
+            <Link href="/" className="inline-flex items-center gap-2">
               <span className="text-base font-semibold text-white sm:text-lg">
                 Dominium <span className="text-[#E23E85]">Airbnb</span>
               </span>
-            </a>
+            </Link>
             <p className="mt-3 text-sm leading-relaxed text-neutral-400">
               Book short-term apartments across Kenya with confidence.
               Verified hosts, secure payments, stays for every county.
@@ -143,7 +146,7 @@ export default function Footer() {
             {error && <p className="mt-1.5 text-xs text-rose-500">{error}</p>}
             {subscribed && !error && (
               <p className="mt-1.5 text-xs text-emerald-500">
-                You're subscribed.
+                You&apos;re subscribed.
               </p>
             )}
           </form>

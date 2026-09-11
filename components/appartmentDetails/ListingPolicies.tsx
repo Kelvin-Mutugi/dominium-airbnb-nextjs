@@ -67,7 +67,7 @@ export function ListingPolicies({ listing }: ListingPoliciesProps) {
   if (sections.length === 0) return null;
 
   return (
-    <div className="mt-6 divide-y divide-[#EDEBE4] overflow-hidden rounded-xl bg-[#FAF9F6]">
+    <div className="mt-6 divide-y divide-[#EDEBE4] overflow-hidden rounded-xl bg-[#FAFAFA]">
       {sections.map(({ key, icon: Icon, title, content }) => {
         const isOpen = openKey === key;
 
@@ -80,7 +80,7 @@ export function ListingPolicies({ listing }: ListingPoliciesProps) {
               aria-expanded={isOpen}
               aria-controls={`policy-panel-${key}`}
             >
-              <Icon size={18} className="shrink-0 text-[#E23E85]" />
+              <Icon size={18} className="shrink-0 text-[#1B1A2E]" />
               <span className="flex-1 text-[15px] font-medium text-[#1B1A2E]">
                 {title}
               </span>

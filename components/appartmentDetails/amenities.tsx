@@ -75,11 +75,11 @@ export default function AmenitiesGrid({ listing }: AmenitiesGridProps) {
   if (items.length === 0) return null;
 
   return (
-    <div className="mt-6 mb-3 grid gap-3 sm:grid-cols-4">
+    <div className="mt-6 mb-3 grid gap-2 sm:grid-cols-4">
       {items.map(({ key, icon: Icon, label }) => (
         <div
           key={key}
-          className="flex items-center gap-3 rounded-xl bg-[#FAF9F6] p-3 transition-colors"
+          className="flex items-center gap-3 rounded-xl p-3 transition-colors"
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
             <Icon size={18} className="text-[#1B1A2E]" />
