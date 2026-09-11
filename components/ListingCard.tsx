@@ -123,6 +123,13 @@ export default function ListingCard({ item, id, loading = false }: ListingCardPr
         img: gallery[0] ?? "/placeholder.svg",
         gallery,
         description: data.description ?? "",
+        maxGuests:
+          typeof data.max_guests === "number" ? data.max_guests : 0,
+        checkInTime: "2:00 PM",
+        checkOutTime: "11:00 AM",
+        minNights: 1,
+        pricePerNight: price,
+        serviceFeePercent: 0.1,
         features: [
           ...(data.bedrooms ? [`${data.bedrooms} bedroom${data.bedrooms > 1 ? "s" : ""}`] : []),
           ...(data.bathrooms ? [`${data.bathrooms} bathroom${data.bathrooms > 1 ? "s" : ""}`] : []),

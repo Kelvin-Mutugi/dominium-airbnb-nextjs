@@ -138,6 +138,13 @@ export default function HomePage() {
             gallery: gallery,
             video: "",
             description: listing.description ?? "",
+            maxGuests:
+              typeof listing.max_guests === "number" ? listing.max_guests : 0,
+            checkInTime: "2:00 PM",
+            checkOutTime: "11:00 AM",
+            minNights: 1,
+            pricePerNight: price,
+            serviceFeePercent: 0.1,
             features: [
               ...(listing.bedrooms ? [`${listing.bedrooms} bedrooms`] : []),
               ...(listing.bathrooms ? [`${listing.bathrooms} bathrooms`] : []),
