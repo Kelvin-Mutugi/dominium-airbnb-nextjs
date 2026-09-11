@@ -12,15 +12,15 @@ export default function FeaturedListings({ listings }: FeaturedListingsProps) {
     <section id="listings" className="px-[6%] pb-[20px] pt-[40px]">
       <div className="mb-[26px] flex items-baseline justify-between">
         <h2 className="font-display text-[30px] font-normal text-[#36454F]">
-          Featured stays
+          Our Top Unique Properties
         </h2>
 
-        <a
+        {/* <a
           href="#all"
           className="text-[14px] font-semibold text-[#E23E85] no-underline"
         >
           View all →
-        </a>
+        </a> */}
       </div>
 
       {listings.length === 0 ? (

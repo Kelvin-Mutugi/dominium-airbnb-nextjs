@@ -302,19 +302,13 @@ export default function ListingCard({ item, id, loading = false }: ListingCardPr
           )}
 
           <div className="flex items-end justify-between gap-3 border-t border-[#F0EDE7] pt-3">
-            <div className="text-[12px] text-[#36454F]/60">
-              {listing.detail ? listing.detail.split(" · ")[0] : "Great stay"}
-            </div>
-
             <div className="text-right">
-              <div className="text-[20px] font-bold tracking-[-0.03em] text-[#1B1A2E]">
+              <div className="text-[12px] font-bold tracking-[-0.03em] text-[#1B1A2E] opacity-70">
                 {listing.price}
-              </div>
-              <div className="text-[10px] uppercase tracking-[0.14em] text-[#36454F]/50">
-                Night
               </div>
             </div>
           </div>
+          
         </div>
       </article>
     </Link>

@@ -32,7 +32,14 @@ export default function ApartmentPage() {
   return (
     <>
       <Navbar />
-      <ApartmentDetails listing={listing} onBack={() => router.push("/")} />
+      <ApartmentDetails
+        listing={listing}
+        relatedListings={LISTINGS.filter((item) => item.id !== listing.id)}
+        onBack={() => router.push("/")}
+        onSelectListing={(selectedListing) =>
+          router.push(`/apartments/${selectedListing.id}`)
+        }
+      />
     </>
   );
 }
