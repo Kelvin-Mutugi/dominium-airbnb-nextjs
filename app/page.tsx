@@ -3,7 +3,9 @@
 import Navbar from "@/components/navigationBar";
 import HeroSection from "@/components/HeroSection";
 import QuickRoutes from "@/components/QuickRoutes";
-import FeaturedListings from "@/components/FeaturedListings";
+import FeaturedListings from "@/components/listings/Feartured/FeaturedListings";
+import NairobiListings from "@/components/listings/Nairobi/Listings";
+import MombasaListings from "@/components/listings/Mombasa/Listings";
 import BookingProcess from "@/components/BookingProcess";
 
 import { useEffect, useState } from "react";
@@ -28,22 +30,18 @@ function normalizeAmenities(value: unknown): Amenity[] {
   );
 }
 
-function townFromRoute(route: string): string | null {
-  if (route === "All towns") return null;
-  const parts = route.split(" — ");
-  return parts[1] ?? null;
-}
-
 export default function HomePage() {
   const [selectedRoute, setSelectedRoute] = useState<string>(ROUTES[0]);
   const [checkIn, setCheckIn] = useState<string>("");
   const [listings, setListings] = useState<Listing[]>(LISTINGS);
 
-  const town = townFromRoute(selectedRoute);
-
-  const filteredListings = town
-    ? listings.filter((item) => item.loc.split(",")[0].trim() === town)
-    : listings;
+  const featuredListings = listings.slice(0, 4);
+  const nairobiListings = listings
+    .filter((item) => item.loc.toLowerCase().includes("nairobi"))
+    .slice(0, 4);
+  const mombasaListings = listings
+    .filter((item) => item.loc.toLowerCase().includes("mombasa"))
+    .slice(0, 4);
 
   const scrollToListings = () => {
     document.getElementById("listings")?.scrollIntoView({ behavior: "smooth" });
@@ -184,7 +182,9 @@ export default function HomePage() {
         onSearch={scrollToListings}
       />
       <QuickRoutes />
-      <FeaturedListings listings={filteredListings} />
+      <FeaturedListings listings={featuredListings} />
+      <NairobiListings listings={nairobiListings} />
+      <MombasaListings listings={mombasaListings} />
       <BookingProcess />
     </>
   );

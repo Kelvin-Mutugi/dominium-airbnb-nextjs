@@ -1,26 +1,26 @@
 "use client";
 
-import { Listing } from "./homeData";
-import ListingCard from "./ListingCard";
+import { Listing } from "../../homeData";
+import ListingCard from "../../ListingCard";
 
 interface FeaturedListingsProps {
   listings: Listing[];
 }
 
-export default function FeaturedListings({ listings }: FeaturedListingsProps) {
+export default function NairobiListings({ listings }: FeaturedListingsProps) {
   return (
     <section id="listings" className="px-[6%] pb-[20px] pt-[40px]">
       <div className="mb-[26px] flex items-baseline justify-between">
-        <h2 className="font-display text-[30px] font-normal text-[#36454F]">
-          Our Top Unique Properties
+        <h2 className="text-[28px] font-semibold text-[#36454F]">
+          Stay in Nairobi
         </h2>
 
-        {/* <a
+        <a
           href="#all"
           className="text-[14px] font-semibold text-[#E23E85] no-underline"
         >
           View all →
-        </a> */}
+        </a>
       </div>
 
       {listings.length === 0 ? (

@@ -870,4 +870,230 @@ export const LISTINGS: Listing[] = [
     baths: 1,
     amenities: ["wifi"],
   },
+{
+  id: "nyali-coastal-2br",
+  name: "Nyali Coastal 2BR Apartment",
+  loc: "Nyali, Mombasa",
+  price: "KES 4,500 / night",
+  detail: "Max guests: 4 · wifi · parking",
+
+  img: "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=500&q=60",
+
+  gallery: [
+    "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=1200&q=80",
+    "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=1200&q=80",
+    "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=1200&q=80",
+    "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200&q=80",
+  ],
+
+  description:
+    "A comfortable coastal apartment in Nyali with modern interiors, spacious living areas, and convenient access to beaches, restaurants, shopping centres, and other attractions around Mombasa. Ideal for families or small groups looking for a relaxing coastal stay.",
+
+  features: [
+    "2 bedrooms",
+    "2 bathrooms",
+    "Fast Wi-Fi",
+    "Secure parking",
+    "Balcony",
+    "Air conditioning",
+  ],
+
+  host: "Verified",
+
+  // Policies
+  bookingTerms:
+    "Guests must provide accurate booking information and a valid phone number. Check-in is from 2:00 PM and check-out is by 11:00 AM.",
+
+  cancelationPolicy:
+    "Free cancellation up to 48 hours before check-in. Cancellations made less than 48 hours before check-in may incur a charge.",
+
+  houserules: [
+    "No smoking inside the apartment",
+    "No parties or events",
+    "Maximum 4 guests",
+    "Keep noise low after 10:00 PM",
+    "No pets",
+  ],
+
+  refundPolicy:
+    "Eligible refunds are processed according to the cancellation policy.",
+
+  privacyPolicy:
+    "Guest information is used only to process bookings, communicate with guests, and provide accommodation services.",
+
+  // Booking
+  maxGuests: 4,
+  checkInTime: "2:00 PM",
+  checkOutTime: "11:00 AM",
+  minNights: 1,
+  pricePerNight: 4500,
+  serviceFeePercent: 0.1,
+  cancellationDeadline: "2026-09-10",
+
+  // Location
+  latitude: -4.0435,
+  longitude: 39.6682,
+
+  // Reviews
+  rating: 4.8,
+  reviewCount: 21,
+
+  reviews: [
+    {
+      id: "review-nyali-1",
+      guestName: "Mary W.",
+      rating: 5,
+      comment:
+        "Lovely apartment in a great location. Everything was clean and comfortable.",
+      date: "2026-08-24",
+    },
+    {
+      id: "review-nyali-2",
+      guestName: "Kevin M.",
+      rating: 5,
+      comment:
+        "The apartment was spacious and close to restaurants and the beach.",
+      date: "2026-08-12",
+    },
+    {
+      id: "review-nyali-3",
+      guestName: "Ann N.",
+      rating: 4,
+      comment:
+        "Very comfortable stay and the apartment was exactly as described.",
+      date: "2026-07-30",
+    },
+  ],
+
+  bookedDateRanges: [
+    {
+      start: "2026-09-14",
+      end: "2026-09-17",
+    },
+    {
+      start: "2026-09-25",
+      end: "2026-09-28",
+    },
+  ],
+
+  verified: true,
+  guests: 4,
+  beds: 2,
+  baths: 2,
+  amenities: ["wifi", "ac", "parking"],
+},
+
+{
+  id: "bamburi-beach-studio",
+  name: "Bamburi Beach Studio",
+  loc: "Bamburi, Mombasa",
+  price: "KES 2,800 / night",
+  detail: "Max guests: 2 · wifi · parking",
+
+  img: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&q=60",
+
+  gallery: [
+    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80",
+    "https://images.unsplash.com/photo-1505693416388-ac5ce85?w=1200&q=80",
+    "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200&q=80",
+    "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=1200&q=80",
+  ],
+
+  description:
+    "A cozy modern studio in Bamburi, ideal for couples or solo travellers visiting the Kenyan coast. The apartment offers a comfortable living space, reliable Wi-Fi, and easy access to Bamburi Beach, restaurants, shops, and local attractions.",
+
+  features: [
+    "1 bedroom",
+    "1 bathroom",
+    "Fast Wi-Fi",
+    "Secure parking",
+    "Air conditioning",
+    "Kitchenette",
+  ],
+
+  host: "Verified",
+
+  // Policies
+  bookingTerms:
+    "Guests must provide accurate booking information and a valid phone number. Check-in is from 2:00 PM and check-out is by 11:00 AM.",
+
+  cancelationPolicy:
+    "Free cancellation up to 48 hours before check-in. Cancellations made less than 48 hours before check-in may incur a charge.",
+
+  houserules: [
+    "No smoking inside the apartment",
+    "No parties or events",
+    "Maximum 2 guests",
+    "Keep noise low after 10:00 PM",
+    "No pets",
+  ],
+
+  refundPolicy:
+    "Eligible refunds are processed according to the cancellation policy.",
+
+  privacyPolicy:
+    "Guest information is used only to process bookings, communicate with guests, and provide accommodation services.",
+
+  // Booking
+  maxGuests: 2,
+  checkInTime: "2:00 PM",
+  checkOutTime: "11:00 AM",
+  minNights: 1,
+  pricePerNight: 2800,
+  serviceFeePercent: 0.1,
+  cancellationDeadline: "2026-09-10",
+
+  // Location
+  latitude: -3.9894,
+  longitude: 39.7195,
+
+  // Reviews
+  rating: 4.7,
+  reviewCount: 15,
+
+  reviews: [
+    {
+      id: "review-bamburi-1",
+      guestName: "James K.",
+      rating: 5,
+      comment:
+        "Clean and comfortable studio. Great location for a beach trip.",
+      date: "2026-08-20",
+    },
+    {
+      id: "review-bamburi-2",
+      guestName: "Lucy A.",
+      rating: 5,
+      comment:
+        "The place was cozy and had everything I needed for my stay.",
+      date: "2026-08-05",
+    },
+    {
+      id: "review-bamburi-3",
+      guestName: "Peter O.",
+      rating: 4,
+      comment:
+        "Good value for the price and easy access to the beach.",
+      date: "2026-07-19",
+    },
+  ],
+
+  bookedDateRanges: [
+    {
+      start: "2026-09-13",
+      end: "2026-09-16",
+    },
+    {
+      start: "2026-09-22",
+      end: "2026-09-24",
+    },
+  ],
+
+  verified: true,
+  guests: 2,
+  beds: 1,
+  baths: 1,
+  amenities: ["wifi", "ac", "parking"],
+},
+
 ];
