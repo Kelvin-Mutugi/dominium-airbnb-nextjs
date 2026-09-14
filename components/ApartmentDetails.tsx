@@ -110,7 +110,7 @@ export default function ApartmentDetails({
               </div>
 
               <section className="mt-10 rounded-[24px] bg-white p-6 shadow-[0_2px_50px_rgba(0,0,0,0.08)]">
-                <h2 className="mb-5 font-['Anton',sans-serif] text-[28px] font-normal">
+                <h2 className="mb-5 text-[28px] font-semibold text-[#1B1A2E]">
                   About this place
                 </h2>
 
@@ -137,7 +137,7 @@ export default function ApartmentDetails({
 
             <div className="flex flex-col p-6 md:p-8">
               <div>
-                <h1 className="font-['Anton',sans-serif] text-[clamp(28px,4vw,44px)] leading-none">
+                <h1 className="font-semibold text-[clamp(28px,4vw,44px)] leading-none">
                   {listing.name}
                 </h1>
 

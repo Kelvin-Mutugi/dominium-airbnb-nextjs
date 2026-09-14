@@ -92,7 +92,7 @@ export default function BookingProcess() {
       <div className="w-full">
         {/* Heading */}
         <div className="mb-16 text-left">
-          <h2 className="font-['Anton',sans-serif] text-[30px] font-normal text-[#36454F]">
+          <h2 className="font-semibold text-[30px] text-[#36454F]">
             Booking Process
           </h2>
 

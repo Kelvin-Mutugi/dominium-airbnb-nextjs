@@ -19,11 +19,11 @@ export default function SearchBar({
   onSearch,
 }: SearchBarProps) {
   return (
-    <div className="w-full max-w-[900px] rounded-2xl border border-[#E5E2DA] bg-white p-2 shadow-[0_15px_45px_rgba(27,26,46,0.12)]">
-      <div className="flex flex-col gap-2 md:flex-row md:items-center">
+    <div className="w-full max-w-[900px] rounded-sm border border-[#E5E2DA] bg-white p-1.5 shadow-[0_15px_45px_rgba(27,26,46,0.12)]">
+      <div className="flex flex-col gap-1.5 md:flex-row md:items-center">
 
         {/* Location */}
-        <div className="relative flex min-h-[64px] flex-1 items-center gap-3 rounded-xl px-4 transition hover:bg-[#FAF9F6]">
+        <div className="relative flex min-h-[52px] flex-1 items-center gap-3 rounded-xl px-3.5 transition hover:bg-[#FAF9F6]">
           <MapPin
             size={20}
             strokeWidth={1.8}
@@ -64,7 +64,7 @@ export default function SearchBar({
         <div className="hidden h-10 w-px bg-[#E9E6DD] md:block" />
 
         {/* Check-in */}
-        <div className="flex min-h-[64px] flex-1 items-center gap-3 rounded-xl px-4 transition hover:bg-[#FAF9F6]">
+        <div className="flex min-h-[52px] flex-1 items-center gap-3 rounded-xl px-3.5 transition hover:bg-[#FAF9F6]">
           <CalendarDays
             size={20}
             strokeWidth={1.8}
@@ -94,7 +94,7 @@ export default function SearchBar({
         <div className="hidden h-10 w-px bg-[#E9E6DD] md:block" />
 
         {/* Guests */}
-        <div className="flex min-h-[64px] flex-1 items-center gap-3 rounded-xl px-4 transition hover:bg-[#FAF9F6]">
+        <div className="flex min-h-[52px] flex-1 items-center gap-3 rounded-xl px-3.5 transition hover:bg-[#FAF9F6]">
           <Users
             size={20}
             strokeWidth={1.8}
@@ -133,9 +133,9 @@ export default function SearchBar({
           type="button"
           onClick={onSearch}
           className="
-            flex min-h-[56px] shrink-0
+            flex min-h-[44px] shrink-0
             items-center justify-center gap-2
-            rounded-xl
+            rounded-sm
             bg-[#E23E85]
             px-7
             font-display text-[14px]

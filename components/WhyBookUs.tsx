@@ -36,7 +36,7 @@ const BENEFITS = [
 
 export default function WhyBookUs() {
   return (
-    <section className="w-full bg-[#F7F7F7] px-[6%] py-20 md:py-24">
+    <section className="w-full bg-[#F7F7F7] px-[6%] py-18 md:py-18" id="why_choose_us">
       <div>
         {/* Heading */}
         <div className="mb-12 max-w-2xl">
@@ -61,7 +61,7 @@ export default function WhyBookUs() {
                 key={benefit.title}
                 className="rounded-2xl border border-[#E5E2DA] bg-white p-6 text-left transition duration-200 hover:-translate-y-0.5 hover:border-[#D8D3C9] hover:shadow-sm"
               >
-                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-[#FAF9F6] text-[#E23E85]">
+                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-[#FAF9F6] text-[black]/80">
                   <Icon size={21} strokeWidth={1.8} />
                 </div>
 

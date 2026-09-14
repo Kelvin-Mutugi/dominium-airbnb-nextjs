@@ -212,7 +212,7 @@ export default function FeaturedListingCard({
       aria-label={`View details for ${listing.name}`}
       className="
         group block w-full max-w-[280px]
-        overflow-hidden rounded-2xl
+        overflow-hidden rounded-l
         text-left
         focus:outline-none
         focus:ring-2

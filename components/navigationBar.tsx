@@ -24,6 +24,7 @@ const LINKS: NavLink[] = [
   { label: "Home", href: "/" },
   { label: "All Listings", href: "/allListings" },
   { label: "Booking Process", href: "/#booking_process" },
+  { label: "Why Choose Us", href: "/#why_choose_us" },
   { label: "Contact", href: "/contact" },
   { label: "About", href: "/about" },
   { label: "Privacy Policy", href: "/privacy" },
