@@ -8,8 +8,16 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-poppins)", "sans-serif"],
+        serif: ["var(--font-fraunces)", "Fraunces", "serif"],
+        sans: ["var(--font-plex)", "IBM Plex Sans", "sans-serif"],
         display: ["var(--font-anton)", "sans-serif"],
+      },
+      colors: {
+        ink: "#1B2420",
+        cream: "#F6F2E9",
+        gold: "#C8952B",
+        teal: "#1F4B4A",
+        wine: "#E23E85",
       },
       keyframes: {
         "sk-hero-fade": {

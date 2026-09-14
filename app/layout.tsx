@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { anton, poppins } from "./fonts";
+import { anton, fraunces, plex, poppins } from "./fonts";
 import "./globals.css";
 import Footer from "@/components/footer";
 
@@ -13,7 +13,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${anton.variable} ${poppins.variable}`}>
+    <html
+      lang="en"
+      className={`${anton.variable} ${poppins.variable} ${fraunces.variable} ${plex.variable}`}
+    >
       <body className="flex min-h-screen flex-col font-sans">
         <div className="flex-1">{children}</div>
         <Footer />

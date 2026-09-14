@@ -1,7 +1,8 @@
 "use client";
 
 import { Listing } from "../../homeData";
-import ListingCard from "../../ListingCard";
+import FeaturedListingCard from "../../fearturedListingCard";
+import MinimalListingCard from "@/components/minimalListingCard";
 
 interface FeaturedListingsProps {
   listings: Listing[];
@@ -11,7 +12,7 @@ export default function FeaturedListings({ listings }: FeaturedListingsProps) {
   return (
     <section id="listings" className="px-[6%] pb-[20px] pt-[40px]">
       <div className="mb-[26px] flex items-baseline justify-between">
-        <h2 className="text-[28px] font-semibold text-[#36454F]">
+        <h2 className="text-[20px] font-semibold text-[#36454F]">
           Our Top Unique Properties
         </h2>
 
@@ -28,9 +29,9 @@ export default function FeaturedListings({ listings }: FeaturedListingsProps) {
           No listings match that location yet — try a different town.
         </p>
       ) : (
-        <div className="mx-auto grid max-w-[1280px] grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-6">
+        <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5 bg-[#F7F7F7] p-4 rounded-lg">
           {listings.map((item: Listing) => (
-            <ListingCard key={item.id} item={item} />
+            <FeaturedListingCard key={item.id} item={item} />
           ))}
         </div>
       )}

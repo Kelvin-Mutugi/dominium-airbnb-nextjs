@@ -35,13 +35,13 @@ export default function HomePage() {
   const [checkIn, setCheckIn] = useState<string>("");
   const [listings, setListings] = useState<Listing[]>(LISTINGS);
 
-  const featuredListings = listings.slice(0, 4);
+  const featuredListings = listings.slice(0, 5);
   const nairobiListings = listings
     .filter((item) => item.loc.toLowerCase().includes("nairobi"))
-    .slice(0, 4);
+    .slice(0, 5);
   const mombasaListings = listings
     .filter((item) => item.loc.toLowerCase().includes("mombasa"))
-    .slice(0, 4);
+    .slice(0, 5);
 
   const scrollToListings = () => {
     document.getElementById("listings")?.scrollIntoView({ behavior: "smooth" });
@@ -188,7 +188,7 @@ export default function HomePage() {
         onCheckInChange={setCheckIn}
         onSearch={scrollToListings}
       />
-      <QuickRoutes />
+      {/* <QuickRoutes /> */}
       <FeaturedListings listings={featuredListings} />
       <NairobiListings listings={nairobiListings} />
       <MombasaListings listings={mombasaListings} />
