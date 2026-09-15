@@ -7,8 +7,13 @@ import FeaturedListings from "@/components/listings/Feartured/FeaturedListings";
 import NairobiListings from "@/components/listings/Nairobi/Listings";
 import MombasaListings from "@/components/listings/Mombasa/Listings";
 import BookingProcess from "@/components/BookingProcess";
+import PopularDestinations from "@/components/Populardestinations";
+import type { Home } from "@/components/Populardestinations";
+import WhyBookUs from "@/components/WhyBookUs";
+import CountyDirectory from "@/components/Countydirectory";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   LISTINGS,
   ROUTES,
@@ -31,17 +36,41 @@ function normalizeAmenities(value: unknown): Amenity[] {
 }
 
 export default function HomePage() {
+  const router = useRouter();
   const [selectedRoute, setSelectedRoute] = useState<string>(ROUTES[0]);
   const [checkIn, setCheckIn] = useState<string>("");
   const [listings, setListings] = useState<Listing[]>(LISTINGS);
 
-  const featuredListings = listings.slice(0, 4);
+  const featuredListings = listings.slice(0, 5);
   const nairobiListings = listings
     .filter((item) => item.loc.toLowerCase().includes("nairobi"))
-    .slice(0, 4);
+    .slice(0, 5);
   const mombasaListings = listings
     .filter((item) => item.loc.toLowerCase().includes("mombasa"))
-    .slice(0, 4);
+    .slice(0, 5);
+  const homes: Home[] = listings
+    .map((listing) => ({
+      ...listing,
+      bookingTerms: listing.bookingTerms ?? "",
+      cancelationPolicy: listing.cancelationPolicy ?? "",
+      houserules: listing.houserules ?? [],
+      refundPolicy: listing.refundPolicy ?? "",
+      privacyPolicy: listing.privacyPolicy ?? "",
+      cancellationDeadline: listing.cancellationDeadline ?? "",
+      latitude: listing.latitude ?? 0,
+      longitude: listing.longitude ?? 0,
+      rating: listing.rating ?? 0,
+      reviewCount: listing.reviewCount ?? 0,
+      reviews: listing.reviews ?? [],
+      bookedDateRanges: listing.bookedDateRanges ?? [],
+      verified: listing.verified ?? false,
+      guests: listing.guests ?? listing.maxGuests,
+      beds: listing.beds ?? 0,
+      baths: listing.baths ?? 0,
+      amenities: listing.amenities ?? [],
+    }))
+    .filter((home) => home.verified)
+    .slice(0, 5);
 
   const scrollToListings = () => {
     document.getElementById("listings")?.scrollIntoView({ behavior: "smooth" });
@@ -153,7 +182,9 @@ export default function HomePage() {
             host: "Host",
             rating: undefined,
             reviewCount: undefined,
-            verified: false,
+            verified: Boolean(
+              listing.host_id && verifiedHostIds.has(listing.host_id),
+            ),
             rareFind: false,
             guests:
               typeof listing.max_guests === "number"
@@ -188,10 +219,16 @@ export default function HomePage() {
         onCheckInChange={setCheckIn}
         onSearch={scrollToListings}
       />
-      <QuickRoutes />
+      <CountyDirectory />
       <FeaturedListings listings={featuredListings} />
+      {/* <QuickRoutes /> */}
+      <PopularDestinations
+        homes={homes}
+        onView={(home) => router.push(`/apartments/${home.id}`)}
+      />
       <NairobiListings listings={nairobiListings} />
       <MombasaListings listings={mombasaListings} />
+      <WhyBookUs />
       <BookingProcess />
     </>
   );

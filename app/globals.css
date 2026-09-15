@@ -1,3 +1,4 @@
+@config "../tailwind.config.ts";
 @import "tailwindcss";
 
 :root {
@@ -8,7 +9,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-poppins);
+  --font-sans: var(--font-plex);
+  --font-serif: var(--font-fraunces);
   --font-display: var(--font-anton);
   --font-mono: var(--font-geist-mono);
 }
@@ -23,7 +25,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-poppins), Arial, Helvetica, sans-serif;
+  font-family: var(--font-plex), "IBM Plex Sans", sans-serif;
 }
 
 @keyframes hero-fade {

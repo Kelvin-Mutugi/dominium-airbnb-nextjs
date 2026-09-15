@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 const INK = "#1B1A2E";
-const MARIGOLD = "#E89A1C";
+const MARIGOLD = "#1B1A2E";
 const PINK = "#E23E85";
 const PAPER_2 = "#FAF9F6";
 const PAPER_3 = "#ebebeb";
@@ -92,7 +92,7 @@ export default function BookingProcess() {
       <div className="w-full">
         {/* Heading */}
         <div className="mb-16 text-left">
-          <h2 className="font-['Anton',sans-serif] text-[30px] font-normal text-[#36454F]">
+          <h2 className="font-semibold text-[30px] text-[#36454F]">
             Booking Process
           </h2>
 

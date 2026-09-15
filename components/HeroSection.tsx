@@ -20,10 +20,11 @@ export default function HeroSection({
 }: HeroSectionProps) {
   return (
     <section
-      className="relative flex min-h-[88vh] items-center overflow-hidden bg-[#1B1A2E] px-[6%] py-[90px] pb-[70px]"
+      className="relative flex min-h-[460px] items-center bg-[#1B1A2E] px-[6%] py-12 lg:h-[35vh] lg:min-h-0 lg:py-8"
       id="home"
     >
-      <div className="absolute inset-0 z-0">
+      {/* Sliding background images — clipped to the hero only */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
         {HERO_IMAGES.map((src: string, index: number) => (
           <img
             key={src}
@@ -38,28 +39,32 @@ export default function HeroSection({
             }}
           />
         ))}
+        <div className="absolute inset-0 bg-[rgba(10,9,20,0.55)]" />
       </div>
 
-      <div className="absolute inset-0 z-[1] bg-[rgba(10,9,20,0.55)]" />
-
-      <div className="relative z-[2] max-w-[760px]">
-        <h1 className="font-display text-[clamp(38px,6vw,62px)] font-normal leading-[1.06] tracking-[0.3px] text-white">
-          Find your next{" "}
-          <em className="not-italic text-[#E89A1C]">few nights</em> in Kenya
+      <div className="relative z-[2] mx-auto w-full max-w-[1120px] text-center">
+        <h1 className="mx-auto max-w-[620px] text-[clamp(32px,4.5vw,33px)] leading-[1.06] tracking-[0.3px] font-bold text-center text-white/50">
+          Find Your Next{" "}
+          <em className="not-italic">Few Nights</em> In Kenya
         </h1>
 
-        <p className="mb-[40px] mt-[22px] max-w-[480px] text-[17px] leading-[1.6] text-white/80">
+        {/* <p className="mx-auto mt-4 max-w-[440px] text-center text-[15px] leading-[1.5] text-white/80">
           Personally verified apartments across the country. Message the host
           directly on WhatsApp to book in minutes.
-        </p>
+        </p> */}
+      </div>
 
-        <SearchBar
-          selectedRoute={selectedRoute}
-          onRouteChange={onRouteChange}
-          checkIn={checkIn}
-          onCheckInChange={onCheckInChange}
-          onSearch={onSearch}
-        />
+      {/* Search bar — centered, own max-width, floats over the hero's bottom edge */}
+      <div className="absolute bottom-0 left-0 right-0 z-[3] flex translate-y-1/3 justify-center px-[6%]">
+        <div className="w-full max-w-[900px]">
+          <SearchBar
+            selectedRoute={selectedRoute}
+            onRouteChange={onRouteChange}
+            checkIn={checkIn}
+            onCheckInChange={onCheckInChange}
+            onSearch={onSearch}
+          />
+        </div>
       </div>
     </section>
   );
