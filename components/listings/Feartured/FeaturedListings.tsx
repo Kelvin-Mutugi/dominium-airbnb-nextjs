@@ -2,13 +2,14 @@
 
 import { Listing } from "../../homeData";
 import FeaturedListingCard from "../../fearturedListingCard";
-import MinimalListingCard from "@/components/minimalListingCard";
+import HorizontalListingCarousel from "@/components/listings/HorizontalListingCarousel";
 
 interface FeaturedListingsProps {
   listings: Listing[];
+  isLoading?: boolean;
 }
 
-export default function FeaturedListings({ listings }: FeaturedListingsProps) {
+export default function FeaturedListings({ listings, isLoading = false }: FeaturedListingsProps) {
   return (
     <section id="listings" className="px-[6%] pb-[20px] pt-[40px]">
       <div className="mb-[26px] flex items-baseline justify-between">
@@ -24,16 +25,26 @@ export default function FeaturedListings({ listings }: FeaturedListingsProps) {
         </a> */}
       </div>
 
-      {listings.length === 0 ? (
+      {isLoading ? (
+        <HorizontalListingCarousel label="featured listings">
+          {Array.from({ length: 5 }, (_, index) => (
+            <div key={index} className="w-[280px] shrink-0 snap-start">
+              <FeaturedListingCard loading />
+            </div>
+          ))}
+        </HorizontalListingCarousel>
+      ) : listings.length === 0 ? (
         <p className="text-[15px] text-[#3A3856]/70">
           No listings match that location yet — try a different town.
         </p>
       ) : (
-        <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5 bg-[#F7F7F7] p-4 rounded-lg">
+        <HorizontalListingCarousel label="featured listings">
           {listings.map((item: Listing) => (
-            <FeaturedListingCard key={item.id} item={item} />
+            <div key={item.id} className="w-[280px] shrink-0 snap-start">
+              <FeaturedListingCard item={item} />
+            </div>
           ))}
-        </div>
+        </HorizontalListingCarousel>
       )}
     </section>
   );

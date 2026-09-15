@@ -2,14 +2,20 @@ interface PaginationProps {
 	currentPage: number;
 	totalPages: number;
 	onPageChange: (page: number) => void;
+	onLoadMore?: () => void;
+	hasMore?: boolean;
+	isLoadingMore?: boolean;
 }
 
 export default function Pagination({
 	currentPage,
 	totalPages,
 	onPageChange,
+	onLoadMore,
+	hasMore = false,
+	isLoadingMore = false,
 }: PaginationProps) {
-	if (totalPages <= 1) return null;
+	if (totalPages <= 1 && !hasMore) return null;
 
 	return (
 		<nav className="mt-8 flex items-center justify-center gap-2" aria-label="Pagination">
@@ -40,11 +46,17 @@ export default function Pagination({
 
 			<button
 				type="button"
-				disabled={currentPage === totalPages}
-				onClick={() => onPageChange(currentPage + 1)}
+				disabled={(currentPage === totalPages && !hasMore) || isLoadingMore}
+				onClick={() => {
+					if (currentPage === totalPages && hasMore) {
+						onLoadMore?.();
+						return;
+					}
+					onPageChange(currentPage + 1);
+				}}
 				className="border border-[#E9E6DD] px-3 py-2 text-sm text-[#36454F] disabled:cursor-not-allowed disabled:opacity-40"
 			>
-				Next
+				{isLoadingMore ? "Loading..." : "Next"}
 			</button>
 		</nav>
 	);
