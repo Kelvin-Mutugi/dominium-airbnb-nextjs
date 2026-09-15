@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 const INK = "#1B1A2E";
-const MARIGOLD = "#E89A1C";
+const MARIGOLD = "#1B1A2E";
 const PINK = "#E23E85";
 const PAPER_2 = "#FAF9F6";
 const PAPER_3 = "#ebebeb";

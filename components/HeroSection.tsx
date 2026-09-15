@@ -43,9 +43,9 @@ export default function HeroSection({
       </div>
 
       <div className="relative z-[2] mx-auto w-full max-w-[1120px] text-center">
-        <h1 className="mx-auto max-w-[620px] text-[clamp(32px,4.5vw,33px)] leading-[1.06] tracking-[0.3px] font-bold text-center text-white">
+        <h1 className="mx-auto max-w-[620px] text-[clamp(32px,4.5vw,33px)] leading-[1.06] tracking-[0.3px] font-bold text-center text-white/50">
           Find Your Next{" "}
-          <em className="not-italic text-white">Few Nights</em> In Kenya
+          <em className="not-italic">Few Nights</em> In Kenya
         </h1>
 
         {/* <p className="mx-auto mt-4 max-w-[440px] text-center text-[15px] leading-[1.5] text-white/80">

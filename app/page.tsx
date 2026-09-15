@@ -10,6 +10,7 @@ import BookingProcess from "@/components/BookingProcess";
 import PopularDestinations from "@/components/Populardestinations";
 import type { Home } from "@/components/Populardestinations";
 import WhyBookUs from "@/components/WhyBookUs";
+import CountyDirectory from "@/components/Countydirectory";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -218,7 +219,7 @@ export default function HomePage() {
         onCheckInChange={setCheckIn}
         onSearch={scrollToListings}
       />
-      
+      <CountyDirectory />
       <FeaturedListings listings={featuredListings} />
       {/* <QuickRoutes /> */}
       <PopularDestinations

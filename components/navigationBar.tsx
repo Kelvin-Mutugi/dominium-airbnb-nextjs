@@ -23,12 +23,12 @@ interface NavLink {
 const LINKS: NavLink[] = [
   { label: "Home", href: "/" },
   { label: "All Listings", href: "/allListings" },
+  { label: "Explore by County", href: "/#explore_by_county" },
   { label: "Booking Process", href: "/#booking_process" },
   { label: "Why Choose Us", href: "/#why_choose_us" },
   { label: "Contact", href: "/contact" },
   { label: "About", href: "/about" },
   { label: "Privacy Policy", href: "/privacy" },
-  { label: "Blog", href: "/blog" },
 ];
 
 export default function Navbar() {
