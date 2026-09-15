@@ -12,15 +12,30 @@ import type { Home } from "@/components/Populardestinations";
 import WhyBookUs from "@/components/WhyBookUs";
 import CountyDirectory from "@/components/Countydirectory";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  LISTINGS,
   ROUTES,
   type Amenity,
   type Listing,
 } from "@/components/homeData";
 import { supabase } from "@/app/lib/supabase/client";
+
+const HOME_PAGE_SIZE = 8;
+
+interface DatabaseListing {
+  id: string;
+  title: string;
+  description: string;
+  county: string;
+  town: string;
+  price_per_night: number | string;
+  max_guests: number;
+  bedrooms: number;
+  bathrooms: number;
+  amenities: unknown;
+  listing_images?: { url?: string | null; sort_order: number }[] | null;
+}
 
 function normalizeAmenities(value: unknown): Amenity[] {
   if (!Array.isArray(value)) {
@@ -35,11 +50,85 @@ function normalizeAmenities(value: unknown): Amenity[] {
   );
 }
 
+function normalizeListing(listing: DatabaseListing): Listing {
+  const gallery = Array.isArray(listing.listing_images)
+    ? [...listing.listing_images]
+        .sort((first, second) => first.sort_order - second.sort_order)
+        .map((imageRow) => imageRow.url)
+        .filter((url): url is string => Boolean(url))
+    : [];
+  const amenities = normalizeAmenities(listing.amenities);
+  const price = Number(listing.price_per_night ?? 0);
+  const formattedPrice = new Intl.NumberFormat("en-KE", {
+    style: "currency",
+    currency: "KES",
+    maximumFractionDigits: 0,
+  }).format(price);
+  const loc = [listing.town, listing.county].filter(Boolean).join(", ");
+
+  return {
+    id: String(listing.id),
+    name: listing.title ?? "Untitled listing",
+    loc: loc || "Location unavailable",
+    price: formattedPrice || "Price on request",
+    detail: `Max guests: ${listing.max_guests ?? 0}${amenities.length ? ` · ${amenities.slice(0, 2).join(" · ")}` : ""}`,
+    img: gallery[0] ?? "",
+    gallery,
+    description: listing.description ?? "",
+    maxGuests: listing.max_guests ?? 0,
+    checkInTime: "2:00 PM",
+    checkOutTime: "11:00 AM",
+    minNights: 1,
+    pricePerNight: price,
+    serviceFeePercent: 0.1,
+    features: [
+      ...(listing.bedrooms ? [`${listing.bedrooms} bedrooms`] : []),
+      ...(listing.bathrooms ? [`${listing.bathrooms} bathrooms`] : []),
+      ...amenities,
+    ],
+    host: "Host",
+    rating: undefined,
+    reviewCount: undefined,
+    verified: true,
+    rareFind: false,
+    guests: listing.max_guests,
+    beds: listing.bedrooms,
+    baths: listing.bathrooms,
+    amenities,
+  };
+}
+
+async function fetchHomepageListings(from: number, to: number) {
+  const { data, error } = await supabase
+    .from("listings")
+    .select(
+      `
+        id, title, description, county, town, price_per_night,
+        max_guests, bedrooms, bathrooms, amenities,
+        listing_images ( url, sort_order )
+      `,
+    )
+    .eq("status", "published")
+    .order("created_at", { ascending: false })
+    .order("sort_order", {
+      foreignTable: "listing_images",
+      ascending: true,
+    })
+    .range(from, to);
+
+  if (error) throw error;
+  return ((data ?? []) as DatabaseListing[]).map(normalizeListing);
+}
+
 export default function HomePage() {
   const router = useRouter();
   const [selectedRoute, setSelectedRoute] = useState<string>(ROUTES[0]);
   const [checkIn, setCheckIn] = useState<string>("");
-  const [listings, setListings] = useState<Listing[]>(LISTINGS);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [isLoadingListings, setIsLoadingListings] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreListings, setHasMoreListings] = useState(true);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const featuredListings = listings.slice(0, 5);
   const nairobiListings = listings
@@ -78,136 +167,52 @@ export default function HomePage() {
 
   useEffect(() => {
     async function getListings() {
-      if (!supabase) return;
-
-      const dbClient = supabase!;
-
-      const { data, error } = await dbClient
-        .from("listings")
-        .select(
-          `
-            id,
-            host_id,
-            title,
-            description,
-            county,
-            town,
-            address,
-            price_per_night,
-            max_guests,
-            bedrooms,
-            bathrooms,
-            amenities,
-            created_at,
-            listing_images ( url, sort_order )
-          `,
-        )
-        .eq("status", "published")
-        .order("created_at", { ascending: false })
-        .order("sort_order", {
-          foreignTable: "listing_images",
-          ascending: true,
-        });
-
-      if (error) {
+      try {
+        const firstListings = await fetchHomepageListings(0, HOME_PAGE_SIZE - 1);
+        setListings(firstListings);
+        setHasMoreListings(firstListings.length === HOME_PAGE_SIZE);
+      } catch (error) {
         console.error("Failed to load listings from Supabase:", error);
-        return;
-      }
-
-      const publishedListings = data ?? [];
-      const hostIds = [...new Set(publishedListings.map((listing) => listing.host_id).filter(Boolean))];
-
-      let verifiedHostIds = new Set<string>();
-      if (hostIds.length > 0) {
-        const { data: profiles, error: profilesError } = await dbClient
-          .from("profiles")
-          .select("id, host_verified_at")
-          .in("id", hostIds)
-          .not("host_verified_at", "is", null);
-
-        if (profilesError) {
-          console.error("Failed to load host verification data:", profilesError);
-          return;
-        }
-
-        verifiedHostIds = new Set((profiles ?? []).map((profile) => profile.id));
-      }
-
-      const visibleListings = publishedListings.filter(
-        (listing) => listing.host_id && verifiedHostIds.has(listing.host_id),
-      );
-
-      if (visibleListings.length > 0) {
-        const normalizedListings: Listing[] = visibleListings.map((listing) => {
-          const gallery = Array.isArray(listing.listing_images)
-            ? listing.listing_images
-                .map((imageRow: { url?: string | null }) => imageRow?.url)
-                .filter((url): url is string => Boolean(url))
-            : [];
-
-          const amenities = normalizeAmenities(listing.amenities);
-
-          const price = Number(listing.price_per_night ?? 0);
-          const formattedPrice = new Intl.NumberFormat("en-KE", {
-            style: "currency",
-            currency: "KES",
-            maximumFractionDigits: 0,
-          }).format(price);
-
-          const loc = [listing.town, listing.county].filter(Boolean).join(", ");
-          const detail = `Max guests: ${listing.max_guests ?? 0}${amenities.length ? ` · ${amenities.slice(0, 2).join(" · ")}` : ""}`;
-
-          return {
-            id: String(listing.id),
-            name: listing.title ?? "Untitled listing",
-            loc: loc || "Location unavailable",
-            price: formattedPrice || "Price on request",
-            detail,
-            img: gallery[0] ?? "",
-            gallery: gallery,
-            video: "",
-            description: listing.description ?? "",
-            maxGuests:
-              typeof listing.max_guests === "number" ? listing.max_guests : 0,
-            checkInTime: "2:00 PM",
-            checkOutTime: "11:00 AM",
-            minNights: 1,
-            pricePerNight: price,
-            serviceFeePercent: 0.1,
-            features: [
-              ...(listing.bedrooms ? [`${listing.bedrooms} bedrooms`] : []),
-              ...(listing.bathrooms ? [`${listing.bathrooms} bathrooms`] : []),
-              ...amenities,
-            ],
-            host: "Host",
-            rating: undefined,
-            reviewCount: undefined,
-            verified: Boolean(
-              listing.host_id && verifiedHostIds.has(listing.host_id),
-            ),
-            rareFind: false,
-            guests:
-              typeof listing.max_guests === "number"
-                ? listing.max_guests
-                : undefined,
-            beds:
-              typeof listing.bedrooms === "number"
-                ? listing.bedrooms
-                : undefined,
-            baths:
-              typeof listing.bathrooms === "number"
-                ? listing.bathrooms
-                : undefined,
-            amenities,
-          };
-        });
-
-        setListings(normalizedListings);
+      } finally {
+        setIsLoadingListings(false);
       }
     }
 
-    getListings();
+    void getListings();
   }, []);
+
+  const loadMoreListings = useCallback(async () => {
+    if (isLoadingMore || !hasMoreListings) return;
+
+    setIsLoadingMore(true);
+    try {
+      const nextListings = await fetchHomepageListings(
+        listings.length,
+        listings.length + HOME_PAGE_SIZE - 1,
+      );
+      setListings((current) => [...current, ...nextListings]);
+      setHasMoreListings(nextListings.length === HOME_PAGE_SIZE);
+    } catch (error) {
+      console.error("Failed to load more homepage listings:", error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [hasMoreListings, isLoadingMore, listings.length]);
+
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel || !hasMoreListings || isLoadingListings) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) void loadMoreListings();
+      },
+      { rootMargin: "500px 0px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMoreListings, isLoadingListings, loadMoreListings]);
 
   return (
     <>
@@ -220,14 +225,21 @@ export default function HomePage() {
         onSearch={scrollToListings}
       />
       <CountyDirectory />
-      <FeaturedListings listings={featuredListings} />
+      <FeaturedListings listings={featuredListings} isLoading={isLoadingListings} />
       {/* <QuickRoutes /> */}
       <PopularDestinations
         homes={homes}
         onView={(home) => router.push(`/apartments/${home.id}`)}
       />
-      <NairobiListings listings={nairobiListings} />
-      <MombasaListings listings={mombasaListings} />
+      <div ref={loadMoreRef} aria-hidden="true" className="h-px" />
+      <NairobiListings
+        listings={nairobiListings}
+        isLoading={isLoadingListings || (isLoadingMore && nairobiListings.length === 0)}
+      />
+      <MombasaListings
+        listings={mombasaListings}
+        isLoading={isLoadingListings || (isLoadingMore && mombasaListings.length === 0)}
+      />
       <WhyBookUs />
       <BookingProcess />
     </>

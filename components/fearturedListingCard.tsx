@@ -176,13 +176,13 @@ export default function FeaturedListingCard({
   if (loading) {
     return (
       <div className="w-full max-w-[280px] overflow-hidden rounded-2xl">
-        <div className="animate-pulse">
-          <div className="h-[190px] w-full rounded-2xl bg-[#E9E5DD]" />
+        <div>
+          <div className="shimmer h-[190px] w-full rounded-2xl" />
 
           <div className="space-y-2 pt-3">
-            <div className="h-3 w-24 rounded bg-[#EEEAE2]" />
-            <div className="h-4 w-40 rounded bg-[#EEEAE2]" />
-            <div className="h-4 w-28 rounded bg-[#EEEAE2]" />
+            <div className="shimmer h-3 w-24 rounded" />
+            <div className="shimmer h-4 w-40 rounded" />
+            <div className="shimmer h-4 w-28 rounded" />
           </div>
         </div>
       </div>
