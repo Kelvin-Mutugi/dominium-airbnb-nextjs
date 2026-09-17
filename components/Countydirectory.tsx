@@ -118,10 +118,10 @@ export default function CountyDirectory() {
             <h2 className="text-[28px] font-bold text-[#36454F]">
               Explore accommodation by county
             </h2>
-            <p className="mt-3 text-base text-slate-500">
+            {/* <p className="mt-3 text-base text-slate-500">
               Browse short-term rental coverage across Kenya's 47 counties
               and find your next destination.
-            </p>
+            </p> */}
           </div>
 
           <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">

@@ -145,11 +145,25 @@ export default function ApartmentPage() {
     );
   }
 
+  const handleReserve = ({ checkIn, checkOut }: { checkIn: Date; checkOut: Date }) => {
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
+
+    router.push(
+      `/booking/${listing.id}?checkIn=${formatDate(checkIn)}&checkOut=${formatDate(checkOut)}`,
+    );
+  };
+
   return (
     <>
       <Navbar />
       <ApartmentDetails
         listing={listing}
+        onReserve={handleReserve}
         relatedListings={[]}
         onBack={() => router.push("/")}
         onSelectListing={(selectedListing) =>

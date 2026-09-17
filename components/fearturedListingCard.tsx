@@ -246,7 +246,7 @@ export default function FeaturedListingCard({
           <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/25 to-transparent" />
 
           {/* Save button */}
-          <button
+          {/* <button
             type="button"
             aria-label={
               isSaved
@@ -274,7 +274,7 @@ export default function FeaturedListingCard({
                   : "text-[#1B1A2E]"
               }
             />
-          </button>
+          </button> */}
         </div>
 
         {/* Content */}
