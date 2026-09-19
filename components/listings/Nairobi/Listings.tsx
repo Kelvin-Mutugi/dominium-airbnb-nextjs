@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Listing } from "../../homeData";
 import MinimalListingCard from "../../minimalListingCard";
-import HorizontalListingCarousel from "@/components/listings/HorizontalListingCarousel";
+import HorizontalListingCarousel, {
+  HorizontalListingCarouselHandle,
+} from "@/components/listings/HorizontalListingCarousel";
 
 interface FeaturedListingsProps {
   listings: Listing[];
@@ -16,14 +18,13 @@ export default function NairobiListings({
   listings,
   isLoading = false,
 }: FeaturedListingsProps) {
-  const [scrollCarousel, setScrollCarousel] = useState<
-    ((direction: "left" | "right") => void) | null
-  >(null);
+  const carouselRef = useRef<HorizontalListingCarouselHandle>(null);
 
   return (
-    <section id="listings" className="px-[6%] pt-[40px]">
-      {/* Heading + arrows on the same level */}
+    <section id="listings" className="px-[6%] pb-[20px] pt-[40px]">
+      {/* Heading + arrows */}
       <div className="mb-[26px] flex items-center justify-between">
+        {/* Title */}
         <div className="flex items-center">
           <h2 className="text-[20px] font-semibold text-[#36454F]">
             Stay in Nairobi
@@ -41,7 +42,7 @@ export default function NairobiListings({
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => scrollCarousel?.("left")}
+            onClick={() => carouselRef.current?.scroll("left")}
             aria-label="Scroll Nairobi listings left"
             className="flex h-9 w-9 items-center justify-center rounded-full border border-[#E9E6DD] bg-white text-[#36454F] transition-colors hover:border-[#E23E85] hover:text-[#E23E85]"
           >
@@ -50,7 +51,7 @@ export default function NairobiListings({
 
           <button
             type="button"
-            onClick={() => scrollCarousel?.("right")}
+            onClick={() => carouselRef.current?.scroll("right")}
             aria-label="Scroll Nairobi listings right"
             className="flex h-9 w-9 items-center justify-center rounded-full border border-[#E9E6DD] bg-white text-[#36454F] transition-colors hover:border-[#E23E85] hover:text-[#E23E85]"
           >
@@ -61,8 +62,8 @@ export default function NairobiListings({
 
       {isLoading ? (
         <HorizontalListingCarousel
+          ref={carouselRef}
           label="Nairobi listings"
-          onReady={setScrollCarousel}
         >
           {Array.from({ length: 5 }, (_, index) => (
             <div
@@ -79,8 +80,8 @@ export default function NairobiListings({
         </p>
       ) : (
         <HorizontalListingCarousel
+          ref={carouselRef}
           label="Nairobi listings"
-          onReady={setScrollCarousel}
         >
           {listings.map((item: Listing) => (
             <div
