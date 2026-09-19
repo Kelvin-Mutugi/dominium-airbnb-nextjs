@@ -242,7 +242,7 @@ function CountyCard({ county }: { county: CountyInfo }) {
 
   return (
     <a
-      href="#"
+      href={`/listings/${encodeURIComponent(county.name)}`}
       aria-disabled={!hasData}
       onClick={(e) => {
         if (!hasData) e.preventDefault();
@@ -308,12 +308,12 @@ function CountyCard({ county }: { county: CountyInfo }) {
           {county.name}
         </h3>
 
-        <div className="mt-auto flex items-center justify-between pt-2">
+        {/* <div className="mt-auto flex items-center justify-between pt-2">
           <span className={hasData ? "text-xs text-slate-500" : "text-xs text-slate-400"}>
             {hasData
               ? `${county.listings!.toLocaleString("en-KE")} listings`
               : "Not listed yet"}
-          </span>
+          </span> 
           <ArrowRight
             className={[
               "h-3.5 w-3.5 transition-transform",
@@ -322,7 +322,7 @@ function CountyCard({ county }: { county: CountyInfo }) {
                 : "text-slate-300",
             ].join(" ")}
           />
-        </div>
+        </div> */}
       </div>
     </a>
   );

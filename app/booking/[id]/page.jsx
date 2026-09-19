@@ -2,7 +2,7 @@
 
 import { useParams, useSearchParams } from "next/navigation";
 import Navbar from "@/components/navigationBar";
-import BookingCard from "@/components/booking/bookingCard";
+import BookingCard from "@/components/booking/BookingCard";
 
 export default function BookingPage() {
 	const { id } = useParams();
