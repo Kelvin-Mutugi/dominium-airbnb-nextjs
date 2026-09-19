@@ -21,6 +21,7 @@ interface ApartmentDetailsProps {
   isLoading?: boolean;
   relatedListings?: Listing[];
   onBack: () => void;
+  onReserve?: (stayRange: { checkIn: Date; checkOut: Date }) => void;
   onSelectListing?: (listing: Listing) => void;
 }
 
@@ -29,6 +30,7 @@ export default function ApartmentDetails({
   isLoading = false,
   relatedListings = [],
   onBack,
+  onReserve,
   onSelectListing,
 }: ApartmentDetailsProps) {
   const [selectedImage, setSelectedImage] = useState<string>(
@@ -190,7 +192,12 @@ export default function ApartmentDetails({
                 />
 
                 <a
-                  href="#contact"
+                  href={stayRange ? `/booking/${listing.id}` : "#contact"}
+                  onClick={(event) => {
+                    if (!stayRange || !onReserve) return;
+                    event.preventDefault();
+                    onReserve(stayRange);
+                  }}
                   className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#1B1A2E] px-5 py-3 font-semibold text-white no-underline"
                 >
                   Reserve
@@ -218,7 +225,13 @@ export default function ApartmentDetails({
 
       <StickyPriceBar
         price={listing.price}
-        onReserve={() => document.getElementById("contact")?.scrollIntoView()}
+        onReserve={() => {
+          if (stayRange && onReserve) {
+            onReserve(stayRange);
+            return;
+          }
+          document.getElementById("contact")?.scrollIntoView();
+        }}
       />
     </div>
   );

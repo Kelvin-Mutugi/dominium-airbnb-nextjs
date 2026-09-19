@@ -20,8 +20,10 @@ export default function HeroSection({
 }: HeroSectionProps) {
   return (
     <section
-      className="relative flex min-h-[460px] items-center bg-[#1B1A2E] px-[6%] py-12 lg:h-[35vh] lg:min-h-0 lg:py-8"
       id="home"
+      // Below lg: a compact, auto-height column (heading, then search bar in normal flow).
+      // lg and up: the original 35vh hero with the search bar floating over the bottom edge.
+      className="relative flex flex-col items-center justify-center gap-5 bg-[#1B1A2E] px-4 py-8 sm:gap-6 sm:px-[6%] sm:py-10 lg:h-[35vh] lg:flex-row lg:gap-0 lg:py-8"
     >
       {/* Sliding background images — clipped to the hero only */}
       <div className="absolute inset-0 z-0 overflow-hidden">
@@ -43,9 +45,8 @@ export default function HeroSection({
       </div>
 
       <div className="relative z-[2] mx-auto w-full max-w-[1120px] text-center">
-        <h1 className="mx-auto max-w-[620px] text-[clamp(32px,4.5vw,33px)] leading-[1.06] tracking-[0.3px] font-bold text-center text-white/50">
-          Find Your Next{" "}
-          <em className="not-italic">Few Nights</em> In Kenya
+        <h1 className="mx-auto max-w-[620px] text-center text-[26px] font-bold leading-[1.1] tracking-[0.3px] text-white/50 sm:text-[30px] lg:text-[33px] lg:leading-[1.06]">
+          Find Your Next <em className="not-italic">Few Nights</em> In Kenya
         </h1>
 
         {/* <p className="mx-auto mt-4 max-w-[440px] text-center text-[15px] leading-[1.5] text-white/80">
@@ -54,8 +55,10 @@ export default function HeroSection({
         </p> */}
       </div>
 
-      {/* Search bar — centered, own max-width, floats over the hero's bottom edge */}
-      <div className="absolute bottom-0 left-0 right-0 z-[3] flex translate-y-1/3 justify-center px-[6%]">
+      {/* Search bar
+          - below lg: sits in the normal flow under the heading (no overhang, no overlap)
+          - lg and up: centered, own max-width, floats over the hero's bottom edge */}
+      <div className="relative z-[3] flex w-full justify-center lg:absolute lg:bottom-0 lg:left-0 lg:right-0 lg:translate-y-1/3 lg:px-[6%]">
         <div className="w-full max-w-[900px]">
           <SearchBar
             selectedRoute={selectedRoute}

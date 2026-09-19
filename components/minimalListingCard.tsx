@@ -309,7 +309,7 @@ export default function MinimalListingCard({
             </span>
           )}
 
-          <button
+          {/* <button
             type="button"
             aria-label={isSaved ? "Remove from saved listings" : "Save listing"}
             onClick={handleSaveClick}
@@ -319,7 +319,7 @@ export default function MinimalListingCard({
               size={15}
               className={isSaved ? "fill-[#E23E85] text-[#E23E85]" : "text-[#1B1A2E]"}
             />
-          </button>
+          </button> */}
         </div>
 
         <div className="px-1.5 pt-3 pb-2">
