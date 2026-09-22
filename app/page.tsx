@@ -130,13 +130,13 @@ export default function HomePage() {
   const [hasMoreListings, setHasMoreListings] = useState(true);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const featuredListings = listings.slice(0, 5);
+  const featuredListings = listings.slice(0, 8);
   const nairobiListings = listings
     .filter((item) => item.loc.toLowerCase().includes("nairobi"))
-    .slice(0, 5);
+    .slice(0, 10);
   const mombasaListings = listings
     .filter((item) => item.loc.toLowerCase().includes("mombasa"))
-    .slice(0, 5);
+    .slice(0, 10);
   const homes: Home[] = listings
     .map((listing) => ({
       ...listing,
@@ -224,13 +224,7 @@ export default function HomePage() {
         onCheckInChange={setCheckIn}
         onSearch={scrollToListings}
       />
-      <CountyDirectory />
-      <FeaturedListings listings={featuredListings} isLoading={isLoadingListings} />
-      {/* <QuickRoutes /> */}
-      <PopularDestinations
-        homes={homes}
-        onView={(home) => router.push(`/apartments/${home.id}`)}
-      />
+      <FeaturedListings listings={featuredListings} isLoading={isLoadingListings} />  
       <div ref={loadMoreRef} aria-hidden="true" className="h-px" />
       <NairobiListings
         listings={nairobiListings}
@@ -239,6 +233,11 @@ export default function HomePage() {
       <MombasaListings
         listings={mombasaListings}
         isLoading={isLoadingListings || (isLoadingMore && mombasaListings.length === 0)}
+      />
+      {/* <QuickRoutes /> */}
+      <PopularDestinations
+        homes={homes}
+        onView={(home) => router.push(`/apartments/${home.id}`)}
       />
       <WhyBookUs />
       <BookingProcess />

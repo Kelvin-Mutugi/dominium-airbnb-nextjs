@@ -240,9 +240,9 @@ export default function MinimalListingCard({
 
   if (loading) {
     return (
-      <div className="w-full max-w-[320px] overflow-hidden rounded-[24px] border border-[#E9E6DD] bg-white shadow-sm">
+      <div className="w-full max-w-[160px] overflow-hidden rounded-[24px] border border-[#E9E6DD] bg-white shadow-sm">
         <div aria-hidden="true">
-          <div className="shimmer h-[220px] w-full" />
+          <div className="shimmer size-[160px] rounded-2xl" />
           <div className="space-y-3 p-4">
             <div className="shimmer h-4 w-24 rounded" />
             <div className="shimmer h-5 w-3/4 rounded" />
@@ -277,10 +277,10 @@ export default function MinimalListingCard({
       href={`/apartments/${listing.id}`}
       onKeyDown={handleKeyDown}
       aria-label={`View details for ${listing.name}`}
-      className="group block w-full max-w-[240px] overflow-hidden rounded-2xl bg-white text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#E89A1C]"
+      className="group block w-full max-w-[160px] overflow-hidden rounded-2xl bg-white text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#E89A1C]"
     >
       <article>
-        <div className="relative h-[160px] w-full overflow-hidden rounded-2xl">
+        <div className="relative size-[160px] overflow-hidden rounded-2xl">
           <Image
             src={activeImage}
             alt={listing.name}
@@ -288,7 +288,7 @@ export default function MinimalListingCard({
             sizes="240px"
             unoptimized={activeImage === "/placeholder.svg" ? false : true}
             onError={() => setImageError(true)}
-            className={`object-cover transition-transform duration-500 ${
+            className={`listing-image object-cover transition-transform duration-500 ${
               isHovered ? "scale-105" : "scale-100"
             }`}
             onMouseEnter={() => setIsHovered(true)}
@@ -296,8 +296,8 @@ export default function MinimalListingCard({
           />
 
           {listing.verified && (
-            <span className="absolute left-2.5 top-2.5 z-10 flex items-center gap-1 rounded-full bg-white/85 px-2 py-1 text-[10px] font-medium text-[#1B1A2E] backdrop-blur-sm">
-              <ShieldCheck size={12} className="text-[#2E7D32]" />
+            <span className="absolute left-2.5 top-2.5 z-10 flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-[10px] font-medium text-white backdrop-blur-sm">
+              <ShieldCheck size={13} className="text-[#008000]" />
               Verified host
             </span>
           )}

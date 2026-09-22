@@ -12,3 +12,6 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 export const supabase = createBrowserClient(supabaseUrl, supabaseKey);
+
+// Added for the account pages: they call createClient().
+export const createClient = () => supabase;

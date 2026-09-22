@@ -73,3 +73,23 @@ body {
   opacity: 0;
   animation: hero-fade 18s infinite;
 }
+
+.listing-image {
+  object-fit: cover;
+  filter: saturate(1.08) contrast(1.04) brightness(1.02);
+  transition: filter 300ms ease, transform 700ms ease;
+}
+
+.listing-card:hover .listing-image {
+  filter: saturate(1.12) contrast(1.06) brightness(1.04);
+  transform: scale(1.04);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .listing-image {
+    transition: none;
+  }
+  .listing-card:hover .listing-image {
+    transform: none;
+  }
+}

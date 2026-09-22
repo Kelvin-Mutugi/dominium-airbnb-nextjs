@@ -21,7 +21,7 @@ export default function NairobiListings({
   const carouselRef = useRef<HorizontalListingCarouselHandle>(null);
 
   return (
-    <section id="listings" className="px-[6%] pb-[20px] pt-[40px]">
+    <section id="listings" className="px-[6%] pb-[20px] pt-[10px]">
       {/* Heading + arrows */}
       <div className="mb-[26px] flex items-center justify-between">
         {/* Title */}
@@ -39,7 +39,7 @@ export default function NairobiListings({
         </div>
 
         {/* Carousel arrows */}
-        <div className="flex gap-2">
+        <div className="hidden gap-2 lg:flex">
           <button
             type="button"
             onClick={() => carouselRef.current?.scroll("left")}
@@ -65,10 +65,10 @@ export default function NairobiListings({
           ref={carouselRef}
           label="Nairobi listings"
         >
-          {Array.from({ length: 5 }, (_, index) => (
+          {Array.from({ length: 10 }, (_, index) => (
             <div
               key={index}
-              className="w-[240px] shrink-0 snap-start"
+              className="w-[160px] shrink-0 snap-start"
             >
               <MinimalListingCard loading />
             </div>
@@ -86,7 +86,7 @@ export default function NairobiListings({
           {listings.map((item: Listing) => (
             <div
               key={item.id}
-              className="w-[240px] shrink-0 snap-start"
+              className="w-[160px] shrink-0 snap-start"
             >
               <MinimalListingCard item={item} />
             </div>
