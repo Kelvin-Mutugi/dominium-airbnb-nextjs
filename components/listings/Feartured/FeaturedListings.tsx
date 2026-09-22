@@ -20,15 +20,15 @@ export default function FeaturedListings({
   const carouselRef = useRef<HorizontalListingCarouselHandle>(null);
 
   return (
-    <section id="listings" className="px-[6%] pb-[20px] pt-[40px]">
+    <section id="listings" className="px-[6%] pb-[14px] pt-[22px]">
       {/* Title + arrows */}
-      <div className="mb-[26px] flex items-center justify-between">
+      <div className="mb-[18px] flex items-center justify-between">
         <h2 className="text-[20px] font-semibold text-[#36454F]">
           Our Top Unique Properties
         </h2>
 
         {/* Carousel arrows */}
-        <div className="flex gap-2">
+        <div className="hidden gap-2 lg:flex">
           <button
             type="button"
             onClick={() => carouselRef.current?.scroll("left")}
@@ -54,10 +54,10 @@ export default function FeaturedListings({
           ref={carouselRef}
           label="featured listings"
         >
-          {Array.from({ length: 5 }, (_, index) => (
+          {Array.from({ length: 6 }, (_, index) => (
             <div
               key={index}
-              className="w-[280px] shrink-0 snap-start"
+              className="w-[200px] shrink-0 snap-start"
             >
               <FeaturedListingCard loading />
             </div>
@@ -75,7 +75,7 @@ export default function FeaturedListings({
           {listings.map((item: Listing) => (
             <div
               key={item.id}
-              className="w-[280px] shrink-0 snap-start"
+              className="w-[200px] shrink-0 snap-start"
             >
               <FeaturedListingCard item={item} />
             </div>

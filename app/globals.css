@@ -73,3 +73,7 @@ body {
   opacity: 0;
   animation: hero-fade 18s infinite;
 }
+
+.listing-image {
+  filter: saturate(1.08) contrast(1.04) brightness(1.02);
+}

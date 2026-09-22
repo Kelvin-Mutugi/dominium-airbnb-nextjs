@@ -226,7 +226,7 @@ export default function ListingCard({ item, id, loading = false }: ListingCardPr
             sizes="(max-width: 768px) 100vw, 320px"
             unoptimized={activeImage.includes("placehold.co") || activeImage.includes("images.unsplash.com")}
             onError={() => setImageError(true)}
-            className={`object-cover transition-transform duration-700 ${isHovered ? "scale-105" : "scale-100"}`}
+            className={`listing-image object-cover transition-transform duration-700 ${isHovered ? "scale-105" : "scale-100"}`}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           />

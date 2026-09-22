@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Listing } from "../../homeData";
 import MinimalListingCard from "../../minimalListingCard";
-import HorizontalListingCarousel from "@/components/listings/HorizontalListingCarousel";
+import HorizontalListingCarousel, {
+  HorizontalListingCarouselHandle,
+} from "@/components/listings/HorizontalListingCarousel";
 
 interface FeaturedListingsProps {
   listings: Listing[];
@@ -15,8 +18,10 @@ export default function MombasaListings({
   listings,
   isLoading = false,
 }: FeaturedListingsProps) {
+  const carouselRef = useRef<HorizontalListingCarouselHandle>(null);
+
   return (
-    <section id="listings" className="px-[6%] pb-[20px] pt-[20px]">
+    <section id="listings" className="px-[6%] pb-[20px] pt-[10px]">
       <div className="mb-[26px] flex items-center justify-between">
         {/* Title */}
         <div className="flex items-center">
@@ -33,17 +38,11 @@ export default function MombasaListings({
         </div>
 
         {/* Carousel arrows */}
-        <div className="flex gap-2">
+        <div className="hidden gap-2 lg:flex">
           <button
             type="button"
             aria-label="Scroll Mombasa listings left"
-            onClick={() =>
-              window.dispatchEvent(
-                new CustomEvent("mombasa-listings-scroll", {
-                  detail: "left",
-                })
-              )
-            }
+            onClick={() => carouselRef.current?.scroll("left")}
             className="flex h-9 w-9 items-center justify-center rounded-full border border-[#E9E6DD] bg-white text-[#36454F] transition-colors hover:border-[#E23E85] hover:text-[#E23E85]"
           >
             <ChevronLeft size={18} />
@@ -52,13 +51,7 @@ export default function MombasaListings({
           <button
             type="button"
             aria-label="Scroll Mombasa listings right"
-            onClick={() =>
-              window.dispatchEvent(
-                new CustomEvent("mombasa-listings-scroll", {
-                  detail: "right",
-                })
-              )
-            }
+            onClick={() => carouselRef.current?.scroll("right")}
             className="flex h-9 w-9 items-center justify-center rounded-full border border-[#E9E6DD] bg-white text-[#36454F] transition-colors hover:border-[#E23E85] hover:text-[#E23E85]"
           >
             <ChevronRight size={18} />
@@ -67,11 +60,11 @@ export default function MombasaListings({
       </div>
 
       {isLoading ? (
-        <HorizontalListingCarousel label="Mombasa listings">
-          {Array.from({ length: 5 }, (_, index) => (
+        <HorizontalListingCarousel ref={carouselRef} label="Mombasa listings">
+          {Array.from({ length: 10 }, (_, index) => (
             <div
               key={index}
-              className="w-[240px] shrink-0 snap-start"
+              className="w-[160px] shrink-0 snap-start"
             >
               <MinimalListingCard loading />
             </div>
@@ -82,11 +75,11 @@ export default function MombasaListings({
           No listings match that location yet — try a different town.
         </p>
       ) : (
-        <HorizontalListingCarousel label="Mombasa listings">
+        <HorizontalListingCarousel ref={carouselRef} label="Mombasa listings">
           {listings.map((item: Listing) => (
             <div
               key={item.id}
-              className="w-[240px] shrink-0 snap-start"
+              className="w-[160px] shrink-0 snap-start"
             >
               <MinimalListingCard item={item} />
             </div>

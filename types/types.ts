@@ -5,7 +5,7 @@ export interface Listing {
   distanceLabel?: string;
   pricePerNight: number;
   bedrooms: number;
-  sleeps: number;
+  guests: number;
   amenities: string[];
   description: string;
   rating: number;

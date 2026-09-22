@@ -110,7 +110,7 @@ export default function CountyDirectory() {
   );
 
   return (
-    <section className="w-full bg-white px-[6%] pt-14" id="explore_by_county">
+    <section className="w-full bg-white px-[6%] pt-14" id="explore_by_county pb-14">
       <div>
         {/* Header */}
         <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
@@ -189,7 +189,7 @@ export default function CountyDirectory() {
                 <button
                   type="button"
                   onClick={() => setExpanded(true)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:border-pink-300 hover:text-pink-700"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:border-pink-300 hover:text-pink-700 mb-6"
                 >
                   View {hiddenCount} more{" "}
                   {hiddenCount === 1 ? "county" : "counties"}
@@ -199,7 +199,7 @@ export default function CountyDirectory() {
             )}
 
             {expanded && results.length > INITIAL_VISIBLE && (
-              <div className="mt-6 flex justify-center">
+              <div className="mt-6 flex justify-center mb-6">
                 <button
                   type="button"
                   onClick={() => setExpanded(false)}

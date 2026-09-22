@@ -191,7 +191,7 @@ export const LISTINGS: Listing[] = [
     name: "Beachfront Studio",
     loc: "Nyali, Mombasa",
     price: "KES 5,200 / night",
-    detail: "Sleeps 2 · sea view",
+    detail: "Guests 2 · sea view",
 
     img: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&q=60",
 
@@ -290,7 +290,7 @@ export const LISTINGS: Listing[] = [
     name: "Milimani Garden Flat",
     loc: "Milimani, Kisumu",
     price: "KES 2,800 / night",
-    detail: "Sleeps 3 · garden",
+    detail: "Guests 3 · garden",
 
     img: "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=500&q=60",
 
@@ -385,7 +385,7 @@ export const LISTINGS: Listing[] = [
     name: "Westlands Loft Suite",
     loc: "Westlands, Nairobi",
     price: "KES 4,100 / night",
-    detail: "Sleeps 2 · rooftop access",
+    detail: "Guests 2 · rooftop access",
 
     img: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=500&q=60",
 
@@ -484,7 +484,7 @@ export const LISTINGS: Listing[] = [
     name: "Nyali Bay House",
     loc: "Nyali, Mombasa",
     price: "KES 6,100 / night",
-    detail: "Sleeps 5 · family villa",
+    detail: "Guests 5 · family villa",
 
     img: "https://images.unsplash.com/photo-1494526585095-c41746248156?w=500&q=60",
 
@@ -583,7 +583,7 @@ export const LISTINGS: Listing[] = [
     name: "Kilimani View Flat",
     loc: "Kilimani, Nairobi",
     price: "KES 3,200 / night",
-    detail: "Sleeps 2 · quiet street",
+    detail: "Guests 2 · quiet street",
 
     img: "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=500&q=60",
 
@@ -678,7 +678,7 @@ export const LISTINGS: Listing[] = [
     name: "Westlands Modern Studio",
     loc: "Westlands, Nairobi",
     price: "KES 4,000 / night",
-    detail: "Sleeps 2 · city views",
+    detail: "Guests 2 · city views",
 
     img: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&q=60",
 
@@ -777,7 +777,7 @@ export const LISTINGS: Listing[] = [
     name: "Kileleshwa Garden Apartment",
     loc: "Kileleshwa, Nairobi",
     price: "KES 3,600 / night",
-    detail: "Sleeps 3 · garden setting",
+    detail: "Guests 3 · garden setting",
 
     img: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=500&q=60",
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/navigationBar";
 import ActiveFilterChips, {
   type ActiveFilter,
@@ -25,8 +25,31 @@ import { supabase } from "@/app/lib/supabase/client";
 
 const PAGE_SIZE = 6;
 
-async function fetchListingPage(from: number, to: number) {
-  const { data, error } = await supabase
+interface SearchQuery {
+  location: string;
+  checkIn: string;
+  checkOut: string;
+  guests: number;
+}
+
+function cleanSearchTerm(value: string) {
+  return value.replace(/[%,]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function formatDateRange(checkIn: string, checkOut: string) {
+  const format = (value: string) =>
+    new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(
+      new Date(`${value}T00:00:00`),
+    );
+
+  if (checkIn && checkOut) return `${format(checkIn)} – ${format(checkOut)}`;
+  if (checkIn) return `From ${format(checkIn)}`;
+  if (checkOut) return `Until ${format(checkOut)}`;
+  return undefined;
+}
+
+async function fetchListingPage(from: number, to: number, searchQuery: SearchQuery) {
+  let query = supabase
     .from("listings")
     .select(
       `
@@ -45,6 +68,23 @@ async function fetchListingPage(from: number, to: number) {
       `,
     )
     .eq("status", "published")
+    .gte("max_guests", searchQuery.guests || 0);
+
+  const location = cleanSearchTerm(searchQuery.location);
+  if (location) {
+    const locationTerms = location
+      .split(/\s+[—-]\s+|\s*,\s*/)
+      .map((term) => term.trim())
+      .filter(Boolean);
+    const clauses = locationTerms.flatMap((term) => [
+      `county.ilike.%${term}%`,
+      `town.ilike.%${term}%`,
+      `title.ilike.%${term}%`,
+    ]);
+    query = query.or(clauses.join(","));
+  }
+
+  const { data: filteredData, error: filteredError } = await query
     .order("created_at", { ascending: false })
     .order("sort_order", {
       foreignTable: "listing_images",
@@ -52,9 +92,9 @@ async function fetchListingPage(from: number, to: number) {
     })
     .range(from, to);
 
-  if (error) throw error;
+  if (filteredError) throw filteredError;
 
-  return (data ?? []).map((listing) => {
+  return (filteredData ?? []).map((listing) => {
     const images = Array.isArray(listing.listing_images)
       ? [...listing.listing_images].sort(
           (first, second) => first.sort_order - second.sort_order,
@@ -72,7 +112,7 @@ async function fetchListingPage(from: number, to: number) {
       location: [listing.town, listing.county].filter(Boolean).join(", "),
       pricePerNight: Number(listing.price_per_night),
       bedrooms: listing.bedrooms ?? 0,
-      sleeps: listing.max_guests,
+      guests: listing.max_guests,
       amenities,
       description: listing.description,
       rating: Number(listing.average_rating ?? 0),
@@ -83,8 +123,18 @@ async function fetchListingPage(from: number, to: number) {
   });
 }
 
-export default function AllListingsPage() {
+function AllListingsContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const searchQuery = useMemo<SearchQuery>(
+    () => ({
+      location: searchParams.get("location") ?? "",
+      checkIn: searchParams.get("checkIn") ?? "",
+      checkOut: searchParams.get("checkOut") ?? "",
+      guests: Math.max(0, Number(searchParams.get("guests") ?? 0) || 0),
+    }),
+    [searchParams],
+  );
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [sort, setSort] = useState<SortOption>("recommended");
   const [view, setView] = useState<ViewMode>("list");
@@ -98,7 +148,7 @@ export default function AllListingsPage() {
   useEffect(() => {
     async function loadListings() {
       try {
-        const normalizedListings = await fetchListingPage(0, PAGE_SIZE - 1);
+        const normalizedListings = await fetchListingPage(0, PAGE_SIZE - 1, searchQuery);
         setDatabaseListings(normalizedListings);
         setHasMore(normalizedListings.length === PAGE_SIZE);
       } catch (error) {
@@ -108,7 +158,7 @@ export default function AllListingsPage() {
     }
 
     void loadListings();
-  }, []);
+  }, [searchQuery]);
 
   const loadMoreListings = async () => {
     if (isLoadingMore || !hasMore) return false;
@@ -118,6 +168,7 @@ export default function AllListingsPage() {
       const nextListings = await fetchListingPage(
         databaseListings.length,
         databaseListings.length + PAGE_SIZE - 1,
+        searchQuery,
       );
       setDatabaseListings((current) => [...current, ...nextListings]);
       setHasMore(nextListings.length === PAGE_SIZE);
@@ -238,7 +289,11 @@ export default function AllListingsPage() {
     <>
       <Navbar />
       <main className="mx-auto max-w-7xl px-5 pb-16 md:px-8">
-        <PageHeading title="All stays" resultCount={listings.length} />
+        <PageHeading
+          title={searchQuery.location ? `Stays in ${searchQuery.location}` : "All stays"}
+          resultCount={listings.length}
+          dateRangeLabel={formatDateRange(searchQuery.checkIn, searchQuery.checkOut)}
+        />
         <ActiveFilterChips
           filters={activeFilters}
           onRemove={removeFilter}
@@ -313,5 +368,17 @@ export default function AllListingsPage() {
         </div>
       </main>
     </>
+  );
+}
+
+export default function AllListingsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#F7F5F2]" aria-label="Loading listings" />
+      }
+    >
+      <AllListingsContent />
+    </Suspense>
   );
 }

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { KeyboardEvent, MouseEvent } from "react";
-import { Heart, Star, ShieldCheck, Gem } from "lucide-react";
+import { BedDouble, Heart, Star, Gem, Users } from "lucide-react";
 import { supabase } from "@/app/lib/supabase/client";
 import type { Amenity, Listing } from "./homeData";
 
@@ -240,9 +240,9 @@ export default function MinimalListingCard({
 
   if (loading) {
     return (
-      <div className="w-full max-w-[320px] overflow-hidden rounded-[24px] border border-[#E9E6DD] bg-white shadow-sm">
+      <div className="w-full max-w-[160px] overflow-hidden rounded-[24px] border border-[#E9E6DD] bg-white shadow-sm">
         <div aria-hidden="true">
-          <div className="shimmer h-[220px] w-full" />
+          <div className="shimmer size-[160px] rounded-2xl" />
           <div className="space-y-3 p-4">
             <div className="shimmer h-4 w-24 rounded" />
             <div className="shimmer h-5 w-3/4 rounded" />
@@ -271,16 +271,26 @@ export default function MinimalListingCard({
     : galleryImages[imageIndex] ?? "/placeholder.svg";
 
   const ratingValue = formatRating(listing.rating);
+  const hasBeds = typeof listing.beds === "number";
+  const bedsLabel =
+    listing.beds === 0
+      ? "Studio"
+      : `${listing.beds} bed${listing.beds === 1 ? "" : "s"}`;
+  const hasGuests = typeof listing.guests === "number" && listing.guests > 0;
+  const guestsLabel = `${listing.guests} guest${listing.guests === 1 ? "" : "s"}`;
+  const pricePerNight = /\/\s*night\s*$/i.test(listing.price)
+    ? listing.price.replace(/\s*\/\s*night\s*$/i, "")
+    : listing.price;
 
   return (
     <Link
       href={`/apartments/${listing.id}`}
       onKeyDown={handleKeyDown}
       aria-label={`View details for ${listing.name}`}
-      className="group block w-full max-w-[240px] overflow-hidden rounded-2xl bg-white text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#E89A1C]"
+      className="group block w-full max-w-[160px] overflow-hidden rounded-2xl bg-white text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#E89A1C]"
     >
       <article>
-        <div className="relative h-[160px] w-full overflow-hidden rounded-2xl">
+        <div className="relative size-[160px] overflow-hidden rounded-2xl">
           <Image
             src={activeImage}
             alt={listing.name}
@@ -288,19 +298,17 @@ export default function MinimalListingCard({
             sizes="240px"
             unoptimized={activeImage === "/placeholder.svg" ? false : true}
             onError={() => setImageError(true)}
-            className={`object-cover transition-transform duration-500 ${
+            className={`listing-image object-cover transition-transform duration-500 ${
               isHovered ? "scale-105" : "scale-100"
             }`}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           />
 
-          {listing.verified && (
-            <span className="absolute left-2.5 top-2.5 z-10 flex items-center gap-1 rounded-full bg-white/85 px-2 py-1 text-[10px] font-medium text-[#1B1A2E] backdrop-blur-sm">
-              <ShieldCheck size={12} className="text-[#2E7D32]" />
-              Verified host
-            </span>
-          )}
+          <span className="absolute left-2.5 top-2.5 z-10 rounded-full bg-[#040720]/75 px-2 py-1 text-[10px] font-semibold text-[#FFFFFF] shadow-sm backdrop-blur-sm">
+            {pricePerNight}
+            {/* <span className="ml-0.5 font-normal text-[#FFFFFF]/80">/ night</span> */}
+          </span>
 
           {listing.rareFind && (
             <span className="absolute left-2.5 bottom-2.5 z-10 flex items-center gap-1 rounded-full bg-[#1B1A2E]/85 px-2 py-1 text-[10px] font-medium text-white backdrop-blur-sm">
@@ -340,7 +348,27 @@ export default function MinimalListingCard({
             {listing.name}
           </h3>
 
-          <p className="mt-1 text-[12px] font-semibold text-[#1B1A2E]">{listing.price}</p>
+          {(hasBeds || hasGuests) && (
+            <p className="mt-1 flex items-center gap-3 text-[11px] text-[#36454F]/70">
+              {hasBeds && (
+                <span className="inline-flex items-center gap-1">
+                  <BedDouble size={12} aria-hidden="true" />
+                  {bedsLabel}
+                </span>
+              )}
+              {hasGuests && (
+                <span className="inline-flex items-center gap-1">
+                  <Users size={12} aria-hidden="true" />
+                  {guestsLabel}
+                </span>
+              )}
+            </p>
+          )}
+
+          {/* <p className="mt-1 text-[12px] font-semibold text-[#1B1A2E]">
+            {pricePerNight}
+            <span className="ml-0.5 font-normal text-[#36454F]/55">/ night</span>
+          </p> */}
         </div>
       </article>
     </Link>

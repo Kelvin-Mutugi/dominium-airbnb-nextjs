@@ -61,7 +61,7 @@ export default function ListingCard({
             {listing.bedrooms} bed
           </span>
           <span className="bg-ink/5 px-2.5 py-1 text-[11.5px] text-ink/70">
-            Sleeps {listing.sleeps}
+            Guests {listing.guests}
           </span>
           {listing.amenities.slice(0, 2).map((a) => (
             <span key={a} className="bg-ink/5 px-2.5 py-1 text-[11.5px] text-ink/70">
