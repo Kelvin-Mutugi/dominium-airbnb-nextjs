@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/navigationBar";
 import ActiveFilterChips, {
@@ -123,7 +123,7 @@ async function fetchListingPage(from: number, to: number, searchQuery: SearchQue
   });
 }
 
-export default function AllListingsPage() {
+function AllListingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const searchQuery = useMemo<SearchQuery>(
@@ -368,5 +368,17 @@ export default function AllListingsPage() {
         </div>
       </main>
     </>
+  );
+}
+
+export default function AllListingsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#F7F5F2]" aria-label="Loading listings" />
+      }
+    >
+      <AllListingsContent />
+    </Suspense>
   );
 }

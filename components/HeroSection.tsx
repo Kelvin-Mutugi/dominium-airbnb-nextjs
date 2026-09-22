@@ -2,11 +2,26 @@
 
 import Link from "next/link";
 import { HERO_IMAGES } from "./homeData";
+import SearchBar from "./SearchBar";
 
 // Shortcuts into /allListings. The `location` param matches what the navbar search uses.
 const HERO_COUNTIES = ["Nairobi", "Mombasa", "Kilifi", "Nakuru", "Kisumu"];
 
-export default function HeroSection() {
+interface HeroSectionProps {
+  selectedRoute: string;
+  onRouteChange: (route: string) => void;
+  checkIn: string;
+  onCheckInChange: (value: string) => void;
+  onSearch: () => void;
+}
+
+export default function HeroSection({
+  selectedRoute,
+  onRouteChange,
+  checkIn,
+  onCheckInChange,
+  onSearch,
+}: HeroSectionProps) {
   return (
     <section
       id="home"
@@ -45,7 +60,17 @@ export default function HeroSection() {
           county, pick your dates and book securely.
         </p>
 
-        <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
+        <div className="mt-7 flex justify-center">
+          <SearchBar
+            selectedRoute={selectedRoute}
+            onRouteChange={onRouteChange}
+            checkIn={checkIn}
+            onCheckInChange={onCheckInChange}
+            onSearch={onSearch}
+          />
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
           <span className="mr-1 text-[13px] font-medium text-white/70">
             Popular:
           </span>
