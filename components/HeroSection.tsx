@@ -56,8 +56,7 @@ export default function HeroSection({
         </h1>
 
         <p className="mx-auto mt-4 max-w-[500px] text-[15px] leading-[1.55] text-white/85 sm:text-base">
-          Verified apartments and homes from Nairobi to the coast. Search by
-          county, pick your dates and book securely.
+          verified b&bs in kenya. search by county,pick your dates and book securely.
         </p>
 
         {/* <div className="mt-7 flex justify-center">
@@ -71,9 +70,9 @@ export default function HeroSection({
         </div> */}
 
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-          <span className="mr-1 text-[13px] font-medium text-white/70">
+          {/* <span className="mr-1 text-[13px] font-medium text-white/70">
             Popular:
-          </span>
+          </span> */}
           {HERO_COUNTIES.map((county) => (
             <Link
               key={county}
