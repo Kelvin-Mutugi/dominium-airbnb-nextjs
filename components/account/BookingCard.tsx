@@ -76,7 +76,7 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
             </span>
           )}
           {listing && (
-            <Link href={routes.listing(listing.slug)} className={textLink}>
+            <Link href={`/apartments/${listing.id}`} className={textLink}>
               View listing
             </Link>
           )}

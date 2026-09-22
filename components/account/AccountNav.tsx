@@ -29,6 +29,7 @@ const ITEMS = [
   { href: '/account/payouts', label: 'Payouts', icon: Banknote, hostOnly: true },
   { href: '/account/profile', label: 'Profile', icon: UserRound },
   { href: '/account/security', label: 'Security', icon: ShieldCheck },
+  { href: '/host', label: 'Host Panel', icon: LayoutDashboard, hostOnly: true },
 ];
 
 export function AccountNav({ isHost }: { isHost: boolean }) {
