@@ -2,17 +2,15 @@
 
 import Navbar from "@/components/navigationBar";
 import HeroSection from "@/components/HeroSection";
-import QuickRoutes from "@/components/QuickRoutes";
 import FeaturedListings from "@/components/listings/Feartured/FeaturedListings";
-import NairobiListings from "@/components/listings/Nairobi/Listings";
-import MombasaListings from "@/components/listings/Mombasa/Listings";
+import DestinationListings from "@/components/listings/DestinationListings";
 import BookingProcess from "@/components/BookingProcess";
 import PopularDestinations from "@/components/Populardestinations";
 import type { Home } from "@/components/Populardestinations";
 import WhyBookUs from "@/components/WhyBookUs";
-import CountyDirectory from "@/components/Countydirectory";
+import { HOMEPAGE_DESTINATIONS } from "./homepageSections";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ROUTES,
@@ -21,7 +19,8 @@ import {
 } from "@/components/homeData";
 import { supabase } from "@/app/lib/supabase/client";
 
-const HOME_PAGE_SIZE = 8;
+const FEATURED_PAGE_SIZE = 8;
+const DESTINATION_PAGE_SIZE = 10;
 
 interface DatabaseListing {
   id: string;
@@ -98,26 +97,73 @@ function normalizeListing(listing: DatabaseListing): Listing {
   };
 }
 
-async function fetchHomepageListings(from: number, to: number) {
-  const { data, error } = await supabase
+function uniqueListings(listings: Listing[]) {
+  return listings.filter(
+    (listing, index, allListings) =>
+      allListings.findIndex((candidate) => candidate.id === listing.id) === index,
+  );
+}
+
+const LISTING_SELECT = `
+  id, title, description, county, town, price_per_night,
+  max_guests, bedrooms, bathrooms, amenities,
+  listing_images ( url, sort_order )
+`;
+
+async function fetchListings({
+  searchTerms,
+  limit,
+}: {
+  searchTerms?: string[];
+  limit: number;
+}) {
+  let query = supabase
     .from("listings")
-    .select(
-      `
-        id, title, description, county, town, price_per_night,
-        max_guests, bedrooms, bathrooms, amenities,
-        listing_images ( url, sort_order )
-      `,
-    )
-    .eq("status", "published")
+    .select(LISTING_SELECT)
+    .eq("status", "published");
+
+  if (searchTerms?.length) {
+    const clauses = searchTerms.flatMap((term) => [
+      `county.ilike.%${term}%`,
+      `town.ilike.%${term}%`,
+      `title.ilike.%${term}%`,
+    ]);
+    query = query.or(clauses.join(","));
+  }
+
+  const { data, error } = await query
     .order("created_at", { ascending: false })
     .order("sort_order", {
       foreignTable: "listing_images",
       ascending: true,
     })
-    .range(from, to);
+    .limit(1, { foreignTable: "listing_images" })
+    .limit(limit);
 
   if (error) throw error;
   return ((data ?? []) as DatabaseListing[]).map(normalizeListing);
+}
+
+async function fetchHomepageListings() {
+  const [featuredListings, ...destinationResults] = await Promise.all([
+    fetchListings({ limit: FEATURED_PAGE_SIZE }),
+    ...HOMEPAGE_DESTINATIONS.map((destination) =>
+      fetchListings({
+        searchTerms: destination.searchTerms,
+        limit: DESTINATION_PAGE_SIZE,
+      }),
+    ),
+  ]);
+
+  const destinationListings = uniqueListings(destinationResults.flat());
+  const featuredIds = new Set(featuredListings.map((listing) => listing.id));
+
+  return {
+    featuredListings: uniqueListings(featuredListings),
+    destinationListings: destinationListings.filter(
+      (listing) => !featuredIds.has(listing.id),
+    ),
+  };
 }
 
 export default function HomePage() {
@@ -126,17 +172,17 @@ export default function HomePage() {
   const [checkIn, setCheckIn] = useState<string>("");
   const [listings, setListings] = useState<Listing[]>([]);
   const [isLoadingListings, setIsLoadingListings] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMoreListings, setHasMoreListings] = useState(true);
-  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const featuredListings = listings.slice(0, 8);
-  const nairobiListings = listings
-    .filter((item) => item.loc.toLowerCase().includes("nairobi"))
-    .slice(0, 10);
-  const mombasaListings = listings
-    .filter((item) => item.loc.toLowerCase().includes("mombasa"))
-    .slice(0, 10);
+  const destinationSections = HOMEPAGE_DESTINATIONS.map((destination) => ({
+    ...destination,
+    listings: uniqueListings(
+      listings.filter((listing) => {
+        const location = listing.loc.toLowerCase();
+        return destination.searchTerms.some((term) => location.includes(term));
+      }),
+    ).slice(0, 10),
+  })).filter((destination) => isLoadingListings || destination.listings.length > 0);
   const homes: Home[] = listings
     .map((listing) => ({
       ...listing,
@@ -168,9 +214,8 @@ export default function HomePage() {
   useEffect(() => {
     async function getListings() {
       try {
-        const firstListings = await fetchHomepageListings(0, HOME_PAGE_SIZE - 1);
-        setListings(firstListings);
-        setHasMoreListings(firstListings.length === HOME_PAGE_SIZE);
+        const { featuredListings, destinationListings } = await fetchHomepageListings();
+        setListings(uniqueListings([...featuredListings, ...destinationListings]));
       } catch (error) {
         console.error("Failed to load listings from Supabase:", error);
       } finally {
@@ -180,39 +225,6 @@ export default function HomePage() {
 
     void getListings();
   }, []);
-
-  const loadMoreListings = useCallback(async () => {
-    if (isLoadingMore || !hasMoreListings) return;
-
-    setIsLoadingMore(true);
-    try {
-      const nextListings = await fetchHomepageListings(
-        listings.length,
-        listings.length + HOME_PAGE_SIZE - 1,
-      );
-      setListings((current) => [...current, ...nextListings]);
-      setHasMoreListings(nextListings.length === HOME_PAGE_SIZE);
-    } catch (error) {
-      console.error("Failed to load more homepage listings:", error);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  }, [hasMoreListings, isLoadingMore, listings.length]);
-
-  useEffect(() => {
-    const sentinel = loadMoreRef.current;
-    if (!sentinel || !hasMoreListings || isLoadingListings) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) void loadMoreListings();
-      },
-      { rootMargin: "500px 0px" },
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasMoreListings, isLoadingListings, loadMoreListings]);
 
   return (
     <>
@@ -224,17 +236,16 @@ export default function HomePage() {
         onCheckInChange={setCheckIn}
         onSearch={scrollToListings}
       />
-      <FeaturedListings listings={featuredListings} isLoading={isLoadingListings} />  
-      <div ref={loadMoreRef} aria-hidden="true" className="h-px" />
-      <NairobiListings
-        listings={nairobiListings}
-        isLoading={isLoadingListings || (isLoadingMore && nairobiListings.length === 0)}
-      />
-      <MombasaListings
-        listings={mombasaListings}
-        isLoading={isLoadingListings || (isLoadingMore && mombasaListings.length === 0)}
-      />
-      {/* <QuickRoutes /> */}
+      <FeaturedListings listings={featuredListings} isLoading={isLoadingListings} />
+      {destinationSections.map((destination) => (
+        <DestinationListings
+          key={destination.slug}
+          label={destination.label}
+          slug={destination.slug}
+          listings={destination.listings}
+          isLoading={isLoadingListings}
+        />
+      ))}
       <PopularDestinations
         homes={homes}
         onView={(home) => router.push(`/apartments/${home.id}`)}
