@@ -376,7 +376,7 @@ export default function BookingCard({
     } else if (!Number.isInteger(children) || children < 0) {
       errors.children = "Children cannot be negative.";
     } else if (totalGuests > listing.max_guests) {
-      errors.adults = `This listing sleeps up to ${listing.max_guests} guest${listing.max_guests === 1 ? "" : "s"}.`;
+      errors.adults = `This listing accommodates up to ${listing.max_guests} guest${listing.max_guests === 1 ? "" : "s"}.`;
     }
 
     if (!Number.isInteger(rooms) || rooms < 1)

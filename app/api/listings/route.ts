@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
           .join(", "),
         pricePerNight: Number(listing.price_per_night),
         bedrooms: listing.bedrooms ?? 0,
-        sleeps: listing.max_guests,
+        guests: listing.max_guests,
         amenities,
         description: listing.description,
         rating: Number(listing.average_rating ?? 0),
