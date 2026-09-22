@@ -60,7 +60,7 @@ export default function HeroSection({
           county, pick your dates and book securely.
         </p>
 
-        <div className="mt-7 flex justify-center">
+        {/* <div className="mt-7 flex justify-center">
           <SearchBar
             selectedRoute={selectedRoute}
             onRouteChange={onRouteChange}
@@ -68,7 +68,7 @@ export default function HeroSection({
             onCheckInChange={onCheckInChange}
             onSearch={onSearch}
           />
-        </div>
+        </div> */}
 
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
           <span className="mr-1 text-[13px] font-medium text-white/70">
