@@ -9,18 +9,18 @@ import type { ActionResult } from '@/types/account';
 /* ---------- shared class strings ---------- */
 
 export const focusRing =
-  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700';
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E23E85]';
 
 export const inputClass =
-  'block w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/25 disabled:bg-neutral-100 disabled:text-neutral-500';
+  'block w-full rounded-xl border border-[#D9D5CF] bg-white px-3 py-2.5 text-sm text-[#1B1A2E] placeholder:text-[#8A8797] focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20 disabled:bg-[#F7F5F2] disabled:text-[#8A8797]';
 
-export const btnPrimary = `inline-flex items-center justify-center rounded-lg bg-teal-800 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:opacity-60 ${focusRing}`;
+export const btnPrimary = `inline-flex items-center justify-center rounded-xl bg-[#E23E85] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(226,62,133,0.2)] transition hover:bg-[#CF2F74] disabled:cursor-not-allowed disabled:opacity-60 ${focusRing}`;
 
-export const btnSecondary = `inline-flex items-center justify-center rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm font-medium text-neutral-800 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 ${focusRing}`;
+export const btnSecondary = `inline-flex items-center justify-center rounded-xl border border-[#D9D5CF] bg-white px-4 py-2.5 text-sm font-semibold text-[#1B1A2E] transition hover:border-[#E23E85] hover:bg-[#FDF0F5] disabled:cursor-not-allowed disabled:opacity-60 ${focusRing}`;
 
 export const btnDanger = `inline-flex items-center justify-center rounded-lg bg-rose-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-60 ${focusRing}`;
 
-export const textLink = `text-sm font-medium text-teal-800 underline underline-offset-2 hover:text-teal-900 ${focusRing}`;
+export const textLink = `text-sm font-semibold text-[#E23E85] underline underline-offset-2 hover:text-[#CF2F74] ${focusRing}`;
 
 /* ---------- layout pieces ---------- */
 
@@ -34,10 +34,11 @@ export function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <header className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-[#E9E6DD] pb-6">
       <div>
-        <h1 className="font-serif text-3xl text-neutral-900">{title}</h1>
-        {description && <p className="mt-1.5 max-w-prose text-neutral-500">{description}</p>}
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#E23E85]">Your Dominium</p>
+        <h1 className="font-serif text-3xl text-[#1B1A2E]">{title}</h1>
+        {description && <p className="mt-1.5 max-w-prose text-[#6B6A78]">{description}</p>}
       </div>
       {action}
     </header>
@@ -108,10 +109,10 @@ export function EmptyState({
 const TONES: Record<string, string> = {
   pending: 'bg-amber-50 text-amber-800 ring-amber-600/20',
   owed: 'bg-amber-50 text-amber-800 ring-amber-600/20',
-  confirmed: 'bg-teal-50 text-teal-800 ring-teal-700/20',
-  paid: 'bg-teal-50 text-teal-800 ring-teal-700/20',
-  success: 'bg-teal-50 text-teal-800 ring-teal-700/20',
-  active: 'bg-teal-50 text-teal-800 ring-teal-700/20',
+  confirmed: 'bg-[#FDF0F5] text-[#CF2F74] ring-[#E23E85]/20',
+  paid: 'bg-[#FDF0F5] text-[#CF2F74] ring-[#E23E85]/20',
+  success: 'bg-[#FDF0F5] text-[#CF2F74] ring-[#E23E85]/20',
+  active: 'bg-[#FDF0F5] text-[#CF2F74] ring-[#E23E85]/20',
   completed: 'bg-neutral-100 text-neutral-700 ring-neutral-500/20',
   refunded: 'bg-neutral-100 text-neutral-700 ring-neutral-500/20',
   cancelled: 'bg-rose-50 text-rose-800 ring-rose-600/20',
@@ -158,7 +159,7 @@ export function Avatar({ name, url, size = 'md' }: { name: string; url?: string 
   return (
     <span
       aria-hidden="true"
-      className={`${dims} inline-flex shrink-0 items-center justify-center rounded-full bg-teal-800 font-serif text-teal-50`}
+      className={`${dims} inline-flex shrink-0 items-center justify-center rounded-full bg-[#E23E85] font-serif text-white`}
     >
       {initials(name)}
     </span>
@@ -196,7 +197,7 @@ export function Field({
 export function FormMessage({ result }: { result: ActionResult | null }) {
   if (!result) return null;
   return result.ok ? (
-    <p role="status" className="text-sm text-teal-800">
+    <p role="status" className="text-sm text-[#CF2F74]">
       {result.message ?? 'Saved.'}
     </p>
   ) : (

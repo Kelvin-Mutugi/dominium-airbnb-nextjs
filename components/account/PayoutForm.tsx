@@ -54,7 +54,7 @@ export function PayoutForm({
             <label
               key={o.id}
               className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 text-sm transition focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-teal-700 ${
-                method === o.id ? 'border-teal-800 bg-teal-50' : 'border-neutral-300 bg-white hover:bg-neutral-50'
+                method === o.id ? 'border-[#E23E85] bg-[#FDF0F5]' : 'border-neutral-300 bg-white hover:bg-neutral-50'
               }`}
             >
               <input

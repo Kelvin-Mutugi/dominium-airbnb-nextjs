@@ -50,7 +50,7 @@ export function BookingsTabs({
               onClick={() => setTab(t.id)}
               className={`-mb-px border-b-2 pb-3 text-sm transition ${
                 active
-                  ? 'border-teal-800 font-medium text-neutral-900'
+                  ? 'border-[#E23E85] font-semibold text-[#1B1A2E]'
                   : 'border-transparent text-neutral-500 hover:text-neutral-800'
               } ${focusRing}`}
             >

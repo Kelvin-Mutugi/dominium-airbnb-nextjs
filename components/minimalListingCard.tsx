@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { KeyboardEvent, MouseEvent } from "react";
-import { Heart, Star, ShieldCheck, Gem } from "lucide-react";
+import { BedDouble, Heart, Star, Gem, Users } from "lucide-react";
 import { supabase } from "@/app/lib/supabase/client";
 import type { Amenity, Listing } from "./homeData";
 
@@ -271,6 +271,16 @@ export default function MinimalListingCard({
     : galleryImages[imageIndex] ?? "/placeholder.svg";
 
   const ratingValue = formatRating(listing.rating);
+  const hasBeds = typeof listing.beds === "number";
+  const bedsLabel =
+    listing.beds === 0
+      ? "Studio"
+      : `${listing.beds} bed${listing.beds === 1 ? "" : "s"}`;
+  const hasGuests = typeof listing.guests === "number" && listing.guests > 0;
+  const guestsLabel = `${listing.guests} guest${listing.guests === 1 ? "" : "s"}`;
+  const pricePerNight = /\/\s*night\s*$/i.test(listing.price)
+    ? listing.price.replace(/\s*\/\s*night\s*$/i, "")
+    : listing.price;
 
   return (
     <Link
@@ -295,12 +305,10 @@ export default function MinimalListingCard({
             onMouseLeave={() => setIsHovered(false)}
           />
 
-          {listing.verified && (
-            <span className="absolute left-2.5 top-2.5 z-10 flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-[10px] font-medium text-white backdrop-blur-sm">
-              <ShieldCheck size={13} className="text-[#008000]" />
-              Verified host
-            </span>
-          )}
+          <span className="absolute left-2.5 top-2.5 z-10 rounded-full bg-[#040720]/75 px-2 py-1 text-[10px] font-semibold text-[#FFFFFF] shadow-sm backdrop-blur-sm">
+            {pricePerNight}
+            {/* <span className="ml-0.5 font-normal text-[#FFFFFF]/80">/ night</span> */}
+          </span>
 
           {listing.rareFind && (
             <span className="absolute left-2.5 bottom-2.5 z-10 flex items-center gap-1 rounded-full bg-[#1B1A2E]/85 px-2 py-1 text-[10px] font-medium text-white backdrop-blur-sm">
@@ -340,7 +348,27 @@ export default function MinimalListingCard({
             {listing.name}
           </h3>
 
-          <p className="mt-1 text-[12px] font-semibold text-[#1B1A2E]">{listing.price}</p>
+          {(hasBeds || hasGuests) && (
+            <p className="mt-1 flex items-center gap-3 text-[11px] text-[#36454F]/70">
+              {hasBeds && (
+                <span className="inline-flex items-center gap-1">
+                  <BedDouble size={12} aria-hidden="true" />
+                  {bedsLabel}
+                </span>
+              )}
+              {hasGuests && (
+                <span className="inline-flex items-center gap-1">
+                  <Users size={12} aria-hidden="true" />
+                  {guestsLabel}
+                </span>
+              )}
+            </p>
+          )}
+
+          {/* <p className="mt-1 text-[12px] font-semibold text-[#1B1A2E]">
+            {pricePerNight}
+            <span className="ml-0.5 font-normal text-[#36454F]/55">/ night</span>
+          </p> */}
         </div>
       </article>
     </Link>

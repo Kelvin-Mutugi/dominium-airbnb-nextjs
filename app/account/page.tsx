@@ -131,27 +131,27 @@ export default async function AccountOverviewPage() {
           </section>
 
           {isHost ? (
-            <section className="rounded-xl bg-teal-50 p-5 ring-1 ring-teal-700/15" aria-labelledby="host-heading">
-              <h2 id="host-heading" className="font-serif text-lg text-teal-950">
+            <section className="rounded-2xl bg-[#FDF0F5] p-5 ring-1 ring-[#E23E85]/15" aria-labelledby="host-heading">
+              <h2 id="host-heading" className="font-serif text-lg text-[#1B1A2E]">
                 Hosting
               </h2>
-              <p className="mt-2 text-sm text-teal-900">
+              <p className="mt-2 text-sm text-[#4B4A5A]">
                 {profile.host_verified_at
                   ? `Verified host since ${formatDate(profile.host_verified_at, 'monthYear')}.`
                   : 'Your host verification is pending.'}
               </p>
-              <p className="mt-3 font-serif text-2xl text-teal-950">{formatMoney(owed)}</p>
-              <p className="text-sm text-teal-900">owed to you</p>
+              <p className="mt-3 font-serif text-2xl text-[#1B1A2E]">{formatMoney(owed)}</p>
+              <p className="text-sm text-[#4B4A5A]">owed to you</p>
               <Link href="/account/payouts" className={`${btnSecondary} mt-4 w-full`}>
                 View payouts
               </Link>
             </section>
           ) : profile.role === 'guest' ? (
-            <section className="rounded-xl bg-teal-50 p-5 ring-1 ring-teal-700/15" aria-labelledby="become-host-heading">
-              <h2 id="become-host-heading" className="font-serif text-lg text-teal-950">
+            <section className="rounded-2xl bg-[#FDF0F5] p-5 ring-1 ring-[#E23E85]/15" aria-labelledby="become-host-heading">
+              <h2 id="become-host-heading" className="font-serif text-lg text-[#1B1A2E]">
                 Have a space to share?
               </h2>
-              <p className="mt-2 text-sm text-teal-900">List your place on Dominium BnB and start welcoming guests.</p>
+              <p className="mt-2 text-sm text-[#4B4A5A]">List your place on Dominium BnB and start welcoming guests.</p>
               <Link href={routes.becomeHost} className={`${btnPrimary} mt-4 w-full`}>
                 Become a host
               </Link>
@@ -166,6 +166,7 @@ export default async function AccountOverviewPage() {
 function NextStay({ booking: b }: { booking: BookingView }) {
   const away = daysUntil(b.check_in);
   const nights = nightsBetween(b.check_in, b.check_out);
+  const checkInImage = coverImage(b.listing?.listing_images);
   const when =
     away > 1
       ? `Check-in is in ${away} days`
@@ -178,11 +179,18 @@ function NextStay({ booking: b }: { booking: BookingView }) {
   return (
     <article className="relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-neutral-200 sm:flex-row">
       {/* Date stub */}
-      <div className="flex shrink-0 items-center gap-4 bg-teal-900 px-6 py-5 text-teal-50 sm:w-48 sm:flex-col sm:justify-center sm:gap-1 sm:py-8 sm:text-center">
-        <p className="font-serif text-6xl leading-none">{dayOfMonth(b.check_in)}</p>
-        <div>
-          <p className="text-sm text-teal-100">{formatDate(b.check_in, 'monthYear')}</p>
-          <p className="text-xs text-teal-300">Check-in day</p>
+      <div className="relative flex shrink-0 items-center gap-4 overflow-hidden bg-[#1B1A2E] px-6 py-5 text-white sm:w-48 sm:flex-col sm:justify-center sm:gap-1 sm:py-8 sm:text-center">
+        {checkInImage && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={checkInImage} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
+        )}
+        <div aria-hidden="true" className="absolute inset-0 bg-black/45" />
+        <div className="relative z-10">
+          <p className="font-serif text-6xl leading-none">{dayOfMonth(b.check_in)}</p>
+          <div>
+            <p className="text-sm text-white/85">{formatDate(b.check_in, 'monthYear')}</p>
+            <p className="text-xs text-[#F3A7C5]">Check-in day</p>
+          </div>
         </div>
       </div>
 
@@ -196,7 +204,7 @@ function NextStay({ booking: b }: { booking: BookingView }) {
       <div className="flex min-w-0 flex-1 flex-col gap-5 p-6">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-medium text-teal-800">{when}</p>
+            <p className="text-sm font-semibold text-[#E23E85]">{when}</p>
             {b.status === 'pending' && <StatusBadge status="pending" label="Awaiting payment" />}
           </div>
           <h2 className="mt-1 font-serif text-2xl leading-snug text-neutral-900">{b.listing?.title ?? 'Your stay'}</h2>

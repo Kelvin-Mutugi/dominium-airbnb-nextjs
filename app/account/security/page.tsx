@@ -23,7 +23,7 @@ export default async function SecurityPage() {
           <div>
             <dt className="text-neutral-500">Email</dt>
             <dd className="mt-0.5 break-all text-neutral-900">{user.email}</dd>
-            <p className={`mt-0.5 text-xs ${user.email_confirmed_at ? 'text-teal-800' : 'text-amber-700'}`}>
+            <p className={`mt-0.5 text-xs ${user.email_confirmed_at ? 'text-[#CF2F74]' : 'text-amber-700'}`}>
               {user.email_confirmed_at ? 'Verified' : 'Not verified yet'}
             </p>
           </div>
