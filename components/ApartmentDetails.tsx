@@ -40,6 +40,7 @@ export default function ApartmentDetails({
   const [stayRange, setStayRange] = useState<{ checkIn: Date; checkOut: Date } | null>(
     null,
   );
+  const [datePrompt, setDatePrompt] = useState(false);
 
   const nights = useMemo(() => {
     if (!stayRange) return 0;
@@ -177,11 +178,13 @@ export default function ApartmentDetails({
 
                 <div className="mt-4">
                   <AvailabilityCalendar
+                    prompt={datePrompt}
                     bookedDateRanges={listing.bookedDateRanges}
                     minNights={listing.minNights}
-                    onDateRangeSelect={(checkIn, checkOut) =>
-                      setStayRange({ checkIn, checkOut })
-                    }
+                    onDateRangeSelect={(checkIn, checkOut) => {
+                      setStayRange({ checkIn, checkOut });
+                      setDatePrompt(false);
+                    }}
                   />
                 </div>
 
@@ -191,17 +194,23 @@ export default function ApartmentDetails({
                   serviceFeePercent={listing.serviceFeePercent}
                 />
 
-                <a
-                  href={stayRange ? `/booking/${listing.id}` : "#contact"}
-                  onClick={(event) => {
-                    if (!stayRange || !onReserve) return;
-                    event.preventDefault();
-                    onReserve(stayRange);
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (stayRange && onReserve) {
+                      onReserve(stayRange);
+                      return;
+                    }
+
+                    setDatePrompt(true);
+                    const calendar = document.getElementById("availability-calendar");
+                    calendar?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    calendar?.focus({ preventScroll: true });
                   }}
                   className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#1B1A2E] px-5 py-3 font-semibold text-white no-underline"
                 >
                   Reserve
-                </a>
+                </button>
               </div>
 
               {onSelectListing && (
@@ -230,7 +239,10 @@ export default function ApartmentDetails({
             onReserve(stayRange);
             return;
           }
-          document.getElementById("contact")?.scrollIntoView();
+          setDatePrompt(true);
+          const calendar = document.getElementById("availability-calendar");
+          calendar?.scrollIntoView({ behavior: "smooth", block: "center" });
+          calendar?.focus({ preventScroll: true });
         }}
       />
     </div>

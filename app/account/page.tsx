@@ -241,7 +241,7 @@ function NextStay({ booking: b }: { booking: BookingView }) {
             Manage booking
           </Link>
           {b.listing && (
-            <Link href={routes.listing(b.listing.slug)} className={btnSecondary}>
+            <Link href={`/apartments/${b.listing.id}`} className={btnSecondary}>
               View listing
             </Link>
           )}

@@ -10,6 +10,7 @@ interface DateRange {
 interface AvailabilityCalendarProps {
   bookedDateRanges?: DateRange[];
   minNights: number;
+  prompt?: boolean;
   onDateRangeSelect?: (checkIn: Date, checkOut: Date) => void;
 }
 
@@ -24,6 +25,7 @@ function isDateBooked(date: Date, ranges: DateRange[]) {
 export function AvailabilityCalendar({
   bookedDateRanges = [],
   minNights,
+  prompt = false,
   onDateRangeSelect,
 }: AvailabilityCalendarProps) {
   const [viewDate, setViewDate] = useState(() => {
@@ -78,7 +80,17 @@ export function AvailabilityCalendar({
   }
 
   return (
-    <div className="rounded-2xl border border-[#EDEBE4] p-4">
+    <div
+      id="availability-calendar"
+      tabIndex={-1}
+      className={`rounded-2xl border p-4 outline-none transition-colors ${
+        prompt ? "border-[#E23E85] ring-4 ring-[#E23E85]/10" : "border-[#EDEBE4]"
+      }`}
+    >
+      <div className="mb-4 rounded-xl bg-[#FAF9F6] px-3 py-2.5 text-[13px] text-[#3A3856]">
+        <span className="font-semibold text-[#1B1A2E]">Choose your dates:</span>{" "}
+        select a check-in date, then select a check-out date.
+      </div>
       <div className="mb-4 flex items-center justify-between">
         <button
           type="button"
@@ -141,13 +153,13 @@ export function AvailabilityCalendar({
         })}
       </div>
 
-      {checkIn && (
-        <p className="mt-3 text-[13px] text-[#3A3856]">
-          {checkOut
-            ? `${checkIn.toLocaleDateString()} → ${checkOut.toLocaleDateString()}`
-            : `Select checkout (min ${minNights} night${minNights > 1 ? "s" : ""})`}
-        </p>
-      )}
+      <p className="mt-3 text-[13px] text-[#3A3856]">
+        {checkOut
+          ? `${checkIn?.toLocaleDateString()} → ${checkOut.toLocaleDateString()}`
+          : checkIn
+            ? `Now select checkout (min ${minNights} night${minNights > 1 ? "s" : ""})`
+            : "Start by selecting your check-in date."}
+      </p>
     </div>
   );
 }
