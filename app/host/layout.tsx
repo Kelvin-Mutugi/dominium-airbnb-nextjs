@@ -1,10 +1,7 @@
 // app/host/layout.tsx
-import { requireHost } from "@/app/lib/host-auth";
 import HostSidebar from "@/components/host/sidebar";
 
-export default async function HostLayout({ children }: { children: React.ReactNode }) {
-  await requireHost();
-
+export default function HostLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-[#f3efe9] md:h-screen md:overflow-hidden">
       <HostSidebar />
