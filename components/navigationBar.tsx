@@ -18,6 +18,7 @@ import {
   User,
   X,
 } from "lucide-react";
+import logo from "@/app/assets/logo.png";
 import type { LucideIcon } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "@/app/lib/supabase/client";
@@ -43,6 +44,8 @@ const INFO_LINKS = [
   { label: "Blog", href: "/blog" },
   { label: "Contact", href: "/contact" },
   { label: "Privacy Policy", href: "/privacy" },
+  { label: "Refund & Cancellation Policy", href: "/refund-cancellation-policy" },
+  {label: "Host Listing Agreement & Terms of Service", href: "/host-listing-agreement-and-terms-of-service"}
 ];
 
 // Quick picks in the search panel
@@ -185,6 +188,7 @@ export default function Navbar() {
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [userName, setUserName] = useState("User");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isHost, setIsHost] = useState(false);
 
   // ui
   const [menuOpen, setMenuOpen] = useState(false);
@@ -220,6 +224,7 @@ export default function Navbar() {
         user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null,
       );
       setIsSignedIn(Boolean(user));
+      if (!user) setIsHost(false);
     }
 
     async function loadUser() {
@@ -227,6 +232,14 @@ export default function Navbar() {
         data: { user },
       } = await supabase.auth.getUser();
       syncUserState(user);
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
+        setIsHost(profile?.role === "host");
+      }
     }
 
     void loadUser();
@@ -235,6 +248,14 @@ export default function Navbar() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       syncUserState(session?.user ?? null);
+      if (session?.user) {
+        void supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .maybeSingle()
+          .then(({ data: profile }) => setIsHost(profile?.role === "host"));
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -425,16 +446,7 @@ export default function Navbar() {
           aria-label="Dominium Airbnb, home"
           className={`flex shrink-0 items-center gap-2.5 no-underline ${focusRing} rounded-lg`}
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E23E85] shadow-[0_6px_14px_rgba(226,62,133,0.35)]">
-            <svg
-              viewBox="0 0 24 24"
-              className="h-5 w-5"
-              fill="white"
-              aria-hidden="true"
-            >
-              <path d="M12 3.2 3 10.6V20a1 1 0 0 0 1 1h5.2v-6h5.6v6H20a1 1 0 0 0 1-1v-9.4L12 3.2Z" />
-            </svg>
-          </span>
+            <img src={logo.src} alt="Dominium Airbnb Logo" className="h-9 w-8" />  
           <span
             className={`hidden font-display text-xl tracking-wide whitespace-nowrap transition-colors duration-300 sm:block ${
               overHero ? "text-[#36454F] lg:text-white" : "text-[#36454F]"
@@ -665,14 +677,14 @@ export default function Navbar() {
         {/* ---------------------- Host link + menu ---------------------- */}
         <div className="flex shrink-0 items-center gap-1 md:justify-self-end">
           <Link
-            href="/host/onboarding"
+            href={isHost ? "/host" : "/host/onboarding"}
             className={`hidden rounded-full px-4 py-2.5 text-sm font-semibold no-underline transition-colors lg:inline-block ${focusRing} ${
               overHero
                 ? "text-[#1B1A2E] hover:bg-[#F7F5F2] lg:text-white lg:hover:bg-white/15"
                 : "text-[#1B1A2E] hover:bg-[#F7F5F2]"
             }`}
           >
-            Become a host
+            {isHost ? "Host panel" : "Become a host"}
           </Link>
 
           <div ref={menuRef} className="sm:relative">
@@ -724,14 +736,14 @@ export default function Navbar() {
                       </span>
                     </Link>
                     <MenuItem
-                      href="/account"
+                      href="/account/bookings"
                       icon={CalendarDays}
                       onNavigate={closeMenu}
                     >
                       My bookings
                     </MenuItem>
                     <MenuItem
-                      href="/account"
+                      href="/account/profile"
                       icon={Settings}
                       onNavigate={closeMenu}
                     >
@@ -749,9 +761,9 @@ export default function Navbar() {
                   </>
                 )}
 
-                {/* Host promo */}
+                {/* Host entry */}
                 <Link
-                  href="/host/onboarding"
+                  href={isHost ? "/host" : "/host/onboarding"}
                   role="menuitem"
                   onClick={closeMenu}
                   className={`my-2 flex items-center gap-3 rounded-2xl bg-[#FDF0F5] px-3 py-3 no-underline transition-colors hover:bg-[#FBE4EE] ${focusRing}`}
@@ -761,10 +773,10 @@ export default function Navbar() {
                   </span>
                   <span>
                     <span className="block text-[14px] font-semibold text-[#1B1A2E]">
-                      Become a host
+                      {isHost ? "Host panel" : "Become a host"}
                     </span>
                     <span className="block text-[12px] text-[#6B6A78]">
-                      Turn your space into income
+                      {isHost ? "Manage your listings and bookings" : "Turn your space into income"}
                     </span>
                   </span>
                 </Link>

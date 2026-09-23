@@ -1,289 +1,368 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/app/lib/supabase/client";
+import {
+  getHostOnboardingStatus,
+  submitHostOnboarding,
+} from "@/app/lib/host/actions";
+
+type HostType = "individual" | "company";
+type IdType = "national_id" | "passport";
 
 type FormState = {
+  // Identity & KYC
+  fullName: string;
+  phone: string;
+  alternatePhone: string;
+  email: string;
+  hostType: HostType;
   businessName: string;
+  idType: IdType;
   idNumber: string;
+  idDocument: File | null;
+  dateOfBirth: string;
+  county: string;
+  residentialAddress: string;
+  // Payout
   payoutMethod: "mpesa" | "bank";
   mpesaNumber: string;
   bankName: string;
   bankAccount: string;
+  // About & terms
   hostBio: string;
+  agreedToHostTerms: boolean;
 };
 
 const initialState: FormState = {
+  fullName: "",
+  phone: "",
+  alternatePhone: "",
+  email: "",
+  hostType: "individual",
   businessName: "",
+  idType: "national_id",
   idNumber: "",
+  idDocument: null,
+  dateOfBirth: "",
+  county: "",
+  residentialAddress: "",
   payoutMethod: "mpesa",
   mpesaNumber: "",
   bankName: "",
   bankAccount: "",
   hostBio: "",
+  agreedToHostTerms: false,
 };
+
+const KENYA_COUNTIES = [
+  "Mombasa", "Kwale", "Kilifi", "Tana River", "Lamu", "Taita-Taveta", "Garissa", "Wajir",
+  "Mandera", "Marsabit", "Isiolo", "Meru", "Tharaka-Nithi", "Embu", "Kitui", "Machakos",
+  "Makueni", "Nyandarua", "Nyeri", "Kirinyaga", "Murang'a", "Kiambu", "Turkana", "West Pokot",
+  "Samburu", "Trans Nzoia", "Uasin Gishu", "Elgeyo-Marakwet", "Nandi", "Baringo", "Laikipia",
+  "Nakuru", "Narok", "Kajiado", "Kericho", "Bomet", "Kakamega", "Vihiga", "Bungoma", "Busia",
+  "Siaya", "Kisumu", "Homa Bay", "Migori", "Kisii", "Nyamira", "Nairobi",
+];
+
+const MPESA_REGEX = /^0\d{9}$/;
+
+function calculateAge(dob: string) {
+  if (!dob) return null;
+  const birth = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age--;
+  return age;
+}
 
 export default function HostOnboardingPage() {
   const router = useRouter();
-
   const [form, setForm] = useState<FormState>(initialState);
   const [submitting, setSubmitting] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    let active = true;
+
+    void getHostOnboardingStatus()
+      .then((status) => {
+        if (!active) return;
+        if (!status) {
+          setCheckingStatus(false);
+          return;
+        }
+        if (status.host_verified_at || status.kyc_status === "approved") {
+          router.replace("/host");
+          return;
+        }
+        if (status.kyc_submitted_at || status.kyc_status === "pending") {
+          router.replace("/host/pending-review");
+          return;
+        }
+        setCheckingStatus(false);
+      })
+      .catch((statusError: unknown) => {
+        if (!active) return;
+        setError(
+          statusError instanceof Error
+            ? statusError.message
+            : "Unable to check your host account status.",
+        );
+        setCheckingStatus(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
+
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((current) => ({ ...current, [key]: value }));
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-
-    if (!form.idNumber.trim()) {
-      setError("ID number is required for host verification.");
-      return;
+  function validate(): string | null {
+    if (!form.fullName.trim()) return "Full legal name is required.";
+    if (!MPESA_REGEX.test(form.phone)) return "Enter a valid phone number, e.g. 0712345678.";
+    if (form.alternatePhone && !MPESA_REGEX.test(form.alternatePhone)) {
+      return "Alternate mobile number looks invalid — use e.g. 0712345678.";
     }
-    if (form.payoutMethod === "mpesa" && !/^0\d{9}$/.test(form.mpesaNumber)) {
-      setError("Enter a valid M-Pesa number, e.g. 0712345678.");
-      return;
+    if (!/^\S+@\S+\.\S+$/.test(form.email)) return "Enter a valid email address.";
+    if (!form.idNumber.trim()) return `${form.idType === "passport" ? "Passport" : "National ID"} number is required.`;
+    if (!form.idDocument) return "Please upload a copy of your ID or passport.";
+    if (!form.dateOfBirth) return "Date of birth is required.";
+    const age = calculateAge(form.dateOfBirth);
+    if (age !== null && age < 18) return "You must be at least 18 years old to host.";
+    if (!form.county) return "Select your county of residence.";
+    if (!form.residentialAddress.trim()) return "Residential address is required.";
+    if (form.hostType === "company" && !form.businessName.trim()) return "Company name is required for company hosts.";
+    if (form.payoutMethod === "mpesa" && !MPESA_REGEX.test(form.mpesaNumber)) {
+      return "Enter a valid M-Pesa number, e.g. 0712345678.";
     }
     if (form.payoutMethod === "bank" && (!form.bankName || !form.bankAccount)) {
-      setError("Bank name and account number are both required.");
+      return "Bank name and account number are both required.";
+    }
+    if (!form.agreedToHostTerms) return "You must accept the Host Listing Agreement and Terms of Service.";
+    return null;
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
       return;
     }
-
+    setError(null);
     setSubmitting(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const payload = new FormData();
+    payload.set("fullName", form.fullName);
+    payload.set("phone", form.phone);
+    payload.set("alternatePhone", form.alternatePhone);
+    payload.set("email", form.email);
+    payload.set("hostType", form.hostType);
+    payload.set("businessName", form.businessName);
+    payload.set("idType", form.idType);
+    payload.set("idNumber", form.idNumber);
+    if (form.idDocument) payload.set("idDocument", form.idDocument);
+    payload.set("dateOfBirth", form.dateOfBirth);
+    payload.set("county", form.county);
+    payload.set("residentialAddress", form.residentialAddress);
+    payload.set("payoutMethod", form.payoutMethod);
+    payload.set("mpesaNumber", form.mpesaNumber);
+    payload.set("bankName", form.bankName);
+    payload.set("bankAccount", form.bankAccount);
+    payload.set("hostBio", form.hostBio);
+    payload.set("agreedToHostTerms", String(form.agreedToHostTerms));
 
-    if (!user) {
-      setError("You need to be signed in to complete host onboarding.");
+    try {
+      await submitHostOnboarding(payload);
+    } catch (submissionError) {
+      setError(submissionError instanceof Error ? submissionError.message : "Unable to save host details.");
       setSubmitting(false);
       return;
     }
-
-    const payoutDetails =
-      form.payoutMethod === "mpesa"
-        ? { number: form.mpesaNumber }
-        : { bank: form.bankName, account: form.bankAccount };
-
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({
-        business_name: form.businessName || null,
-        id_number: form.idNumber,
-        payout_method: form.payoutMethod,
-        payout_details: payoutDetails,
-        host_bio: form.hostBio || null,
-      })
-      .eq("id", user.id);
-
     setSubmitting(false);
-
-    if (updateError) {
-      setError(updateError.message);
-      return;
-    }
-
     router.push("/host/pending-review");
   }
 
-  const heroImages = [
-    {
-      src: "https://images.unsplash.com/photo-1741991110666-88115e724741?q=80&w=1600&auto=format&fit=crop",
-      alt: "Nairobi skyline on a sunny day",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1560185127-6ed189bf02f4?q=80&w=1600&auto=format&fit=crop",
-      alt: "Bright modern living room interior",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1749930206000-179d0b85aa7e?q=80&w=1600&auto=format&fit=crop",
-      alt: "Sleek modern living room",
-    },
-  ];
+  const inputClass = "mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-[#ec1561] focus:outline-none focus:ring-1 focus:ring-[#ec1561]";
+  const labelClass = "block text-sm font-medium text-[#12231d]";
 
   return (
-    <main className="min-h-screen grid lg:grid-cols-2 bg-[#f3efe9] font-sans">
-      <div className="relative hidden lg:flex flex-col justify-between overflow-hidden px-12 py-12 text-white">
-        <div className="absolute inset-0 bg-black">
-          {heroImages.map((img, i) => (
-            <img
-              key={img.src}
-              src={img.src}
-              alt={img.alt}
-              className="absolute inset-0 h-full w-full object-cover opacity-0"
-              style={{
-                animation: "hero-fade 18s infinite",
-                animationDelay: `${i * 6}s`,
-              }}
-              onError={(event) => {
-                event.currentTarget.src = "/placeholder.svg";
-              }}
+    <div className="mx-auto max-w-2xl space-y-6">
+      {checkingStatus && (
+        <p className="rounded-lg bg-white p-6 text-sm text-gray-500 shadow-sm">
+          Checking your host account status…
+        </p>
+      )}
+      {!checkingStatus && (
+        <>
+      <div>
+        <h1 className="text-2xl font-bold text-[#12231d]">Set up your host account</h1>
+        <p className="text-gray-500">We use these details to verify your identity and process payouts.</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Identity & KYC */}
+        <section className="space-y-5 rounded-2xl bg-white p-6 shadow-sm">
+          <h2 className="font-semibold text-[#12231d]">Identity verification</h2>
+
+          <label className={labelClass}>
+            Full legal name
+            <input required className={inputClass} value={form.fullName} onChange={(e) => update("fullName", e.target.value)} placeholder="As it appears on your ID" />
+          </label>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className={labelClass}>
+              Phone number
+              <input required type="tel" placeholder="0712345678" className={inputClass} value={form.phone} onChange={(e) => update("phone", e.target.value)} />
+            </label>
+            <label className={labelClass}>
+              Alternate mobile number <span className="font-normal text-gray-500">(optional)</span>
+              <input type="tel" placeholder="0712345678" className={inputClass} value={form.alternatePhone} onChange={(e) => update("alternatePhone", e.target.value)} />
+            </label>
+          </div>
+
+          <label className={labelClass}>
+            Email address
+            <input required type="email" className={inputClass} value={form.email} onChange={(e) => update("email", e.target.value)} />
+          </label>
+
+          <fieldset className="space-y-2 text-sm text-[#12231d]">
+            <legend className="font-medium">Host type</legend>
+            <label className="mr-5 inline-flex items-center gap-2">
+              <input type="radio" checked={form.hostType === "individual"} onChange={() => update("hostType", "individual")} /> Individual
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input type="radio" checked={form.hostType === "company"} onChange={() => update("hostType", "company")} /> Company
+            </label>
+          </fieldset>
+
+          {form.hostType === "company" && (
+            <label className={labelClass}>
+              Company / business name
+              <input required className={inputClass} value={form.businessName} onChange={(e) => update("businessName", e.target.value)} />
+            </label>
+          )}
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <fieldset className="space-y-2 text-sm text-[#12231d]">
+              <legend className="font-medium">ID type</legend>
+              <label className="mr-5 inline-flex items-center gap-2">
+                <input type="radio" checked={form.idType === "national_id"} onChange={() => update("idType", "national_id")} /> National ID
+              </label>
+              <label className="inline-flex items-center gap-2">
+                <input type="radio" checked={form.idType === "passport"} onChange={() => update("idType", "passport")} /> Passport
+              </label>
+            </fieldset>
+            <label className={labelClass}>
+              {form.idType === "passport" ? "Passport number" : "National ID number"}
+              <input required className={inputClass} value={form.idNumber} onChange={(e) => update("idNumber", e.target.value)} />
+            </label>
+          </div>
+
+          <label className={labelClass}>
+            Upload ID document <span className="font-normal text-gray-500">(front side, clear photo or scan)</span>
+            <input
+              required
+              type="file"
+              accept="image/*,.pdf"
+              className="mt-1 block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#12231d] file:px-3 file:py-2 file:text-sm file:font-medium file:text-white"
+              onChange={(e) => update("idDocument", e.target.files?.[0] ?? null)}
             />
-          ))}
-          <div className="absolute inset-0 bg-black/60" />
-        </div>
+          </label>
 
-        <div className="relative z-10 animate-rise-in motion-reduce:animate-none">
-          <span className="font-display text-[20px] tracking-wide">
-            DOMINIUM <span className="text-[#ec1561]">AIRBNB</span>
-          </span>
-        </div>
-
-        <div className="relative z-10 flex flex-1 items-center justify-center">
-          <div className="w-full animate-rise-in motion-reduce:animate-none [animation-delay:180ms]">
-            <h2 className="font-display text-[24px] leading-tight mb-3 tracking-wide">
-              Turn your space into a trusted stay for guests.
-            </h2>
-            <p className="text-[#e4e4e4] text-[14px] leading-relaxed max-w-[34ch]">
-              List with confidence, manage your payouts, and welcome guests
-              across Kenya.
-            </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className={labelClass}>
+              Date of birth
+              <input required type="date" className={inputClass} value={form.dateOfBirth} onChange={(e) => update("dateOfBirth", e.target.value)} />
+            </label>
+            <label className={labelClass}>
+              County of residence
+              <input required list="kenya-counties" className={inputClass} value={form.county} onChange={(e) => update("county", e.target.value)} placeholder="Start typing…" />
+              <datalist id="kenya-counties">
+                {KENYA_COUNTIES.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
+            </label>
           </div>
-        </div>
-      </div>
 
-      <div
-        className="flex items-center justify-center px-6 py-16"
-        style={{
-          backgroundColor: "#ffffff",
-          backgroundImage:
-            "radial-gradient(circle, rgba(18, 35, 29, 0.29) 1px, transparent 1px)",
-          backgroundSize: "20px 20px",
-        }}
-      >
-        <div className="w-full max-w-md">
-          <div className="lg:hidden text-center mb-8 animate-rise-in motion-reduce:animate-none">
-            <span className="font-display text-[16px] text-[#12231d] tracking-wide">
-              DOMINIUM <span className="text-[#ec1561]">AIRBNB</span>
+          <label className={labelClass}>
+            Residential address
+            <textarea required rows={2} className={inputClass} value={form.residentialAddress} onChange={(e) => update("residentialAddress", e.target.value)} placeholder="Street, building, estate" />
+          </label>
+        </section>
+
+        {/* Payout */}
+        <section className="space-y-5 rounded-2xl bg-white p-6 shadow-sm">
+          <h2 className="font-semibold text-[#12231d]">Payout details</h2>
+          <fieldset className="space-y-2 text-sm text-[#12231d]">
+            <legend className="font-medium">Payout method</legend>
+            <label className="mr-5 inline-flex items-center gap-2">
+              <input type="radio" checked={form.payoutMethod === "mpesa"} onChange={() => update("payoutMethod", "mpesa")} /> M-Pesa
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input type="radio" checked={form.payoutMethod === "bank"} onChange={() => update("payoutMethod", "bank")} /> Bank transfer
+            </label>
+          </fieldset>
+          {form.payoutMethod === "mpesa" ? (
+            <label className={labelClass}>
+              M-Pesa number
+              <input type="tel" placeholder="0712345678" className={inputClass} value={form.mpesaNumber} onChange={(e) => update("mpesaNumber", e.target.value)} />
+            </label>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className={labelClass}>
+                Bank name
+                <input className={inputClass} value={form.bankName} onChange={(e) => update("bankName", e.target.value)} />
+              </label>
+              <label className={labelClass}>
+                Account number
+                <input className={inputClass} value={form.bankAccount} onChange={(e) => update("bankAccount", e.target.value)} />
+              </label>
+            </div>
+          )}
+        </section>
+
+        {/* About & terms */}
+        <section className="space-y-5 rounded-2xl bg-white p-6 shadow-sm">
+          <label className={labelClass}>
+            About you <span className="font-normal text-gray-500">(optional)</span>
+            <textarea rows={4} className={inputClass} value={form.hostBio} onChange={(e) => update("hostBio", e.target.value)} />
+          </label>
+
+          <label className="flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm leading-6 text-[#12231d]">
+            <input
+              type="checkbox"
+              checked={form.agreedToHostTerms}
+              onChange={(e) => update("agreedToHostTerms", e.target.checked)}
+              className="mt-1 h-4 w-4 shrink-0 accent-[#ec1561]"
+              required
+            />
+            <span>
+              I accept and agree to the{" "}
+              <Link href="/host-listing-agreement-and-terms-of-service" target="_blank" className="font-semibold text-[#ec1561] underline">
+                Host Listing Agreement and Terms of Service
+              </Link>
+              . I confirm that I am the legal owner or authorized manager of the properties I list, and that the
+              identity information provided above is accurate.
             </span>
-          </div>
+          </label>
 
-          <div className="bg-[#ffffff] rounded-[18px] px-8 py-10 border border-[#ece8e2] shadow-[0_20px_50px_rgba(18,35,29,0.06)] animate-rise-in motion-reduce:animate-none [animation-delay:120ms]">
-            <h1 className="font-display text-[26px] text-[#12231d] mb-2 tracking-wide">
-              Set up your host account
-            </h1>
-            <p className="text-[#4b5850] text-[15px] leading-relaxed mb-8">
-              This info is used to verify you and to pay you out after each
-              stay.
-            </p>
+          {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
 
-            <form
-              onSubmit={handleSubmit}
-              noValidate
-              className="space-y-[18px] text-left"
-            >
-              <label className="flex flex-col gap-1.5 text-[13px] text-[#4b5850]">
-                <span>Business name (optional)</span>
-                <input
-                  type="text"
-                  value={form.businessName}
-                  onChange={(e) => update("businessName", e.target.value)}
-                  className="text-[15px] px-3 py-2.5 rounded-[3px] border border-[#cfd3c9] bg-white text-[#12231d] focus:outline-none focus:ring-2 focus:ring-[#12231d] focus:ring-offset-1"
-                />
-              </label>
-
-              <label className="flex flex-col gap-1.5 text-[13px] text-[#4b5850]">
-                <span>National ID number</span>
-                <input
-                  type="text"
-                  required
-                  value={form.idNumber}
-                  onChange={(e) => update("idNumber", e.target.value)}
-                  className="text-[15px] px-3 py-2.5 rounded-[3px] border border-[#cfd3c9] bg-white text-[#12231d] focus:outline-none focus:ring-2 focus:ring-[#12231d] focus:ring-offset-1"
-                />
-              </label>
-
-              <fieldset className="flex flex-col gap-2">
-                <legend className="text-[13px] text-[#4b5850] mb-1">
-                  How should we pay you out?
-                </legend>
-                <label className="flex items-center gap-2.5 text-sm text-[#4b5850]">
-                  <input
-                    type="radio"
-                    name="payoutMethod"
-                    checked={form.payoutMethod === "mpesa"}
-                    onChange={() => update("payoutMethod", "mpesa")}
-                    className="accent-[#12231d]"
-                  />
-                  M-Pesa
-                </label>
-                <label className="flex items-center gap-2.5 text-sm text-[#4b5850]">
-                  <input
-                    type="radio"
-                    name="payoutMethod"
-                    checked={form.payoutMethod === "bank"}
-                    onChange={() => update("payoutMethod", "bank")}
-                    className="accent-[#12231d]"
-                  />
-                  Bank transfer
-                </label>
-              </fieldset>
-
-              {form.payoutMethod === "mpesa" ? (
-                <label className="flex flex-col gap-1.5 text-[13px] text-[#4b5850]">
-                  <span>M-Pesa number</span>
-                  <input
-                    type="tel"
-                    placeholder="0712345678"
-                    value={form.mpesaNumber}
-                    onChange={(e) => update("mpesaNumber", e.target.value)}
-                    className="text-[15px] px-3 py-2.5 rounded-[3px] border border-[#cfd3c9] bg-white text-[#12231d] focus:outline-none focus:ring-2 focus:ring-[#12231d] focus:ring-offset-1"
-                  />
-                </label>
-              ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="flex flex-col gap-1.5 text-[13px] text-[#4b5850]">
-                    <span>Bank name</span>
-                    <input
-                      type="text"
-                      value={form.bankName}
-                      onChange={(e) => update("bankName", e.target.value)}
-                      className="text-[15px] px-3 py-2.5 rounded-[3px] border border-[#cfd3c9] bg-white text-[#12231d] focus:outline-none focus:ring-2 focus:ring-[#12231d] focus:ring-offset-1"
-                    />
-                  </label>
-                  <label className="flex flex-col gap-1.5 text-[13px] text-[#4b5850]">
-                    <span>Account number</span>
-                    <input
-                      type="text"
-                      value={form.bankAccount}
-                      onChange={(e) => update("bankAccount", e.target.value)}
-                      className="text-[15px] px-3 py-2.5 rounded-[3px] border border-[#cfd3c9] bg-white text-[#12231d] focus:outline-none focus:ring-2 focus:ring-[#12231d] focus:ring-offset-1"
-                    />
-                  </label>
-                </div>
-              )}
-
-              <label className="flex flex-col gap-1.5 text-[13px] text-[#4b5850]">
-                <span>About you (shown on your listings)</span>
-                <textarea
-                  rows={3}
-                  value={form.hostBio}
-                  onChange={(e) => update("hostBio", e.target.value)}
-                  className="text-[15px] px-3 py-2.5 rounded-[3px] border border-[#cfd3c9] bg-white text-[#12231d] focus:outline-none focus:ring-2 focus:ring-[#12231d] focus:ring-offset-1 resize-none"
-                />
-              </label>
-
-              {error && (
-                <p role="alert" className="text-[#a3352b] text-[13px] -mt-1.5">
-                  {error}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full py-3 rounded-[3px] bg-[#12231d] text-[#f6f4ee] text-[15px] disabled:opacity-60 disabled:cursor-default"
-              >
-                {submitting ? "Submitting…" : "Submit for review"}
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </main>
+          <button type="submit" disabled={submitting} className="w-full rounded-lg bg-[#12231d] px-4 py-3 font-medium text-white disabled:opacity-50">
+            {submitting ? "Submitting…" : "Submit for review"}
+          </button>
+        </section>
+      </form>
+        </>
+      )}
+    </div>
   );
 }
