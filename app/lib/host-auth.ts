@@ -16,7 +16,7 @@ export async function requireHost() {
     .eq("id", user.id)
     .maybeSingle();
 
-  if (!profile || profile.role !== "host") redirect("/");
+  if (!profile || profile.role !== "host") redirect("/host/onboarding");
   if (profile.status === "suspended") redirect("/");
 
   return { user, profile };

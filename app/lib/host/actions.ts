@@ -104,8 +104,14 @@ export async function submitHostOnboarding(formData: FormData) {
 }
 
 export async function getHostOnboardingStatus() {
-  const { user } = await requireHost();
   const supabase = await createClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) return null;
+
   const { data, error } = await supabase
     .from("profiles")
     .select("role, kyc_status, kyc_submitted_at, host_verified_at")

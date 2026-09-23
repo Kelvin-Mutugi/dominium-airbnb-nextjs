@@ -60,6 +60,25 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  if (pathname.startsWith("/host") && pathname !== "/host/onboarding") {
+    const { data: roleRow, error: roleError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (roleError || !roleRow || roleRow.role !== "host") {
+      if (isApiRequest) {
+        return new NextResponse(JSON.stringify({ error: "host_required" }), {
+          status: 403,
+          headers: { "content-type": "application/json" },
+        });
+      }
+
+      return NextResponse.redirect(new URL("/host/onboarding", request.url));
+    }
+  }
+
   // If this is an admin route, verify the user's `privilege` flag is true
   if (pathname.startsWith("/admin")) {
     const { data: roleRow, error: roleError } = await supabase
