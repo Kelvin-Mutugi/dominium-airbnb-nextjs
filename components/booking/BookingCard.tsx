@@ -942,7 +942,12 @@ export default function BookingCard({
 
             <p>
               <span className="font-medium">Cancellation:</span>{" "}
-              {listing.cancellation_policy ?? "See listing policy"}
+              <Link
+                href="/refund-cancellation-policy"
+                className="text-[#E23E85] underline hover:text-[#c52f70]"
+              >
+                Refund & cancellation policy
+              </Link>
             </p>
 
             {listing.booking_terms && (
@@ -969,8 +974,11 @@ export default function BookingCard({
               />
 
               <span>
-                I agree to the property&apos;s booking terms and cancellation
-                policy.
+                I agree to the property's House rules and platforms Refund & Cancellation Policy, Booking terms, Terms & Conditions and [Privacy Policy].
+                By checking this box, I consent to dominium bnb collecting and
+                storing my name, email address, and phone number to process my 
+                booking, manage my stay, and send transactional updates via email, 
+                SMS, or WhatsApp.
                 {fieldErrors.terms && (
                   <span className="mt-1 block text-xs text-red-600">
                     {fieldErrors.terms}
