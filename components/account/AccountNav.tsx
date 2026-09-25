@@ -16,6 +16,7 @@ import {
   LayoutDashboard,
   LogOut,
   MessageSquareQuote,
+  LifeBuoy,
   ShieldCheck,
   UserRound,
 } from 'lucide-react';
@@ -26,6 +27,7 @@ const ITEMS = [
   { href: '/account/bookings', label: 'Bookings', icon: CalendarDays },
   { href: '/account/payments', label: 'Payments', icon: Banknote },
   { href: '/account/reviews', label: 'Reviews', icon: MessageSquareQuote },
+  { href: '/account/support', label: 'Support', icon: LifeBuoy },
   { href: '/account/payouts', label: 'Payouts', icon: Banknote, hostOnly: true },
   { href: '/account/profile', label: 'Profile', icon: UserRound },
   { href: '/account/security', label: 'Security', icon: ShieldCheck },

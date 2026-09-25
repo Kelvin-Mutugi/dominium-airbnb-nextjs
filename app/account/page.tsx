@@ -138,8 +138,20 @@ export default async function AccountOverviewPage() {
               <p className="mt-2 text-sm text-[#4B4A5A]">
                 {profile.host_verified_at
                   ? `Verified host since ${formatDate(profile.host_verified_at, 'monthYear')}.`
-                  : 'Your host verification is pending.'}
+                  : profile.kyc_status === 'rejected'
+                    ? 'Your host application needs changes before it can be approved.'
+                    : profile.kyc_status === 'pending'
+                      ? 'Your host application is being reviewed.'
+                      : 'Complete host verification to activate your hosting account.'}
               </p>
+              {profile.kyc_status === 'rejected' && profile.kyc_rejection_reason && (
+                <p className="mt-2 text-sm text-rose-800">{profile.kyc_rejection_reason}</p>
+              )}
+              {!profile.host_verified_at && (
+                <Link href={profile.kyc_status === 'rejected' ? '/host/onboarding' : '/host/pending-review'} className={`${textLink} mt-2 inline-block`}>
+                  {profile.kyc_status === 'rejected' ? 'Update application' : 'View verification status'}
+                </Link>
+              )}
               <p className="mt-3 font-serif text-2xl text-[#1B1A2E]">{formatMoney(owed)}</p>
               <p className="text-sm text-[#4B4A5A]">owed to you</p>
               <Link href="/account/payouts" className={`${btnSecondary} mt-4 w-full`}>

@@ -2,45 +2,46 @@
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 import { ListingTabs } from "@/components/admin/listings/tabs";
 import { ListingRowActions } from "@/components/admin/listings/listing-row-actions";
+import { AdminSearchInput } from "@/components/admin/search-input";
+import Link from "next/link";
 
-type ListingProfile = {
-  full_name?: string | null;
-  business_name?: string | null;
-};
+function escapeSearchTerm(value: string) {
+  return value.trim().slice(0, 100).replace(/[%,()]/g, "");
+}
 
-type ListingRow = {
-  id: string;
-  title: string;
-  county: string | null;
-  town: string | null;
-  price_per_night: number | string | null;
-  status: string;
-  created_at: string | null;
-  profiles?: ListingProfile | ListingProfile[] | null;
-  listing_images?: Array<{
-    url?: string | null;
-    sort_order: number;
-  }>;
-};
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
 
 export default async function AdminListingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; q?: string }>;
 }) {
-  const { status } = await searchParams;
+  const { status, q } = await searchParams;
   const activeStatus = status ?? "pending_review";
+  const searchTerm = escapeSearchTerm(q ?? "");
 
   const admin = getSupabaseAdmin();
-  const { data: listings } = await admin
+  let listingsQuery = admin
     .from("listings")
     .select(
       `id, title, county, town, price_per_night, status, created_at,
        profiles:host_id ( full_name, business_name ),
        listing_images ( url, sort_order )`
     )
-    .eq("status", activeStatus)
-    .order("created_at", { ascending: false });
+    .eq("status", activeStatus);
+
+  if (searchTerm) {
+    const pattern = `%${searchTerm}%`;
+    const searchFields = [`title.ilike.${pattern}`, `town.ilike.${pattern}`, `county.ilike.${pattern}`];
+    if (isUuid(searchTerm)) searchFields.push(`id.eq.${searchTerm}`);
+    listingsQuery = listingsQuery.or(searchFields.join(","));
+  }
+
+  const { data: listings } = await listingsQuery.order("created_at", {
+    ascending: false,
+  });
 
   return (
     <div>
@@ -49,6 +50,7 @@ export default async function AdminListingsPage({
         Review submissions, and manage whats live on the site.
       </p>
 
+      <AdminSearchInput placeholder="Search by title, town, county, or ID" />
       <ListingTabs />
 
       <div className="grid gap-4">
@@ -65,26 +67,33 @@ export default async function AdminListingsPage({
               key={l.id}
               className="bg-white rounded-lg shadow-sm p-4 flex gap-4 items-center"
             >
-              <div className="w-24 h-24 bg-gray-100 rounded overflow-hidden shrink-0">
-                {cover?.url && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={cover.url}
-                    alt={l.title}
-                    className="w-full h-full object-cover"
-                  />
-                )}
-              </div>
+              <Link
+                href={`/admin/listings/${l.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-1 min-w-0 gap-4 items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E23E85]"
+              >
+                <div className="w-24 h-24 bg-gray-100 rounded overflow-hidden shrink-0">
+                  {cover?.url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={cover.url}
+                      alt={l.title}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </div>
 
-              <div className="flex-1">
-                <p className="font-medium text-[#1B1A2E]">{l.title}</p>
-                <p className="text-sm text-gray-500">
-                  {l.town}, {l.county} · KES {Number(l.price_per_night).toLocaleString()}/night
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Host: {profile?.business_name ?? profile?.full_name}
-                </p>
-              </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-[#1B1A2E] hover:text-[#E23E85]">{l.title}</p>
+                  <p className="text-sm text-gray-500">
+                    {l.town}, {l.county} · KES {Number(l.price_per_night).toLocaleString()}/night
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Host: {profile?.business_name ?? profile?.full_name}
+                  </p>
+                </div>
+              </Link>
 
               <ListingRowActions listingId={l.id} status={l.status} />
             </div>

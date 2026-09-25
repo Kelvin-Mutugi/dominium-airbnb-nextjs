@@ -30,6 +30,8 @@ export interface Profile {
   payout_method: PayoutMethod | null;
   payout_details: Record<string, string> | null;
   host_verified_at: string | null;
+  kyc_status?: string | null;
+  kyc_rejection_reason?: string | null;
   host_bio: string | null;
   status: UserStatus;
   suspended_reason: string | null;

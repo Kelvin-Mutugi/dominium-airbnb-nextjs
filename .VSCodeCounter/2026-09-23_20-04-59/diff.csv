@@ -1,0 +1,47 @@
+"filename", "language", "MS SQL", "TypeScript", "TypeScript JSX", "PostCSS", "comment", "blank", "total"
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/account/layout.tsx", "TypeScript JSX", 0, 0, 6, 0, 0, 0, 6
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/account/page.tsx", "TypeScript JSX", 0, 0, 7, 0, 1, 0, 8
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/allListings/page.tsx", "TypeScript JSX", 0, 0, 60, 0, 0, 7, 67
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/explore-by-county/page.tsx", "TypeScript JSX", 0, 0, 15, 0, 0, 1, 16
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/globals.css", "PostCSS", 0, 0, 0, 3, 0, 0, 3
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/homepageSections.ts", "TypeScript", 0, 11, 0, 0, 3, 2, 16
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host-listing-agreement-and-terms-of-service/page.tsx", "TypeScript JSX", 0, 0, 12, 0, 0, 1, 13
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/bookings/page.tsx", "TypeScript JSX", 0, 0, 293, 0, 22, 42, 357
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/layout.tsx", "TypeScript JSX", 0, 0, -4, 0, 0, 1, -3
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/listings/[id]/edit/page.tsx", "TypeScript JSX", 0, 0, 331, 0, 11, 57, 399
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/listings/actions.ts", "TypeScript", 0, -113, 0, 0, -2, -20, -135
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/listings/new/page.tsx", "TypeScript JSX", 0, 0, 7, 0, 0, 4, 11
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/listings/page.tsx", "TypeScript JSX", 0, 0, 361, 0, 24, 57, 442
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/onboarding/page.tsx", "TypeScript JSX", 0, 0, 69, 0, 6, 4, 79
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/page.tsx", "TypeScript JSX", 0, 0, 50, 0, 0, 5, 55
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/payouts/page.tsx", "TypeScript JSX", 0, 0, 65, 0, 1, 9, 75
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/pending-review/page.tsx", "TypeScript JSX", 0, 0, -93, 0, 0, -10, -103
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/lib/host/actions.ts", "TypeScript", 0, 296, 0, 0, 3, 32, 331
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/lib/host/queries.ts", "TypeScript", 0, 150, 0, 0, 23, 21, 194
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/lib/host/types.ts", "TypeScript", 0, 111, 0, 0, 4, 9, 124
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/page.tsx", "TypeScript JSX", 0, 0, 9, 0, -1, 2, 10
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/refund-cancellation-policy/page.tsx", "TypeScript JSX", 0, 0, 12, 0, 0, 1, 13
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/ApartmentDetails.tsx", "TypeScript JSX", 0, 0, 11, 0, 0, 1, 12
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/HeroSection.tsx", "TypeScript JSX", 0, 0, 6, 0, 7, 2, 15
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/WhyBookUs.tsx", "TypeScript JSX", 0, 0, 63, 0, 1, 1, 65
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/account/AccountNav.tsx", "TypeScript JSX", 0, 0, 15, 0, 0, 0, 15
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/account/ui.tsx", "TypeScript JSX", 0, 0, 1, 0, 0, 0, 1
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/appartmentDetails/AvailabilityCalendar.tsx", "TypeScript JSX", 0, 0, 12, 0, 0, 0, 12
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/booking/BookingCard.tsx", "TypeScript JSX", 0, 0, 8, 0, 0, 0, 8
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/fearturedListingCard.tsx", "TypeScript JSX", 0, 0, 34, 0, -15, 7, 26
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/host/ImageManager.tsx", "TypeScript JSX", 0, 0, 82, 0, 1, 10, 93
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/host/ListingForm.tsx", "TypeScript JSX", 0, 0, 215, 0, 5, 16, 236
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/host/StatusBadge.tsx", "TypeScript JSX", 0, 0, 22, 0, 1, 3, 26
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/host/image-uploader.tsx", "TypeScript JSX", 0, 0, -80, 0, -2, -9, -91
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/host/listing-form.tsx", "TypeScript JSX", 0, 0, -207, 0, -1, -11, -219
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/host/sidebar.tsx", "TypeScript JSX", 0, 0, 56, 0, 2, 11, 69
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/listings/DestinationListings.tsx", "TypeScript JSX", 0, 0, 75, 0, 0, 7, 82
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/listings/Mombasa/Listings.tsx", "TypeScript JSX", 0, 0, -8, 0, 0, 1, -7
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/minimalListingCard.tsx", "TypeScript JSX", 0, 0, 22, 0, 5, 1, 28
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/navigationBar.tsx", "TypeScript JSX", 0, 0, 362, 0, 36, 44, 442
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/policies/HostListingAgreement.tsx", "TypeScript JSX", 0, 0, 268, 0, 0, 12, 280
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/policies/RefundPolicy.tsx", "TypeScript JSX", 0, 0, 152, 0, 0, 9, 161
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/proxy.ts", "TypeScript", 0, 16, 0, 0, 0, 3, 19
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/supabase/migrations/20260923120000_host_terms_acceptance.sql", "MS SQL", 7, 0, 0, 0, 0, 2, 9
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/supabase/migrations/20260923130000_host_dashboard_stats_security_invoker.sql", "MS SQL", 4, 0, 0, 0, 0, 2, 6
+"Total", "-", 11, 471, 2309, 3, 135, 337, 3266

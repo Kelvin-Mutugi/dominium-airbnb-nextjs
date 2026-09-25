@@ -9,6 +9,7 @@ import {
   Wallet,
   Plus,
   ArrowLeft,
+  LifeBuoy,
 } from "lucide-react";
 
 const NAV = [
@@ -16,6 +17,7 @@ const NAV = [
   { href: "/host/listings", label: "Listings", icon: Building2 },
   { href: "/host/bookings", label: "Bookings", icon: CalendarDays },
   { href: "/host/payouts", label: "Payouts", icon: Wallet },
+  { href: "/account/support", label: "Support", icon: LifeBuoy },
 ];
 
 export default function HostSidebar() {

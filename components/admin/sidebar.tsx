@@ -9,21 +9,25 @@ import {
   Home,
   CalendarCheck,
   Wallet,
+  LifeBuoy,
+  BadgeCheck,
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/verification", label: "Host Verification", icon: BadgeCheck },
   { href: "/admin/listings", label: "Listings", icon: Home },
   { href: "/admin/bookings", label: "Bookings", icon: CalendarCheck },
   { href: "/admin/payouts", label: "Payments & Payouts", icon: Wallet },
+  { href: "/admin/support", label: "Support & Disputes", icon: LifeBuoy },
 ];
 
 export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 shrink-0 bg-white border-r min-h-screen flex flex-col">
+    <aside className="flex h-full w-64 shrink-0 flex-col overflow-y-auto border-r bg-white">
       <div className="p-6 border-b">
         <span className="text-lg font-semibold text-[#1B1A2E]">Dominium <span className="text-[#E23E85]">Admin</span> </span>
       </div>

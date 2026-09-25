@@ -16,6 +16,7 @@ export async function confirmBooking(bookingId: string) {
     .eq("status", "pending");
   if (error) throw new Error(error.message);
   revalidatePath("/admin/bookings");
+  revalidatePath(`/admin/bookings/${bookingId}`);
 }
 
 // pending or confirmed -> cancelled (not allowed from completed)
@@ -29,4 +30,5 @@ export async function cancelBooking(bookingId: string) {
     .in("status", ["pending", "confirmed"]);
   if (error) throw new Error(error.message);
   revalidatePath("/admin/bookings");
+  revalidatePath(`/admin/bookings/${bookingId}`);
 }

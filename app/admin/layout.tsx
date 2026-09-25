@@ -33,9 +33,9 @@ export default async function AdminLayout({
   if (!roleRow?.privilege) notFound();
 
   return (
-    <div className="min-h-screen flex bg-[#f6f6f6]">
+    <div className="flex h-screen overflow-hidden bg-[#f6f6f6]">
       <AdminSidebar />
-      <main className="flex-1 p-8">{children}</main>
+      <main className="min-w-0 flex-1 overflow-y-auto p-8">{children}</main>
     </div>
   );
 }

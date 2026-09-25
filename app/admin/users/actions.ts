@@ -15,6 +15,7 @@ export async function suspendUser(userId: string, reason: string) {
     .eq("id", userId);
   if (error) throw new Error(error.message);
   revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
 }
 
 // reactivate user
@@ -27,16 +28,5 @@ export async function reactivateUser(userId: string) {
     .eq("id", userId);
   if (error) throw new Error(error.message);
   revalidatePath("/admin/users");
-}
-
-//veryfy host
-export async function verifyHost(userId: string) {
-  await requireAdmin();
-  const admin = getSupabaseAdmin();
-  const { error } = await admin
-    .from("profiles")
-    .update({ host_verified_at: new Date().toISOString() })
-    .eq("id", userId);
-  if (error) throw new Error(error.message);
-  revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
 }
