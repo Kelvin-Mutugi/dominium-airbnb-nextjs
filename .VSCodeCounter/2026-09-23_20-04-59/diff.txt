@@ -1,0 +1,105 @@
+Date : 2026-09-23 20:04:59
+Directory : /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app
+Total : 45 files,  2794 codes, 135 comments, 337 blanks, all 3266 lines
+
+Languages
++----------------+------------+------------+------------+------------+------------+
+| language       | files      | code       | comment    | blank      | total      |
++----------------+------------+------------+------------+------------+------------+
+| TypeScript JSX |         36 |      2,309 |        104 |        286 |      2,699 |
+| TypeScript     |          6 |        471 |         31 |         47 |        549 |
+| MS SQL         |          2 |         11 |          0 |          4 |         15 |
+| PostCSS        |          1 |          3 |          0 |          0 |          3 |
++----------------+------------+------------+------------+------------+------------+
+
+Directories
++-----------------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                                                                    | files      | code       | comment    | blank      | total      |
++-----------------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                                                                       |         45 |      2,794 |        135 |        337 |      3,266 |
+| . (Files)                                                                                                                               |          1 |         16 |          0 |          3 |         19 |
+| app                                                                                                                                     |         22 |      1,658 |         95 |        225 |      1,978 |
+| app (Files)                                                                                                                             |          3 |         23 |          2 |          4 |         29 |
+| app/account                                                                                                                             |          2 |         13 |          1 |          0 |         14 |
+| app/allListings                                                                                                                         |          1 |         60 |          0 |          7 |         67 |
+| app/explore-by-county                                                                                                                   |          1 |         15 |          0 |          1 |         16 |
+| app/host                                                                                                                                |         10 |        966 |         62 |        149 |      1,177 |
+| app/host (Files)                                                                                                                        |          2 |         46 |          0 |          6 |         52 |
+| app/host-listing-agreement-and-terms-of-service                                                                                         |          1 |         12 |          0 |          1 |         13 |
+| app/host/bookings                                                                                                                       |          1 |        293 |         22 |         42 |        357 |
+| app/host/listings                                                                                                                       |          4 |        586 |         33 |         98 |        717 |
+| app/host/listings (Files)                                                                                                               |          2 |        248 |         22 |         37 |        307 |
+| app/host/listings/[id]                                                                                                                  |          1 |        331 |         11 |         57 |        399 |
+| app/host/listings/[id]/edit                                                                                                             |          1 |        331 |         11 |         57 |        399 |
+| app/host/listings/new                                                                                                                   |          1 |          7 |          0 |          4 |         11 |
+| app/host/onboarding                                                                                                                     |          1 |         69 |          6 |          4 |         79 |
+| app/host/payouts                                                                                                                        |          1 |         65 |          1 |          9 |         75 |
+| app/host/pending-review                                                                                                                 |          1 |        -93 |          0 |        -10 |       -103 |
+| app/lib                                                                                                                                 |          3 |        557 |         30 |         62 |        649 |
+| app/lib/host                                                                                                                            |          3 |        557 |         30 |         62 |        649 |
+| app/refund-cancellation-policy                                                                                                          |          1 |         12 |          0 |          1 |         13 |
+| components                                                                                                                              |         20 |      1,109 |         40 |        105 |      1,254 |
+| components (Files)                                                                                                                      |          6 |        498 |         34 |         56 |        588 |
+| components/account                                                                                                                      |          2 |         16 |          0 |          0 |         16 |
+| components/appartmentDetails                                                                                                            |          1 |         12 |          0 |          0 |         12 |
+| components/booking                                                                                                                      |          1 |          8 |          0 |          0 |          8 |
+| components/host                                                                                                                         |          6 |         88 |          6 |         20 |        114 |
+| components/listings                                                                                                                     |          2 |         67 |          0 |          8 |         75 |
+| components/listings (Files)                                                                                                             |          1 |         75 |          0 |          7 |         82 |
+| components/listings/Mombasa                                                                                                             |          1 |         -8 |          0 |          1 |         -7 |
+| components/policies                                                                                                                     |          2 |        420 |          0 |         21 |        441 |
+| supabase                                                                                                                                |          2 |         11 |          0 |          4 |         15 |
+| supabase/migrations                                                                                                                     |          2 |         11 |          0 |          4 |         15 |
++-----------------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++-----------------------------------------------------------------------------------------------------------------------------------------+----------------+------------+------------+------------+------------+
+| filename                                                                                                                                | language       | code       | comment    | blank      | total      |
++-----------------------------------------------------------------------------------------------------------------------------------------+----------------+------------+------------+------------+------------+
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/account/layout.tsx                                                       | TypeScript JSX |          6 |          0 |          0 |          6 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/account/page.tsx                                                         | TypeScript JSX |          7 |          1 |          0 |          8 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/allListings/page.tsx                                                     | TypeScript JSX |         60 |          0 |          7 |         67 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/explore-by-county/page.tsx                                               | TypeScript JSX |         15 |          0 |          1 |         16 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/globals.css                                                              | PostCSS        |          3 |          0 |          0 |          3 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/homepageSections.ts                                                      | TypeScript     |         11 |          3 |          2 |         16 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host-listing-agreement-and-terms-of-service/page.tsx                     | TypeScript JSX |         12 |          0 |          1 |         13 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/bookings/page.tsx                                                   | TypeScript JSX |        293 |         22 |         42 |        357 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/layout.tsx                                                          | TypeScript JSX |         -4 |          0 |          1 |         -3 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/listings/[id]/edit/page.tsx                                         | TypeScript JSX |        331 |         11 |         57 |        399 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/listings/actions.ts                                                 | TypeScript     |       -113 |         -2 |        -20 |       -135 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/listings/new/page.tsx                                               | TypeScript JSX |          7 |          0 |          4 |         11 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/listings/page.tsx                                                   | TypeScript JSX |        361 |         24 |         57 |        442 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/onboarding/page.tsx                                                 | TypeScript JSX |         69 |          6 |          4 |         79 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/page.tsx                                                            | TypeScript JSX |         50 |          0 |          5 |         55 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/payouts/page.tsx                                                    | TypeScript JSX |         65 |          1 |          9 |         75 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/pending-review/page.tsx                                             | TypeScript JSX |        -93 |          0 |        -10 |       -103 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/lib/host/actions.ts                                                      | TypeScript     |        296 |          3 |         32 |        331 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/lib/host/queries.ts                                                      | TypeScript     |        150 |         23 |         21 |        194 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/lib/host/types.ts                                                        | TypeScript     |        111 |          4 |          9 |        124 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/page.tsx                                                                 | TypeScript JSX |          9 |         -1 |          2 |         10 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/refund-cancellation-policy/page.tsx                                      | TypeScript JSX |         12 |          0 |          1 |         13 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/ApartmentDetails.tsx                                              | TypeScript JSX |         11 |          0 |          1 |         12 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/HeroSection.tsx                                                   | TypeScript JSX |          6 |          7 |          2 |         15 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/WhyBookUs.tsx                                                     | TypeScript JSX |         63 |          1 |          1 |         65 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/account/AccountNav.tsx                                            | TypeScript JSX |         15 |          0 |          0 |         15 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/account/ui.tsx                                                    | TypeScript JSX |          1 |          0 |          0 |          1 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/appartmentDetails/AvailabilityCalendar.tsx                        | TypeScript JSX |         12 |          0 |          0 |         12 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/booking/BookingCard.tsx                                           | TypeScript JSX |          8 |          0 |          0 |          8 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/fearturedListingCard.tsx                                          | TypeScript JSX |         34 |        -15 |          7 |         26 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/host/ImageManager.tsx                                             | TypeScript JSX |         82 |          1 |         10 |         93 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/host/ListingForm.tsx                                              | TypeScript JSX |        215 |          5 |         16 |        236 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/host/StatusBadge.tsx                                              | TypeScript JSX |         22 |          1 |          3 |         26 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/host/image-uploader.tsx                                           | TypeScript JSX |        -80 |         -2 |         -9 |        -91 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/host/listing-form.tsx                                             | TypeScript JSX |       -207 |         -1 |        -11 |       -219 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/host/sidebar.tsx                                                  | TypeScript JSX |         56 |          2 |         11 |         69 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/listings/DestinationListings.tsx                                  | TypeScript JSX |         75 |          0 |          7 |         82 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/listings/Mombasa/Listings.tsx                                     | TypeScript JSX |         -8 |          0 |          1 |         -7 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/minimalListingCard.tsx                                            | TypeScript JSX |         22 |          5 |          1 |         28 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/navigationBar.tsx                                                 | TypeScript JSX |        362 |         36 |         44 |        442 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/policies/HostListingAgreement.tsx                                 | TypeScript JSX |        268 |          0 |         12 |        280 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/policies/RefundPolicy.tsx                                         | TypeScript JSX |        152 |          0 |          9 |        161 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/proxy.ts                                                                     | TypeScript     |         16 |          0 |          3 |         19 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/supabase/migrations/20260923120000_host_terms_acceptance.sql                 | MS SQL         |          7 |          0 |          2 |          9 |
+| /home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/supabase/migrations/20260923130000_host_dashboard_stats_security_invoker.sql | MS SQL         |          4 |          0 |          2 |          6 |
+| Total                                                                                                                                   |                |      2,794 |        135 |        337 |      3,266 |
++-----------------------------------------------------------------------------------------------------------------------------------------+----------------+------------+------------+------------+------------+

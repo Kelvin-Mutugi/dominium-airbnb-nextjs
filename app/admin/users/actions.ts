@@ -15,6 +15,7 @@ export async function suspendUser(userId: string, reason: string) {
     .eq("id", userId);
   if (error) throw new Error(error.message);
   revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
 }
 
 // reactivate user
@@ -27,6 +28,7 @@ export async function reactivateUser(userId: string) {
     .eq("id", userId);
   if (error) throw new Error(error.message);
   revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
 }
 
 //veryfy host
@@ -39,4 +41,5 @@ export async function verifyHost(userId: string) {
     .eq("id", userId);
   if (error) throw new Error(error.message);
   revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
 }

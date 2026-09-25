@@ -18,10 +18,22 @@ export function UserTabs() {
 
   return (
     <div className="flex border-b mb-4">
-      <Link href={`${pathname}?tab=guests`} className={tabClass("guests")}>
+      <Link
+        href={`${pathname}?${new URLSearchParams({
+          tab: "guests",
+          ...(searchParams.get("q") ? { q: searchParams.get("q") ?? "" } : {}),
+        }).toString()}`}
+        className={tabClass("guests")}
+      >
         Guests
       </Link>
-      <Link href={`${pathname}?tab=hosts`} className={tabClass("hosts")}>
+      <Link
+        href={`${pathname}?${new URLSearchParams({
+          tab: "hosts",
+          ...(searchParams.get("q") ? { q: searchParams.get("q") ?? "" } : {}),
+        }).toString()}`}
+        className={tabClass("hosts")}
+      >
         Hosts
       </Link>
     </div>

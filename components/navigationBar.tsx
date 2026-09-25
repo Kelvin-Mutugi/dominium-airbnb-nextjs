@@ -443,16 +443,16 @@ export default function Navbar() {
         {/* ---------------------------- Logo ---------------------------- */}
         <Link
           href="/"
-          aria-label="Dominium Airbnb, home"
+          aria-label="Dominium bnb, home"
           className={`flex shrink-0 items-center gap-2.5 no-underline ${focusRing} rounded-lg`}
         >
-            <img src={logo.src} alt="Dominium Airbnb Logo" className="h-9 w-8" />  
+            <img src={logo.src} alt="Dominium bnb Logo" className="h-9 w-8" />  
           <span
             className={`hidden font-display text-xl tracking-wide whitespace-nowrap transition-colors duration-300 sm:block ${
               overHero ? "text-[#36454F] lg:text-white" : "text-[#36454F]"
             }`}
           >
-            Dominium<span className="text-[#E23E85]"> Airbnb</span>
+            Dominium<span className="text-[#E23E85]"> b&b</span>
           </span>
         </Link>
 

@@ -21,7 +21,10 @@ export function ListingTabs() {
       {STATUSES.map((s) => (
         <Link
           key={s.value}
-          href={`${pathname}?status=${s.value}`}
+          href={`${pathname}?${new URLSearchParams({
+            status: s.value,
+            ...(searchParams.get("q") ? { q: searchParams.get("q") ?? "" } : {}),
+          }).toString()}`}
           className={`px-4 py-2 text-sm font-medium border-b-2 ${
             active === s.value
               ? "border-gray-900 text-gray-900"
