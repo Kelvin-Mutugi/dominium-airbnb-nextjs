@@ -40,7 +40,7 @@ const BOOKING_SELECT = `
 export const getGuestBookings = cache(async (userId: string) => {
   const { supabase } = await getAccountContext();
 
-  const [bookingsRes, reviewsRes] = await Promise.all([
+  const [bookingsRes, reviewsRes, hostReviewsRes] = await Promise.all([
     supabase
       .from('bookings')
       .select(BOOKING_SELECT)
@@ -48,11 +48,13 @@ export const getGuestBookings = cache(async (userId: string) => {
       .order('created_at', { ascending: false })
       .limit(200),
     supabase.from('reviews').select('booking_id').eq('guest_id', userId),
+    supabase.from('host_reviews').select('booking_id').eq('guest_id', userId),
   ]);
 
   if (bookingsRes.error) throw new Error(bookingsRes.error.message);
 
   const reviewed = new Set((reviewsRes.data ?? []).map((r) => r.booking_id as string));
+  const hostReviewed = new Set((hostReviewsRes.data ?? []).map((r) => r.booking_id as string));
   const today = todayISO();
   const rows = (bookingsRes.data ?? []) as unknown as BookingRow[];
 
@@ -65,7 +67,7 @@ export const getGuestBookings = cache(async (userId: string) => {
       phase = 'cancelled';
       expired = true;
     } else phase = 'past';
-    return { ...b, phase, expired, reviewed: reviewed.has(b.id) };
+    return { ...b, phase, expired, reviewed: reviewed.has(b.id), hostReviewed: hostReviewed.has(b.id) };
   });
 
   const newestStayFirst = (a: BookingView, b: BookingView) => b.check_in.localeCompare(a.check_in);

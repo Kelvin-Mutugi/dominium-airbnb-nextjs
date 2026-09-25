@@ -4,7 +4,7 @@
 'use client';
 
 import { useId, useRef, useState } from 'react';
-import { cancelBooking, submitReview } from '@/app/account/bookings/actions';
+import { cancelBooking, submitHostReview, submitReview } from '@/app/account/bookings/actions';
 import { useAction } from './useAction';
 import { FormMessage, StarIcon, btnDanger, btnPrimary, btnSecondary, focusRing, inputClass } from './ui';
 
@@ -116,6 +116,56 @@ export function ReviewButton({ bookingId, listingTitle }: { bookingId: string; l
             <button type="button" onClick={submit} disabled={pending} className={btnPrimary}>
               {pending ? 'Posting…' : 'Post review'}
             </button>
+          </div>
+        </div>
+      </dialog>
+    </>
+  );
+}
+
+export function HostReviewButton({ bookingId, hostName = 'your host' }: { bookingId: string; hostName?: string }) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [localError, setLocalError] = useState<string | null>(null);
+  const { run, pending, result } = useAction(submitHostReview);
+
+  async function submit() {
+    if (rating < 1) {
+      setLocalError('Choose a star rating first.');
+      return;
+    }
+    setLocalError(null);
+    const response = await run({ bookingId, rating, comment });
+    if (response.ok) dialogRef.current?.close();
+  }
+
+  return (
+    <>
+      <button type="button" onClick={() => dialogRef.current?.showModal()} className={`${btnSecondary} !py-1.5`}>
+        Review host
+      </button>
+      <dialog ref={dialogRef} aria-labelledby={titleId} className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl bg-white p-0 text-neutral-900 shadow-xl backdrop:bg-neutral-900/50">
+        <div className="p-6">
+          <h2 id={titleId} className="font-serif text-xl">How was {hostName}?</h2>
+          <p className="mt-1 text-sm text-neutral-500">Your review will be checked before it appears publicly.</p>
+          <div role="radiogroup" aria-label="Host rating" className="mt-4 flex gap-1">
+            {[1, 2, 3, 4, 5].map((value) => (
+              <button key={value} type="button" role="radio" aria-checked={rating === value} aria-label={`${value} ${value === 1 ? 'star' : 'stars'}`} onClick={() => setRating(value)} className={`rounded p-1 ${focusRing}`}>
+                <StarIcon size={30} className={value <= rating ? 'text-amber-500' : 'text-neutral-300'} />
+              </button>
+            ))}
+          </div>
+          <label htmlFor={`${titleId}-comment`} className="mt-5 block text-sm font-medium text-neutral-800">Share your experience with the host</label>
+          <textarea id={`${titleId}-comment`} rows={4} maxLength={2000} value={comment} onChange={(event) => setComment(event.target.value)} className={`${inputClass} mt-1.5`} placeholder="Communication, check-in, and hospitality…" />
+          <div className="mt-2 min-h-5">
+            {localError ? <p role="alert" className="text-sm text-rose-700">{localError}</p> : <FormMessage result={result?.ok ? null : result} />}
+            {result?.ok && <p role="status" className="text-sm text-emerald-700">{result.message}</p>}
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <button type="button" onClick={() => dialogRef.current?.close()} className={btnSecondary}>Cancel</button>
+            <button type="button" onClick={submit} disabled={pending} className={btnPrimary}>{pending ? 'Submitting…' : 'Submit review'}</button>
           </div>
         </div>
       </dialog>

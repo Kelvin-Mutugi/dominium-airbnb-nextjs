@@ -67,6 +67,7 @@ export interface BookingView extends BookingRow {
   phase: 'upcoming' | 'past' | 'cancelled';
   expired: boolean;
   reviewed: boolean;
+  hostReviewed: boolean;
 }
 
 export interface PaymentRow {
@@ -107,6 +108,7 @@ export interface ReviewRow {
   rating: number;
   comment: string | null;
   created_at: string;
+  moderation_status?: string;
   listing: { title: string; slug: string } | null;
 }
 
