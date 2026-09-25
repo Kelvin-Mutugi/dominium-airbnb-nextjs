@@ -16,7 +16,7 @@ interface ReviewsSectionProps {
 }
 
 export function ReviewsSection({ rating, reviewCount, reviews = [] }: ReviewsSectionProps) {
-  if (!reviewCount || reviewCount === 0) {
+  if ((!reviewCount || reviewCount === 0) && reviews.length === 0) {
     return (
       <div className="mt-8 rounded-2xl border border-[#EDEBE4] p-6 text-center">
         <p className="text-[14px] text-[#3A3856]">No reviews yet</p>
@@ -24,12 +24,19 @@ export function ReviewsSection({ rating, reviewCount, reviews = [] }: ReviewsSec
     );
   }
 
+  const displayedCount = reviewCount && reviewCount > 0 ? reviewCount : reviews.length;
+  const displayedRating = rating && rating > 0
+    ? rating
+    : reviews.length
+      ? reviews.reduce((total, review) => total + review.rating, 0) / reviews.length
+      : 0;
+
   return (
     <div className="mt-8">
       <div className="mb-5 flex items-center gap-2">
         <Star size={20} fill="#1B1A2E" className="text-[#1B1A2E]" />
         <h3 className="text-[18px] font-semibold text-[#1B1A2E]">
-          {rating?.toFixed(2)} · {reviewCount} review{reviewCount > 1 ? "s" : ""}
+          {displayedRating.toFixed(2)} · {displayedCount} review{displayedCount !== 1 ? "s" : ""}
         </h3>
       </div>
 
@@ -50,12 +57,29 @@ export function ReviewsSection({ rating, reviewCount, reviews = [] }: ReviewsSec
                 </p>
               </div>
             </div>
-            <p className="mt-2 text-[14px] leading-relaxed text-[#3A3856]">
-              {r.comment}
-            </p>
+            <div className="mt-3 flex items-center gap-1" aria-label={`${r.rating} out of 5 stars`}>
+              {Array.from({ length: 5 }, (_, index) => (
+                <Star
+                  key={index}
+                  size={14}
+                  fill={index < r.rating ? "currentColor" : "none"}
+                  className={index < r.rating ? "text-amber-500" : "text-gray-300"}
+                />
+              ))}
+            </div>
+            {r.comment.trim() ? (
+              <p className="mt-2 text-[14px] leading-relaxed text-[#3A3856]">{r.comment}</p>
+            ) : (
+              <p className="mt-2 text-[13px] italic text-[#3A3856]/60">Rating only, no written comment.</p>
+            )}
           </div>
         ))}
       </div>
+      {reviews.length === 0 && Boolean(reviewCount && reviewCount > 0) && (
+        <p className="mt-4 text-sm text-[#6B6A78]">
+          No published written reviews are available yet. Guest feedback appears here after moderation.
+        </p>
+      )}
     </div>
   );
 }

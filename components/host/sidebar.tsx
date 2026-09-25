@@ -10,6 +10,7 @@ import {
   Plus,
   ArrowLeft,
   LifeBuoy,
+  Star,
 } from "lucide-react";
 
 const NAV = [
@@ -17,6 +18,7 @@ const NAV = [
   { href: "/host/listings", label: "Listings", icon: Building2 },
   { href: "/host/bookings", label: "Bookings", icon: CalendarDays },
   { href: "/host/payouts", label: "Payouts", icon: Wallet },
+  { href: "/host/reviews", label: "Reviews", icon: Star },
   { href: "/account/support", label: "Support", icon: LifeBuoy },
 ];
 

@@ -82,3 +82,55 @@ export async function submitReview(input: {
   revalidatePath('/account', 'layout');
   return { ok: true, message: 'Review posted.' };
 }
+
+export async function submitHostReview(input: {
+  bookingId: string;
+  rating: number;
+  comment: string;
+}): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: SESSION_EXPIRED };
+
+  const rating = Math.round(Number(input.rating));
+  if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+    return { ok: false, error: 'Choose a rating from 1 to 5 stars.' };
+  }
+  const comment = (input.comment ?? '').trim().slice(0, 2000);
+  const { data: booking } = await supabase
+    .from('bookings')
+    .select('id, host_id, status, check_out')
+    .eq('id', input.bookingId)
+    .eq('guest_id', user.id)
+    .maybeSingle();
+
+  if (!booking) return { ok: false, error: 'We couldn’t find that booking.' };
+  if (booking.status === 'pending' || booking.status === 'cancelled' || booking.check_out > todayISO()) {
+    return { ok: false, error: 'You can review the host once your stay is complete.' };
+  }
+  if (!booking.host_id || booking.host_id === user.id) {
+    return { ok: false, error: 'This booking has no eligible host to review.' };
+  }
+
+  const { error } = await supabase.from('host_reviews').insert({
+    booking_id: booking.id,
+    guest_id: user.id,
+    host_id: booking.host_id,
+    rating,
+    comment: comment || null,
+    moderation_status: 'pending',
+  });
+  if (error) {
+    return {
+      ok: false,
+      error: error.code === '23505' ? 'You’ve already reviewed this host for the stay.' : 'We couldn’t save your host review. Try again.',
+    };
+  }
+
+  revalidatePath('/account', 'layout');
+  revalidatePath('/host/reviews');
+  revalidatePath('/admin/reviews');
+  return { ok: true, message: 'Host review sent for moderation.' };
+}

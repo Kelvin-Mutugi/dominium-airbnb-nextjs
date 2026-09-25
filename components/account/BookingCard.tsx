@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { coverImage, formatDate, formatMoney, nightsBetween } from '@/app/lib/format';
 import { routes } from '@/app/lib/routes';
 import type { BookingView } from '@/types/account';
-import { CancelBookingButton, ReviewButton } from './BookingActions';
+import { CancelBookingButton, HostReviewButton, ReviewButton } from './BookingActions';
 import { StatusBadge, textLink } from './ui';
 
 export function BookingCard({ booking: b }: { booking: BookingView }) {
@@ -14,6 +14,7 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
   const image = coverImage(listing?.listing_images);
   const canCancel = b.phase === 'upcoming' && b.status === 'pending';
   const canReview = b.phase === 'past' && !b.reviewed;
+  const canReviewHost = b.phase === 'past' && !b.hostReviewed;
 
   const guests = `${b.guests_count} ${b.guests_count === 1 ? 'guest' : 'guests'}`;
   const children = b.children_count > 0 ? `, ${b.children_count} ${b.children_count === 1 ? 'child' : 'children'}` : '';
@@ -69,6 +70,7 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
         <div className="flex flex-col items-end gap-2">
           {canCancel && <CancelBookingButton bookingId={b.id} />}
           {canReview && <ReviewButton bookingId={b.id} listingTitle={listing?.title ?? 'your stay'} />}
+          {canReviewHost && <HostReviewButton bookingId={b.id} />}
           <Link href={`/account/support?booking=${b.id}&category=booking_issue`} className={textLink}>
             Get help with this stay
           </Link>

@@ -72,6 +72,18 @@ export default function ApartmentPage() {
         return;
       }
 
+      let publishedReviews: Listing["reviews"] = [];
+      try {
+        const response = await fetch(`/api/listings/${params.id}/reviews`, { cache: "no-store" });
+        if (response.ok) {
+          const reviewPayload = (await response.json()) as { reviews?: Listing["reviews"] };
+          publishedReviews = reviewPayload.reviews ?? [];
+        } else {
+          console.error("Failed to load listing reviews:", response.status);
+        }
+      } catch (reviewsError) {
+        console.error("Failed to load listing reviews:", reviewsError);
+      }
       const gallery = Array.isArray(data.listing_images)
         ? [...data.listing_images]
             .sort((first, second) => first.sort_order - second.sort_order)
@@ -108,7 +120,8 @@ export default function ApartmentPage() {
         latitude: data.latitude == null ? undefined : Number(data.latitude),
         longitude: data.longitude == null ? undefined : Number(data.longitude),
         rating: Number(data.average_rating ?? 0),
-        reviewCount: data.review_count ?? 0,
+        reviewCount: Number(data.review_count ?? publishedReviews.length),
+        reviews: publishedReviews,
         verified: true,
         rareFind: Boolean(data.is_rare_find),
         rareFindNote: data.rare_find_note ?? undefined,
