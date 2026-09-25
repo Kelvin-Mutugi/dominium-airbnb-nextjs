@@ -83,6 +83,7 @@ export default function HostOnboardingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -98,9 +99,32 @@ export default function HostOnboardingPage() {
           router.replace("/host");
           return;
         }
-        if (status.kyc_submitted_at || status.kyc_status === "pending") {
+        if (status.kyc_status === "pending" || (status.kyc_submitted_at && status.kyc_status !== "rejected")) {
           router.replace("/host/pending-review");
           return;
+        }
+        if (status.kyc_status === "rejected") {
+          setRejectionReason(status.kyc_rejection_reason ?? "Please review your details and upload a clear identity document.");
+          const payoutDetails = status.payout_details as Record<string, string> | null;
+          setForm((current) => ({
+            ...current,
+            fullName: status.full_name ?? current.fullName,
+            phone: status.phone ?? current.phone,
+            alternatePhone: status.alternate_phone ?? current.alternatePhone,
+            email: status.email ?? current.email,
+            hostType: status.host_type === "company" ? "company" : "individual",
+            businessName: status.business_name ?? current.businessName,
+            idType: status.id_document_type === "passport" ? "passport" : "national_id",
+            idNumber: status.id_number ?? current.idNumber,
+            dateOfBirth: status.date_of_birth ?? current.dateOfBirth,
+            county: status.county ?? current.county,
+            residentialAddress: status.residential_address ?? current.residentialAddress,
+            payoutMethod: status.payout_method === "bank" ? "bank" : "mpesa",
+            mpesaNumber: payoutDetails?.mpesa_number ?? payoutDetails?.phone ?? current.mpesaNumber,
+            bankName: payoutDetails?.bank_name ?? current.bankName,
+            bankAccount: payoutDetails?.account_number ?? current.bankAccount,
+            hostBio: status.host_bio ?? current.hostBio,
+          }));
         }
         setCheckingStatus(false);
       })
@@ -201,6 +225,13 @@ export default function HostOnboardingPage() {
       )}
       {!checkingStatus && (
         <>
+      {rejectionReason && (
+        <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-900">
+          <p className="font-semibold">Changes needed before we can verify your host account</p>
+          <p className="mt-1 leading-6">{rejectionReason}</p>
+          <p className="mt-2 text-rose-800">Your saved details are filled in below. Update what is needed and upload the corrected ID document.</p>
+        </div>
+      )}
       <div>
         <h1 className="text-2xl font-bold text-[#12231d]">Set up your host account</h1>
         <p className="text-gray-500">We use these details to verify your identity and process payouts.</p>

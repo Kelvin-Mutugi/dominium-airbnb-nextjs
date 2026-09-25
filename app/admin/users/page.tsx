@@ -49,7 +49,7 @@ export default async function AdminUsersPage({
     <div>
       <h1 className="text-2xl font-semibold mb-1 text-[#E23E85]">Users</h1>
       <p className="text-sm text-gray-600 mb-4">
-        Manage guests and hosts, verify hosts, and suspend accounts.
+        Manage guests and hosts, review host verification, and suspend accounts.
       </p>
 
       <AdminSearchInput placeholder="Search by name, phone, business, or ID" />
@@ -108,8 +108,6 @@ export default async function AdminUsersPage({
                   <UserRowActions
                     userId={p.id}
                     status={p.status}
-                    role={p.role}
-                    hostVerifiedAt={p.host_verified_at}
                   />
                 </td>
               </tr>

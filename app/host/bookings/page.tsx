@@ -1,6 +1,7 @@
 // app/host/bookings/page.tsx
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   Check,
@@ -265,6 +266,12 @@ export default function HostBookingsPage() {
                       You get KES{" "}
                       {b.host_payout_amount.toLocaleString()}
                     </p>
+                    <Link
+                      href={`/account/support?booking=${b.id}&category=host_guest_concern`}
+                      className="mt-2 inline-block text-xs font-medium text-[#ec1561] underline underline-offset-2"
+                    >
+                      Report a stay issue
+                    </Link>
                   </div>
                 </div>
 

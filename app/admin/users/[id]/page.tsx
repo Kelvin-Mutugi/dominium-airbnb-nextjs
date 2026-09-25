@@ -78,9 +78,12 @@ export default async function AdminUserDetailPage({
           <UserRowActions
             userId={profile.id}
             status={profile.status}
-            role={profile.role}
-            hostVerifiedAt={profile.host_verified_at}
           />
+          {profile.role === "host" && (
+            <Link href={`/admin/verification?status=all&q=${encodeURIComponent(profile.full_name ?? profile.id)}`} className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-[#1B1A2E] hover:bg-gray-50">
+              Verification record
+            </Link>
+          )}
         </div>
       </div>
 

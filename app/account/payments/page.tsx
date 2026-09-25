@@ -72,6 +72,15 @@ export default async function PaymentsPage() {
                         Reference <span className="font-mono">{p.provider_reference}</span>
                       </p>
                     )}
+                    <Link
+                      href={`/account/support?${new URLSearchParams({
+                        category: 'payment_refund',
+                        ...(p.booking?.id ? { booking: p.booking.id } : {}),
+                      }).toString()}`}
+                      className={`${textLink} mt-2 inline-block`}
+                    >
+                      Get help with this payment
+                    </Link>
                   </div>
 
                   <div className="flex items-center gap-4 sm:flex-col sm:items-end sm:gap-2">

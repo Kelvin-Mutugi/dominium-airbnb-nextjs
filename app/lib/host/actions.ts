@@ -99,6 +99,10 @@ export async function submitHostOnboarding(formData: FormData) {
     host_bio: hostBio || null,
     kyc_status: "pending",
     kyc_submitted_at: new Date().toISOString(),
+    kyc_reviewed_at: null,
+    kyc_reviewed_by: null,
+    kyc_rejection_reason: null,
+    host_verified_at: null,
   });
   if (upsertError) throw new Error(`Could not save your host details: ${upsertError.message}`);
 }
@@ -114,7 +118,7 @@ export async function getHostOnboardingStatus() {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("role, kyc_status, kyc_submitted_at, host_verified_at")
+    .select("role, kyc_status, kyc_submitted_at, host_verified_at, kyc_rejection_reason, full_name, phone, alternate_phone, email, host_type, business_name, id_document_type, id_number, date_of_birth, county, residential_address, payout_method, payout_details, host_bio")
     .eq("id", user.id)
     .maybeSingle();
 

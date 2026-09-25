@@ -69,6 +69,9 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
         <div className="flex flex-col items-end gap-2">
           {canCancel && <CancelBookingButton bookingId={b.id} />}
           {canReview && <ReviewButton bookingId={b.id} listingTitle={listing?.title ?? 'your stay'} />}
+          <Link href={`/account/support?booking=${b.id}&category=booking_issue`} className={textLink}>
+            Get help with this stay
+          </Link>
           {b.phase === 'past' && b.reviewed && <span className="text-sm text-neutral-500">You reviewed this stay</span>}
           {b.phase === 'upcoming' && b.status === 'confirmed' && (
             <span className="max-w-[13rem] text-right text-xs text-neutral-500">

@@ -2,18 +2,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { suspendUser, reactivateUser, verifyHost } from "@/app/admin/users/actions";
+import { suspendUser, reactivateUser } from "@/app/admin/users/actions";
 
 export function UserRowActions({
   userId,
   status,
-  role,
-  hostVerifiedAt,
 }: {
   userId: string;
   status: string;
-  role: string;
-  hostVerifiedAt: string | null;
 }) {
   const [isPending, startTransition] = useTransition();
   const [showSuspendModal, setShowSuspendModal] = useState(false);
@@ -36,16 +32,6 @@ export function UserRowActions({
           className="text-xs px-3 py-1.5 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
         >
           Suspend
-        </button>
-      )}
-
-      {role === "host" && !hostVerifiedAt && (
-        <button
-          disabled={isPending}
-          onClick={() => startTransition(() => verifyHost(userId))}
-          className="text-xs px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-        >
-          Verify Host
         </button>
       )}
 

@@ -20,7 +20,7 @@ export const getAccountContext = cache(async () => {
   const { data } = await supabase
     .from('profiles')
     .select(
-      'id, full_name, phone, role, avatar_url, created_at, business_name, id_number, payout_method, payout_details, host_verified_at, host_bio, status, suspended_reason',
+      'id, full_name, phone, role, avatar_url, created_at, business_name, id_number, payout_method, payout_details, host_verified_at, kyc_status, kyc_rejection_reason, host_bio, status, suspended_reason',
     )
     .eq('id', user.id)
     .maybeSingle();
