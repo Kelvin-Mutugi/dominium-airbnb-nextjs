@@ -11,21 +11,32 @@ interface AvailabilityCalendarProps {
   bookedDateRanges?: DateRange[];
   minNights: number;
   prompt?: boolean;
+  availabilityUnavailable?: boolean;
   onDateRangeSelect?: (checkIn: Date, checkOut: Date) => void;
 }
 
 function isDateBooked(date: Date, ranges: DateRange[]) {
+  const dateKey = formatDateKey(date);
   return ranges.some((r) => {
-    const start = new Date(r.start);
-    const end = new Date(r.end);
-    return date >= start && date <= end;
+    return dateKey >= r.start && dateKey < r.end;
   });
+}
+
+function formatDateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function stayOverlapsBookedDates(checkIn: Date, checkOut: Date, ranges: DateRange[]) {
+  const checkInKey = formatDateKey(checkIn);
+  const checkOutKey = formatDateKey(checkOut);
+  return ranges.some((range) => range.start < checkOutKey && range.end > checkInKey);
 }
 
 export function AvailabilityCalendar({
   bookedDateRanges = [],
   minNights,
   prompt = false,
+  availabilityUnavailable = false,
   onDateRangeSelect,
 }: AvailabilityCalendarProps) {
   const [viewDate, setViewDate] = useState(() => {
@@ -54,21 +65,24 @@ export function AvailabilityCalendar({
   today.setHours(0, 0, 0, 0);
 
   function handleDayClick(day: Date) {
-    if (day < today || isDateBooked(day, bookedDateRanges)) return;
+    if (availabilityUnavailable || day < today) return;
 
     if (!checkIn || (checkIn && checkOut)) {
+      if (isDateBooked(day, bookedDateRanges)) return;
       setCheckIn(day);
       setCheckOut(null);
       return;
     }
 
     if (day <= checkIn) {
+      if (isDateBooked(day, bookedDateRanges)) return;
       setCheckIn(day);
       return;
     }
 
     const nights = Math.round((day.getTime() - checkIn.getTime()) / 86400000);
     if (nights < minNights) return; // enforce minimum stay
+    if (stayOverlapsBookedDates(checkIn, day, bookedDateRanges)) return;
 
     setCheckOut(day);
     onDateRangeSelect?.(checkIn, day);
@@ -127,6 +141,9 @@ export function AvailabilityCalendar({
 
           const booked = isDateBooked(day, bookedDateRanges);
           const past = day < today;
+          const choosingCheckout = Boolean(checkIn && !checkOut && day > checkIn);
+          const checkoutOverlap = choosingCheckout && stayOverlapsBookedDates(checkIn!, day, bookedDateRanges);
+          const disabled = past || (booked && !choosingCheckout) || checkoutOverlap;
           const isCheckIn = checkIn && day.getTime() === checkIn.getTime();
           const isCheckOut = checkOut && day.getTime() === checkOut.getTime();
           const inRange = isInSelectedRange(day);
@@ -135,10 +152,10 @@ export function AvailabilityCalendar({
             <button
               key={i}
               type="button"
-              disabled={booked || past}
+              disabled={availabilityUnavailable || disabled}
               onClick={() => handleDayClick(day)}
               className={`aspect-square rounded-lg text-[13px] transition-colors ${
-                booked || past
+                (booked && !choosingCheckout) || past || checkoutOverlap
                   ? "cursor-not-allowed text-[#3A3856]/25 line-through"
                   : isCheckIn || isCheckOut
                   ? "bg-[#1B1A2E] text-white"
@@ -154,7 +171,9 @@ export function AvailabilityCalendar({
       </div>
 
       <p className="mt-3 text-[13px] text-[#3A3856]">
-        {checkOut
+        {availabilityUnavailable
+          ? "Availability could not be checked right now. Please try again later."
+          : checkOut
           ? `${checkIn?.toLocaleDateString()} → ${checkOut.toLocaleDateString()}`
           : checkIn
             ? `Now select checkout (min ${minNights} night${minNights > 1 ? "s" : ""})`

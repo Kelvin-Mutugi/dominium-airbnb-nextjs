@@ -1,5 +1,5 @@
 // appartmentDetails/StayDetails.tsx
-import { Users, LogIn, LogOut, CalendarClock } from "lucide-react";
+import { Users, LogIn, LogOut, CalendarClock, BedDouble, Bath } from "lucide-react";
 
 interface StayDetailsProps {
   listing: {
@@ -7,19 +7,23 @@ interface StayDetailsProps {
     checkInTime: string;
     checkOutTime: string;
     minNights: number;
+    bedrooms?: number;
+    bathrooms?: number;
   };
 }
 
 export function StayDetails({ listing }: StayDetailsProps) {
   const items = [
     { icon: Users, label: `Up to ${listing.maxGuests} guests` },
+    listing.bedrooms ? { icon: BedDouble, label: `${listing.bedrooms} bedroom${listing.bedrooms === 1 ? "" : "s"}` } : null,
+    listing.bathrooms ? { icon: Bath, label: `${listing.bathrooms} bathroom${listing.bathrooms === 1 ? "" : "s"}` } : null,
     { icon: LogIn, label: `Check-in after ${listing.checkInTime}` },
     { icon: LogOut, label: `Check-out by ${listing.checkOutTime}` },
     {
       icon: CalendarClock,
       label: `${listing.minNights} night${listing.minNights > 1 ? "s" : ""} minimum`,
     },
-  ];
+  ].filter((item): item is NonNullable<typeof item> => item !== null);
 
   return (
     <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 border-y border-[#EDEBE4] py-4">

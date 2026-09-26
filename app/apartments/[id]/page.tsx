@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import ApartmentDetails from "@/components/ApartmentDetails";
 import Navbar from "@/components/navigationBar";
-import type { Listing } from "@/components/homeData";
+import type { Listing, RelatedListingSummary } from "@/components/homeData";
 import { supabase } from "@/app/lib/supabase/client";
 
 function normalizeAmenities(value: unknown): string[] {
@@ -72,11 +72,24 @@ export default function ApartmentPage() {
         return;
       }
 
+      let bookedDateRanges: NonNullable<Listing["bookedDateRanges"]> = [];
+      let availabilityUnavailable = false;
+      try {
+        const availabilityResponse = await fetch(`/api/listings/${params.id}/availability`, { cache: "no-store" });
+        if (!availabilityResponse.ok) throw new Error("Availability lookup failed.");
+        const availabilityPayload = (await availabilityResponse.json()) as { ranges?: Listing["bookedDateRanges"] };
+        bookedDateRanges = availabilityPayload.ranges ?? [];
+      } catch (availabilityError) {
+        console.error("Failed to load listing availability:", availabilityError);
+        availabilityUnavailable = true;
+      }
+
       let publishedReviews: Listing["reviews"] = [];
       try {
         const response = await fetch(`/api/listings/${params.id}/reviews`, { cache: "no-store" });
         if (response.ok) {
-          const reviewPayload = (await response.json()) as { reviews?: Listing["reviews"] };
+           host: hostProfile?.displayName ?? "Host",
+           hostProfile,
           publishedReviews = reviewPayload.reviews ?? [];
         } else {
           console.error("Failed to load listing reviews:", response.status);
@@ -84,6 +97,33 @@ export default function ApartmentPage() {
       } catch (reviewsError) {
         console.error("Failed to load listing reviews:", reviewsError);
       }
+
+      let hostProfile: Listing["hostProfile"];
+      let relatedListings: RelatedListingSummary[] = [];
+      try {
+        const response = await fetch(`/api/listings/${params.id}/public-details`, { cache: "no-store" });
+        if (!response.ok) throw new Error(`Public listing details returned ${response.status}.`);
+        const publicDetails = (await response.json()) as {
+          host?: Listing["hostProfile"];
+           verified: Boolean(hostProfile?.verified),
+        };
+           bedrooms: data.bedrooms,
+           bathrooms: data.bathrooms,
+        hostProfile = publicDetails.host;
+        relatedListings = (publicDetails.relatedListings ?? []).map((related) => ({
+          id: related.id,
+          name: related.name,
+          price: new Intl.NumberFormat("en-KE", {
+            style: "currency",
+            currency: "KES",
+            maximumFractionDigits: 0,
+          }).format(related.pricePerNight),
+          gallery: related.imageUrl ? [related.imageUrl] : [],
+        }));
+      } catch (publicDetailsError) {
+        console.error("Failed to load public host and nearby listing details:", publicDetailsError);
+      }
+
       const gallery = Array.isArray(data.listing_images)
         ? [...data.listing_images]
             .sort((first, second) => first.sort_order - second.sort_order)
@@ -129,6 +169,8 @@ export default function ApartmentPage() {
         beds: data.bedrooms,
         baths: data.bathrooms,
         amenities: normalizeAmenities(data.amenities),
+        bookedDateRanges,
+        availabilityUnavailable,
       });
       setIsLoading(false);
     }
@@ -177,11 +219,9 @@ export default function ApartmentPage() {
       <ApartmentDetails
         listing={listing}
         onReserve={handleReserve}
-        relatedListings={[]}
+        relatedListings={relatedListings}
         onBack={() => router.push("/")}
-        onSelectListing={(selectedListing) =>
-          router.push(`/apartments/${selectedListing.id}`)
-        }
+        onSelectListing={(listingId) => router.push(`/apartments/${listingId}`)}
       />
     </>
   );

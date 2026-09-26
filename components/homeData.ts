@@ -17,6 +17,20 @@ export const ROUTES: string[] = [
 
 export type Amenity = string;
 
+export interface RelatedListingSummary {
+  id: string;
+  name: string;
+  price: string;
+  gallery: string[];
+}
+
+export interface PublicHostProfile {
+  displayName: string;
+  avatarUrl?: string | null;
+  verified: boolean;
+  bio?: string | null;
+}
+
 export interface Listing {
   id: string;
   name: string;
@@ -28,6 +42,7 @@ export interface Listing {
   description: string;
   features: string[];
   host: string;
+  hostProfile?: PublicHostProfile;
 
   bookingTerms?: string;
   cancelationPolicy?: string;
@@ -55,6 +70,8 @@ export interface Listing {
   rareFind?: boolean;
   rareFindNote?: string;
   guests?: number;
+  bedrooms?: number;
+  bathrooms?: number;
   beds?: number;
   baths?: number;
   amenities?: Amenity[];
@@ -73,6 +90,7 @@ export interface Listing {
     start: string;
     end: string;
   }[];
+  availabilityUnavailable?: boolean;
 }
 
 export const LISTINGS: Listing[] = [

@@ -6,6 +6,8 @@ import {
   Home,
   Building2,
   CalendarDays,
+  ClipboardList,
+  BookOpenText,
   Wallet,
   Plus,
   ArrowLeft,
@@ -16,9 +18,11 @@ import {
 const NAV = [
   { href: "/host", label: "Dashboard", icon: Home },
   { href: "/host/listings", label: "Listings", icon: Building2 },
-  { href: "/host/bookings", label: "Bookings", icon: CalendarDays },
+  { href: "/host/calendar", label: "Calendar", icon: CalendarDays },
+  { href: "/host/bookings", label: "Bookings", icon: ClipboardList },
   { href: "/host/payouts", label: "Payouts", icon: Wallet },
   { href: "/host/reviews", label: "Reviews", icon: Star },
+  { href: "/host/guide", label: "Host Guide", icon: BookOpenText },
   { href: "/account/support", label: "Support", icon: LifeBuoy },
 ];
 
@@ -98,7 +102,7 @@ export default function HostSidebar() {
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="fixed inset-x-0 bottom-0 z-20 flex justify-around border-t bg-white py-2 md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-8 border-t bg-white py-2 md:hidden">
         {NAV.map((item) => {
           const active = isActive(item.href);
           const Icon = item.icon;
@@ -108,12 +112,14 @@ export default function HostSidebar() {
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className={`flex flex-col items-center gap-0.5 text-xs ${
+              aria-label={item.label}
+              title={item.label}
+              className={`flex min-w-0 flex-col items-center gap-0.5 overflow-hidden text-[10px] ${
                 active ? "text-[#ec1561]" : "text-gray-500"
               }`}
             >
-              <Icon className="h-5 w-5" />
-              {item.label}
+              <Icon className="h-5 w-5 shrink-0" />
+              <span className="hidden max-w-full truncate min-[560px]:inline">{item.label}</span>
             </Link>
           );
         })}

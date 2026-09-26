@@ -1,9 +1,9 @@
 // appartmentDetails/RelatedListings.tsx
-import { Listing } from "../homeData";
+import { RelatedListingSummary } from "../homeData";
 
 interface RelatedListingsProps {
-  listings: Listing[];
-  onSelect: (listing: Listing) => void;
+  listings: RelatedListingSummary[];
+  onSelect: (listingId: string) => void;
 }
 
 export function RelatedListings({ listings, onSelect }: RelatedListingsProps) {
@@ -19,7 +19,7 @@ export function RelatedListings({ listings, onSelect }: RelatedListingsProps) {
           <button
             key={l.id}
             type="button"
-            onClick={() => onSelect(l)}
+            onClick={() => onSelect(l.id)}
             className="flex items-center gap-3 text-left hover:cursor-pointer hover:bg-[#FAFAFA] focus:outline-none focus:ring-2 focus:ring-[#E23E85] focus:ring-offset-2"
           >
             <div className="h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-[#F3F1EE]">

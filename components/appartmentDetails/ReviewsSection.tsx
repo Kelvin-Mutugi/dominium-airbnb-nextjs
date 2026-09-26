@@ -18,7 +18,7 @@ interface ReviewsSectionProps {
 export function ReviewsSection({ rating, reviewCount, reviews = [] }: ReviewsSectionProps) {
   if ((!reviewCount || reviewCount === 0) && reviews.length === 0) {
     return (
-      <div className="mt-8 rounded-2xl border border-[#EDEBE4] p-6 text-center">
+      <div id="listing-reviews" className="mt-8 rounded-2xl border border-[#EDEBE4] p-6 text-center">
         <p className="text-[14px] text-[#3A3856]">No reviews yet</p>
       </div>
     );
@@ -32,7 +32,7 @@ export function ReviewsSection({ rating, reviewCount, reviews = [] }: ReviewsSec
       : 0;
 
   return (
-    <div className="mt-8">
+    <div id="listing-reviews" className="mt-8 scroll-mt-8">
       <div className="mb-5 flex items-center gap-2">
         <Star size={20} fill="#1B1A2E" className="text-[#1B1A2E]" />
         <h3 className="text-[18px] font-semibold text-[#1B1A2E]">

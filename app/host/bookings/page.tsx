@@ -27,6 +27,7 @@ const FILTERS: { label: string; value: BookingStatus | "all" }[] = [
 export default function HostBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filter, setFilter] = useState<BookingStatus | "all">("all");
+  const [focusBookingId, setFocusBookingId] = useState<string | null>(null);
 
   // Initial page loading
   const [loading, setLoading] = useState(true);
@@ -65,7 +66,21 @@ export default function HostBookingsPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load(true);
+    const searchParams = new URLSearchParams(window.location.search);
+    const requestedStatus = searchParams.get("status");
+    const matchingFilter = FILTERS.find((item) => item.value === requestedStatus);
+    if (matchingFilter && matchingFilter.value !== "all") {
+      setFilter(matchingFilter.value);
+    }
+    setFocusBookingId(searchParams.get("booking"));
   }, []);
+
+  useEffect(() => {
+    if (loading || !focusBookingId) return;
+    document
+      .getElementById(`host-booking-${focusBookingId}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [loading, focusBookingId]);
 
   async function handleStatusChange(
     id: string,
@@ -222,8 +237,11 @@ export default function HostBookingsPage() {
             return (
               <div
                 key={b.id}
+                id={`host-booking-${b.id}`}
                 className={`rounded-2xl bg-white p-4 shadow-sm transition-opacity ${
                   isUpdating ? "opacity-70" : ""
+                } ${
+                  focusBookingId === b.id ? "outline outline-2 outline-offset-2 outline-[#ec1561]" : ""
                 }`}
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
