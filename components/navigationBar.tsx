@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import Image from "next/image";
 import {
   CalendarDays,
   Home,
@@ -18,7 +19,9 @@ import {
   User,
   X,
 } from "lucide-react";
-import logo from "@/app/assets/logo.png";
+import logo_icon from "@/app/assets/logo_icon.png";
+import black_logo from "@/app/assets/logo.png";
+import white_logo from "@/app/assets/logo1.png";
 import type { LucideIcon } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "@/app/lib/supabase/client";
@@ -446,14 +449,34 @@ export default function Navbar() {
           aria-label="Dominium bnb, home"
           className={`flex shrink-0 items-center gap-2.5 no-underline ${focusRing} rounded-lg`}
         >
-            <img src={logo.src} alt="Dominium bnb Logo" className="h-9 w-8" />  
-          <span
+          <Image
+            src={logo_icon}
+            alt=""
+            width={40}
+            height={40}
+            className="h-10 w-10 object-contain md:hidden"
+          />
+          <Image
+            src={black_logo}
+            alt=""
+            width={160}
+            height={48}
+            className="hidden h-12 w-40 object-contain md:block lg:hidden"
+          />
+          <Image
+            src={overHero ? white_logo : black_logo}
+            alt=""
+            width={160}
+            height={48}
+            className="hidden h-12 w-40 object-contain lg:block"
+          />
+          {/* <span
             className={`hidden font-display text-xl tracking-wide whitespace-nowrap transition-colors duration-300 sm:block ${
               overHero ? "text-[#36454F] lg:text-white" : "text-[#36454F]"
             }`}
           >
             Dominium<span className="text-[#E23E85]"> b&b</span>
-          </span>
+          </span> */}
         </Link>
 
         {/* ------------------------- Search pill ------------------------ */}
