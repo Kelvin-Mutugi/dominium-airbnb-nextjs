@@ -57,7 +57,7 @@ export default function FeaturedListings({
           {Array.from({ length: 6 }, (_, index) => (
             <div
               key={index}
-              className="w-[200px] shrink-0 snap-start"
+              className="w-[180px] shrink-0 snap-start"
             >
               <FeaturedListingCard loading />
             </div>
@@ -75,7 +75,7 @@ export default function FeaturedListings({
           {listings.map((item: Listing) => (
             <div
               key={item.id}
-              className="w-[200px] shrink-0 snap-start"
+              className="w-[180px] shrink-0 snap-start"
             >
               <FeaturedListingCard item={item} />
             </div>

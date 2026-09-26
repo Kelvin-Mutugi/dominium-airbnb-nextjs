@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import unsplashImageLoader from "./unsplash-image-loader";
+import { unsplashCardImageLoader } from "./unsplash-image-loader";
 import { useEffect, useState } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import {
@@ -223,7 +223,7 @@ export default function ListingCard({ item, id, loading = false }: ListingCardPr
           <Image
             src={activeImage}
             alt={listing.name}
-            loader={activeImage.includes("images.unsplash.com") ? unsplashImageLoader : undefined}
+            loader={activeImage.includes("images.unsplash.com") ? unsplashCardImageLoader : undefined}
             fill
             sizes="(max-width: 320px) 100vw, 320px"
             quality={85}
