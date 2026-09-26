@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
+import { syncStaleCalendarConnectionsForListing } from "@/app/lib/host/calendar-sync";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
+
+export const runtime = "nodejs";
+export const maxDuration = 10;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -19,6 +23,16 @@ export async function GET(
     .maybeSingle();
   if (listingError) return NextResponse.json({ error: "Availability is temporarily unavailable." }, { status: 503 });
   if (!listing) return NextResponse.json({ error: "Listing not found." }, { status: 404 });
+
+  try {
+    await syncStaleCalendarConnectionsForListing(id);
+  } catch (syncError) {
+    console.error("Could not check connected calendars during availability lookup:", syncError);
+    return NextResponse.json(
+      { error: "Connected calendar availability could not be verified. Please try again shortly." },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
+  }
 
   const today = new Date().toISOString().slice(0, 10);
   const [bookingsResult, manualBlocksResult, externalBlocksResult] = await Promise.all([

@@ -88,7 +88,7 @@ export default function HostGuidePage() {
             <h2 className="text-xl font-semibold text-[#12231d]">Calendar sync</h2>
             <div className="mt-3 space-y-3 text-sm leading-6 text-gray-600">
               <p>Connect an iCal feed for each listing to import outside reservations, or generate a private Dominium calendar link to share with another booking platform. Imported busy dates are shown separately from Dominium bookings.</p>
-              <p>Connected feeds sync when added, when you request a manual sync, and on a scheduled cycle about every 30 minutes. Other platforms also control how often they refresh a subscribed Dominium link, so updates are not instant.</p>
+              <p>Connected feeds sync when added, when you request a manual sync, and when a guest checks availability if the feed is more than five minutes old. Other platforms also control how often they refresh a subscribed Dominium link, so updates are not instant.</p>
               <p>Check all calendars before confirming an outside reservation. If a sync reveals an overlap with a Dominium booking, the calendar flags it for review. You can block dates manually when a platform has no compatible calendar feed.</p>
               <p className="font-medium text-[#12231d]">Treat a private calendar link like a password. Regenerating it immediately disables the previous link.</p>
             </div>
