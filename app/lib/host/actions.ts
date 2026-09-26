@@ -402,7 +402,7 @@ export async function addHostCalendarConnection(listingId: string, sourceUrl: st
 
   let syncMessage: string | null = null;
   try {
-    await syncCalendarConnection(connection.id);
+    await syncCalendarConnection(connection.id, true);
   } catch (syncError) {
     syncMessage = syncError instanceof Error ? syncError.message : "Calendar connected, but the first sync failed.";
   }
@@ -420,7 +420,7 @@ export async function syncHostCalendarConnection(connectionId: string) {
     .eq("host_id", user.id)
     .maybeSingle();
   if (!connection) throw new Error("Calendar connection not found.");
-  const result = await syncCalendarConnection(connection.id);
+  const result = await syncCalendarConnection(connection.id, true);
   revalidatePath("/host/calendar");
   return result;
 }

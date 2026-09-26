@@ -27,7 +27,13 @@ type CalendarConnection = {
   host_id: string;
   listing_id: string;
   source_url: string;
+  last_synced_at?: string | null;
+  last_sync_status?: "never" | "ok" | "error";
+  last_sync_error?: string | null;
 };
+
+const ON_DEMAND_SYNC_MAX_AGE_MS = 5 * 60 * 1000;
+const SYNC_LEASE_MS = 2 * 60 * 1000;
 
 function isAllowedCalendarHost(hostname: string) {
   const normalized = hostname.toLowerCase().replace(/\.$/, "");
@@ -92,7 +98,7 @@ async function fetchCalendarText(sourceUrl: string) {
     headers: { Accept: "text/calendar, text/plain;q=0.9" },
     cache: "no-store",
     redirect: "error",
-    signal: AbortSignal.timeout(12_000),
+    signal: AbortSignal.timeout(6_000),
   });
   if (!response.ok) throw new Error(`Calendar provider returned HTTP ${response.status}.`);
   return readBoundedResponse(response);
@@ -168,16 +174,97 @@ function parseBusyEvents(calendarText: string): ParsedBusyEvent[] {
   return [...unique.values()];
 }
 
-export async function syncCalendarConnection(connectionId: string) {
+async function acquireCalendarSyncLease(admin: SupabaseClient, connectionId: string) {
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const leaseUntil = new Date(now.getTime() + SYNC_LEASE_MS).toISOString();
+  const { data: availableLease, error: availableLeaseError } = await admin
+    .from("host_calendar_connections")
+    .update({ sync_lock_until: leaseUntil })
+    .eq("id", connectionId)
+    .is("sync_lock_until", null)
+    .select("id")
+    .maybeSingle();
+  if (availableLeaseError) throw new Error("Unable to start calendar sync.");
+  if (availableLease) return true;
+
+  const { data: expiredLease, error: expiredLeaseError } = await admin
+    .from("host_calendar_connections")
+    .update({ sync_lock_until: leaseUntil })
+    .eq("id", connectionId)
+    .lt("sync_lock_until", nowIso)
+    .select("id")
+    .maybeSingle();
+  if (expiredLeaseError) throw new Error("Unable to start calendar sync.");
+  return Boolean(expiredLease);
+}
+
+export async function syncCalendarConnection(connectionId: string, force = false) {
   const admin = getSupabaseAdmin();
   const { data: connection, error: connectionError } = await admin
     .from("host_calendar_connections")
-    .select("id, host_id, listing_id, source_url")
+    .select("id, host_id, listing_id, source_url, last_synced_at, last_sync_status, last_sync_error")
     .eq("id", connectionId)
     .single();
 
   if (connectionError || !connection) throw new Error("Calendar connection not found.");
-  return syncConnectionRecord(admin, connection as CalendarConnection);
+  const typedConnection = connection as CalendarConnection;
+  const lastSyncedAt = typedConnection.last_synced_at ? Date.parse(typedConnection.last_synced_at) : 0;
+  const recentSync = lastSyncedAt && Date.now() - lastSyncedAt < ON_DEMAND_SYNC_MAX_AGE_MS;
+  if (!force && recentSync && typedConnection.last_sync_status === "ok") {
+    return { connectionId, imported: 0, status: "fresh" as const };
+  }
+  if (!force && recentSync && typedConnection.last_sync_status === "error") {
+    throw new Error(typedConnection.last_sync_error || "Connected calendar could not be refreshed.");
+  }
+
+  const acquired = await acquireCalendarSyncLease(admin, connectionId);
+  if (!acquired) return { connectionId, imported: 0, status: "in_progress" as const };
+
+  try {
+    const { data: latestConnection, error: latestConnectionError } = await admin
+      .from("host_calendar_connections")
+      .select("id, host_id, listing_id, source_url, last_synced_at, last_sync_status, last_sync_error")
+      .eq("id", connectionId)
+      .single();
+    if (latestConnectionError || !latestConnection) throw new Error("Calendar connection not found.");
+
+    const latest = latestConnection as CalendarConnection;
+    const latestSyncAt = latest.last_synced_at ? Date.parse(latest.last_synced_at) : 0;
+    const latestSyncIsRecent = latestSyncAt && Date.now() - latestSyncAt < ON_DEMAND_SYNC_MAX_AGE_MS;
+    if (!force && latestSyncIsRecent && latest.last_sync_status === "ok") {
+      return { connectionId, imported: 0, status: "fresh" as const };
+    }
+    if (!force && latestSyncIsRecent && latest.last_sync_status === "error") {
+      throw new Error(latest.last_sync_error || "Connected calendar could not be refreshed.");
+    }
+    return await syncConnectionRecord(admin, latest);
+  } finally {
+    await admin
+      .from("host_calendar_connections")
+      .update({ sync_lock_until: null })
+      .eq("id", connectionId);
+  }
+}
+
+export async function syncStaleCalendarConnectionsForListing(listingId: string) {
+  const admin = getSupabaseAdmin();
+  const { data: connections, error } = await admin
+    .from("host_calendar_connections")
+    .select("id")
+    .eq("listing_id", listingId);
+  if (error) throw new Error("Unable to refresh external calendars.");
+
+  const results = await Promise.allSettled(
+    (connections ?? []).map((connection) => syncCalendarConnection(connection.id)),
+  );
+  const failed = results.some((result) => result.status === "rejected");
+  const syncInProgress = results.some(
+    (result) => result.status === "fulfilled" && result.value.status === "in_progress",
+  );
+  if (failed || syncInProgress) {
+    throw new Error("Connected calendar availability could not be verified. Please try again shortly.");
+  }
 }
 
 export async function syncConnectionRecord(
