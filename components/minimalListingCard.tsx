@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import unsplashImageLoader from "./unsplash-image-loader";
+import { unsplashCardImageLoader } from "./unsplash-image-loader";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { KeyboardEvent, MouseEvent } from "react";
@@ -295,7 +295,7 @@ export default function MinimalListingCard({
           <Image
             src={activeImage}
             alt={listing.name}
-            loader={activeImage.includes("images.unsplash.com") ? unsplashImageLoader : undefined}
+            loader={activeImage.includes("images.unsplash.com") ? unsplashCardImageLoader : undefined}
             fill
             sizes="160px"
             quality={85}

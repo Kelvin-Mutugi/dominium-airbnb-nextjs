@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import unsplashImageLoader from "./unsplash-image-loader";
+import { unsplashCardImageLoader } from "./unsplash-image-loader";
 import { useEffect, useState } from "react";
 import type { MouseEvent } from "react";
 import { BadgeCheck, BedDouble, Heart, Star, Users } from "lucide-react";
@@ -178,7 +178,7 @@ export default function FeaturedListingCard({
   // Loading state
   if (loading) {
     return (
-      <div className="w-full max-w-[240px] overflow-hidden rounded-2xl">
+      <div className="w-full max-w-[180px] overflow-hidden rounded-2xl">
         <div>
           <div className="shimmer aspect-square w-full rounded-2xl" />
 
@@ -218,7 +218,7 @@ export default function FeaturedListingCard({
 
   return (
     <article
-      className="group relative w-full max-w-[200px]"
+      className="group relative w-full max-w-[180px]"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -232,9 +232,9 @@ export default function FeaturedListingCard({
           <Image
             src={activeImage}
             alt={listing.name}
-            loader={activeImage.includes("images.unsplash.com") ? unsplashImageLoader : undefined}
+            loader={activeImage.includes("images.unsplash.com") ? unsplashCardImageLoader : undefined}
             fill
-            sizes="200px"
+            sizes="180px"
             quality={85}
             unoptimized={activeImage.includes("placehold.co") || activeImage === "/placeholder.svg"}
             onError={() =>
