@@ -1,4 +1,4 @@
-import { Fraunces, IBM_Plex_Sans, Anton, Poppins } from "next/font/google";
+import { Fraunces, IBM_Plex_Sans, Anton } from "next/font/google";
 
 export const fraunces = Fraunces({
   subsets: ["latin"],
@@ -17,12 +17,5 @@ export const anton = Anton({
   subsets: ["latin"],
   weight: "400",
   variable: "--font-anton",
-  display: "swap",
-});
-
-export const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-poppins",
   display: "swap",
 });

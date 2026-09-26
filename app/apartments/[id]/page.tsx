@@ -73,55 +73,58 @@ export default function ApartmentPage() {
         return;
       }
 
-      let bookedDateRanges: NonNullable<Listing["bookedDateRanges"]> = [];
-      let availabilityUnavailable = false;
-      try {
-        const availabilityResponse = await fetch(`/api/listings/${params.id}/availability`, { cache: "no-store" });
-        if (!availabilityResponse.ok) throw new Error("Availability lookup failed.");
-        const availabilityPayload = (await availabilityResponse.json()) as { ranges?: Listing["bookedDateRanges"] };
-        bookedDateRanges = availabilityPayload.ranges ?? [];
-      } catch (availabilityError) {
-        console.error("Failed to load listing availability:", availabilityError);
-        availabilityUnavailable = true;
-      }
+      const [availabilityResult, publishedReviews, publicDetails] = await Promise.all([
+        (async () => {
+          try {
+            const response = await fetch(`/api/listings/${params.id}/availability`, { cache: "no-store" });
+            if (!response.ok) throw new Error(`Availability request returned ${response.status}.`);
+            const payload = (await response.json()) as { ranges?: Listing["bookedDateRanges"] };
+            return { ranges: payload.ranges ?? [], unavailable: false };
+          } catch (availabilityError) {
+            console.error("Failed to load listing availability:", availabilityError);
+            return { ranges: [], unavailable: true };
+          }
+        })(),
+        (async () => {
+          try {
+            const response = await fetch(`/api/listings/${params.id}/reviews`, { cache: "no-store" });
+            if (!response.ok) throw new Error(`Reviews request returned ${response.status}.`);
+            const payload = (await response.json()) as { reviews?: Listing["reviews"] };
+            return payload.reviews ?? [];
+          } catch (reviewsError) {
+            console.error("Failed to load listing reviews:", reviewsError);
+            return [];
+          }
+        })(),
+        (async () => {
+          try {
+            const response = await fetch(`/api/listings/${params.id}/public-details`, { cache: "no-store" });
+            if (!response.ok) throw new Error(`Public listing details returned ${response.status}.`);
+            return (await response.json()) as {
+              host?: Listing["hostProfile"];
+              relatedListings?: Array<{ id: string; name: string; location: string; pricePerNight: number; imageUrl: string }>;
+            };
+          } catch (publicDetailsError) {
+            console.error("Failed to load public host and nearby listing details:", publicDetailsError);
+            return {};
+          }
+        })(),
+      ]);
 
-      let publishedReviews: Listing["reviews"] = [];
-      try {
-        const response = await fetch(`/api/listings/${params.id}/reviews`, { cache: "no-store" });
-        if (response.ok) {
-          const reviewPayload = (await response.json()) as { reviews?: Listing["reviews"] };
-          publishedReviews = reviewPayload.reviews ?? [];
-        } else {
-          console.error("Failed to load listing reviews:", response.status);
-        }
-      } catch (reviewsError) {
-        console.error("Failed to load listing reviews:", reviewsError);
-      }
-
-      let hostProfile: Listing["hostProfile"];
-      let relatedListings: RelatedListingSummary[] = [];
-      try {
-        const response = await fetch(`/api/listings/${params.id}/public-details`, { cache: "no-store" });
-        if (!response.ok) throw new Error(`Public listing details returned ${response.status}.`);
-        const publicDetails = (await response.json()) as {
-          host?: Listing["hostProfile"];
-          relatedListings?: Array<{ id: string; name: string; location: string; pricePerNight: number; imageUrl: string }>;
-        };
-        hostProfile = publicDetails.host;
-        relatedListings = (publicDetails.relatedListings ?? []).map((related) => ({
-          id: related.id,
-          name: related.name,
-          location: related.location,
-          price: new Intl.NumberFormat("en-KE", {
-            style: "currency",
-            currency: "KES",
-            maximumFractionDigits: 0,
-          }).format(related.pricePerNight),
-          gallery: related.imageUrl ? [related.imageUrl] : [],
-        }));
-      } catch (publicDetailsError) {
-        console.error("Failed to load public host and nearby listing details:", publicDetailsError);
-      }
+      const bookedDateRanges = availabilityResult.ranges;
+      const availabilityUnavailable = availabilityResult.unavailable;
+      const hostProfile = publicDetails.host;
+      const relatedListings: RelatedListingSummary[] = (publicDetails.relatedListings ?? []).map((related) => ({
+        id: related.id,
+        name: related.name,
+        location: related.location,
+        price: new Intl.NumberFormat("en-KE", {
+          style: "currency",
+          currency: "KES",
+          maximumFractionDigits: 0,
+        }).format(related.pricePerNight),
+        gallery: related.imageUrl ? [related.imageUrl] : [],
+      }));
       setRelatedListings(relatedListings);
 
       const gallery = Array.isArray(data.listing_images)

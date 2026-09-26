@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { anton, fraunces, plex, poppins } from "./fonts";
+import { anton, fraunces, plex } from "./fonts";
 import "./globals.css";
 import Footer from "@/components/footer";
 
@@ -15,7 +15,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${anton.variable} ${poppins.variable} ${fraunces.variable} ${plex.variable}`}
+      className={`${anton.variable} ${fraunces.variable} ${plex.variable}`}
     >
       <body className="flex min-h-screen flex-col font-sans">
         <div className="flex-1">{children}</div>
