@@ -20,6 +20,7 @@ export type Amenity = string;
 export interface RelatedListingSummary {
   id: string;
   name: string;
+  location: string;
   price: string;
   gallery: string[];
 }

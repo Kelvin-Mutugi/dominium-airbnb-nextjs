@@ -17,6 +17,7 @@ export default function ApartmentPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [listing, setListing] = useState<Listing | null>(null);
+  const [relatedListings, setRelatedListings] = useState<RelatedListingSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -88,8 +89,7 @@ export default function ApartmentPage() {
       try {
         const response = await fetch(`/api/listings/${params.id}/reviews`, { cache: "no-store" });
         if (response.ok) {
-           host: hostProfile?.displayName ?? "Host",
-           hostProfile,
+          const reviewPayload = (await response.json()) as { reviews?: Listing["reviews"] };
           publishedReviews = reviewPayload.reviews ?? [];
         } else {
           console.error("Failed to load listing reviews:", response.status);
@@ -105,14 +105,13 @@ export default function ApartmentPage() {
         if (!response.ok) throw new Error(`Public listing details returned ${response.status}.`);
         const publicDetails = (await response.json()) as {
           host?: Listing["hostProfile"];
-           verified: Boolean(hostProfile?.verified),
+          relatedListings?: Array<{ id: string; name: string; location: string; pricePerNight: number; imageUrl: string }>;
         };
-           bedrooms: data.bedrooms,
-           bathrooms: data.bathrooms,
         hostProfile = publicDetails.host;
         relatedListings = (publicDetails.relatedListings ?? []).map((related) => ({
           id: related.id,
           name: related.name,
+          location: related.location,
           price: new Intl.NumberFormat("en-KE", {
             style: "currency",
             currency: "KES",
@@ -123,6 +122,7 @@ export default function ApartmentPage() {
       } catch (publicDetailsError) {
         console.error("Failed to load public host and nearby listing details:", publicDetailsError);
       }
+      setRelatedListings(relatedListings);
 
       const gallery = Array.isArray(data.listing_images)
         ? [...data.listing_images]
@@ -146,12 +146,15 @@ export default function ApartmentPage() {
         gallery,
         description: data.description,
         features: normalizeAmenities(data.features),
-        host: "Host",
+        host: hostProfile?.displayName ?? "Host",
+        hostProfile,
         bookingTerms: data.booking_terms ?? undefined,
         cancelationPolicy: data.cancellation_policy ?? undefined,
         houserules: normalizeAmenities(data.house_rules),
         refundPolicy: data.refund_policy ?? undefined,
         maxGuests: data.max_guests,
+        bedrooms: data.bedrooms,
+        bathrooms: data.bathrooms,
         checkInTime: data.check_in_time,
         checkOutTime: data.check_out_time,
         minNights: data.min_nights,
@@ -162,7 +165,7 @@ export default function ApartmentPage() {
         rating: Number(data.average_rating ?? 0),
         reviewCount: Number(data.review_count ?? publishedReviews.length),
         reviews: publishedReviews,
-        verified: true,
+        verified: Boolean(hostProfile?.verified),
         rareFind: Boolean(data.is_rare_find),
         rareFindNote: data.rare_find_note ?? undefined,
         guests: data.max_guests,
@@ -179,7 +182,12 @@ export default function ApartmentPage() {
   }, [params.id]);
 
   if (isLoading) {
-    return <ApartmentDetails listing={null} isLoading onBack={() => router.push("/")} />;
+    return (
+      <>
+        <Navbar />
+        <ApartmentDetails listing={null} isLoading onBack={() => router.push("/")} />
+      </>
+    );
   }
 
   if (!listing) {

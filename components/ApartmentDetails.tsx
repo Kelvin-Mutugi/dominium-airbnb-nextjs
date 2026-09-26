@@ -51,8 +51,17 @@ export default function ApartmentDetails({
   // --- Loading state ---
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-[15px] text-[#3A3856]">Loading listing...</p>
+      <div className="min-h-screen bg-white px-[4%] py-8" aria-label="Loading listing" role="status">
+        <div className="mx-auto grid max-w-[1500px] gap-8 lg:grid-cols-[1.35fr_0.65fr]">
+          <div className="aspect-[4/3] animate-pulse rounded-xl bg-gray-200 md:aspect-[2/1]" />
+          <div className="space-y-5 py-2">
+            <div className="h-9 w-4/5 animate-pulse rounded bg-gray-200" />
+            <div className="h-4 w-2/5 animate-pulse rounded bg-gray-200" />
+            <div className="h-20 animate-pulse rounded-lg bg-gray-100" />
+            <div className="h-8 w-1/2 animate-pulse rounded bg-gray-200" />
+            <div className="h-64 animate-pulse rounded-xl bg-gray-100" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -243,7 +252,7 @@ export default function ApartmentDetails({
                     calendar?.scrollIntoView({ behavior: "smooth", block: "center" });
                     calendar?.focus({ preventScroll: true });
                   }}
-                  className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#1B1A2E] px-5 py-3 font-semibold text-white no-underline transition hover:bg-[#302f48] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E23E85] focus-visible:ring-offset-2"
+                  className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#1B1A2E] px-5 py-3 font-semibold text-white no-underline transition hover:cursor-pointer hover:bg-[#302f48] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E23E85] focus-visible:ring-offset-2"
                 >
                   {stayRange ? "Continue to booking" : "Check availability"}
                 </button>
