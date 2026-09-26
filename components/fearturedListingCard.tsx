@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import unsplashImageLoader from "./unsplash-image-loader";
 import { useEffect, useState } from "react";
 import type { MouseEvent } from "react";
 import { BadgeCheck, BedDouble, Heart, Star, Users } from "lucide-react";
@@ -231,12 +232,11 @@ export default function FeaturedListingCard({
           <Image
             src={activeImage}
             alt={listing.name}
+            loader={activeImage.includes("images.unsplash.com") ? unsplashImageLoader : undefined}
             fill
             sizes="200px"
-            unoptimized={
-              activeImage.includes("placehold.co") ||
-              activeImage.includes("images.unsplash.com")
-            }
+            quality={85}
+            unoptimized={activeImage.includes("placehold.co") || activeImage === "/placeholder.svg"}
             onError={() =>
               setFailedSrcs((prev) =>
                 prev.includes(currentSrc) ? prev : [...prev, currentSrc],

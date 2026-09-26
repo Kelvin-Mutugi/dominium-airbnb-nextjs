@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import unsplashImageLoader from "./unsplash-image-loader";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { KeyboardEvent, MouseEvent } from "react";
@@ -294,9 +295,11 @@ export default function MinimalListingCard({
           <Image
             src={activeImage}
             alt={listing.name}
+            loader={activeImage.includes("images.unsplash.com") ? unsplashImageLoader : undefined}
             fill
-            sizes="240px"
-            unoptimized={activeImage === "/placeholder.svg" ? false : true}
+            sizes="160px"
+            quality={85}
+            unoptimized={activeImage.includes("placehold.co") || activeImage === "/placeholder.svg"}
             onError={() => setImageError(true)}
             className={`listing-image object-cover transition-transform duration-500 ${
               isHovered ? "scale-105" : "scale-100"

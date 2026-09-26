@@ -88,7 +88,19 @@ export interface Payout {
   status: PayoutStatus;
   paid_at: string | null;
   created_at: string;
-  booking?: Pick<Booking, "check_in" | "check_out">;
+  booking?: Pick<
+    Booking,
+    | "check_in"
+    | "check_out"
+    | "guests_count"
+    | "total_amount"
+    | "host_payout_amount"
+    | "guest_name"
+    | "guest_email"
+    | "guest_phone"
+  > & {
+    listing?: Pick<Listing, "id" | "title" | "town" | "county">;
+  };
 }
 
 export interface HostDashboardStats {

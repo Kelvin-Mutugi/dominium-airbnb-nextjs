@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import unsplashImageLoader from "./unsplash-image-loader";
 import { HERO_IMAGES } from "./homeData";
 import SearchBar from "./SearchBar";
 
@@ -33,18 +35,22 @@ export default function HeroSection({
       {/* Sliding background images — clipped to the hero only */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         {HERO_IMAGES.map((src: string, index: number) => (
-          <img
+          <Image
             key={src}
             src={src || "/placeholder.svg"}
             alt=""
+            loader={unsplashImageLoader}
+            fill
+            sizes="100vw"
+            quality={85}
+            preload={index === 0}
+            loading={index === 0 ? undefined : "lazy"}
             className="hero-slide"
             style={{
               animationDelay:
                 index === 0 ? "0s" : index === 1 ? "-6s" : "-12s",
             }}
-            onError={(event) => {
-              event.currentTarget.src = "/placeholder.svg";
-            }}
+            onError={(event) => { event.currentTarget.src = "/placeholder.svg"; }}
           />
         ))}
         <div className="absolute inset-0 bg-[rgba(10,9,20,0.55)]" />

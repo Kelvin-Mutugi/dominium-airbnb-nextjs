@@ -1,9 +1,10 @@
 // appartmentDetails/RelatedListings.tsx
-import { Listing } from "../homeData";
+import { RelatedListingSummary } from "../homeData";
+import { MapPin } from "lucide-react";
 
 interface RelatedListingsProps {
-  listings: Listing[];
-  onSelect: (listing: Listing) => void;
+  listings: RelatedListingSummary[];
+  onSelect: (listingId: string) => void;
 }
 
 export function RelatedListings({ listings, onSelect }: RelatedListingsProps) {
@@ -19,22 +20,22 @@ export function RelatedListings({ listings, onSelect }: RelatedListingsProps) {
           <button
             key={l.id}
             type="button"
-            onClick={() => onSelect(l)}
+            onClick={() => onSelect(l.id)}
             className="flex items-center gap-3 text-left hover:cursor-pointer hover:bg-[#FAFAFA] focus:outline-none focus:ring-2 focus:ring-[#E23E85] focus:ring-offset-2"
           >
-            <div className="h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-[#F3F1EE]">
-              <img
-                src={l.gallery[0]}
-                alt={l.name}
-                className="h-full w-full object-cover transition-transform hover:scale-105"
-              />
+            <div className="h-16 w-20 shrink-0 overflow-hidden rounded-md bg-[#F3F1EE]">
+              {l.gallery[0] ? (
+                <img src={l.gallery[0]} alt={l.name} className="h-full w-full object-cover transition-transform hover:scale-105" />
+              ) : (
+                <span className="flex h-full items-center justify-center text-xs text-gray-500">No photo</span>
+              )}
             </div>
             <div className="min-w-0">
               <p className="truncate text-[13px] font-medium text-[#1B1A2E]">
                 {l.name}
               </p>
-              <p className="mt-0.5 truncate text-[12px] text-[#3A3856]/70">
-                {l.price}
+              <p className="mt-0.5 flex items-center gap-1 truncate text-[12px] text-[#3A3856]/70">
+                <MapPin size={12} aria-hidden="true" /> {l.location} · {l.price} / night
               </p>
             </div>
           </button>

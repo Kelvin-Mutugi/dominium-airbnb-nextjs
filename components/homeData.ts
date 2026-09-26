@@ -1,9 +1,9 @@
 import { Wifi } from "lucide-react";
 
 export const HERO_IMAGES: string[] = [
-  "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1400&q=70",
-  "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1400&q=70",
-  "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1400&q=70",
+  "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2",
+  "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688",
+  "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
 ];
 
 export const ROUTES: string[] = [
@@ -17,6 +17,21 @@ export const ROUTES: string[] = [
 
 export type Amenity = string;
 
+export interface RelatedListingSummary {
+  id: string;
+  name: string;
+  location: string;
+  price: string;
+  gallery: string[];
+}
+
+export interface PublicHostProfile {
+  displayName: string;
+  avatarUrl?: string | null;
+  verified: boolean;
+  bio?: string | null;
+}
+
 export interface Listing {
   id: string;
   name: string;
@@ -28,6 +43,7 @@ export interface Listing {
   description: string;
   features: string[];
   host: string;
+  hostProfile?: PublicHostProfile;
 
   bookingTerms?: string;
   cancelationPolicy?: string;
@@ -55,6 +71,8 @@ export interface Listing {
   rareFind?: boolean;
   rareFindNote?: string;
   guests?: number;
+  bedrooms?: number;
+  bathrooms?: number;
   beds?: number;
   baths?: number;
   amenities?: Amenity[];
@@ -73,6 +91,7 @@ export interface Listing {
     start: string;
     end: string;
   }[];
+  availabilityUnavailable?: boolean;
 }
 
 export const LISTINGS: Listing[] = [

@@ -1,13 +1,6 @@
 "use client";
 
 import { ShieldCheck, SearchCheck, MessageCircle, MapPin } from "lucide-react";
-import { Fraunces } from "next/font/google";
-
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  weight: ["500", "600"],
-  style: ["normal", "italic"],
-});
 
 const BENEFITS = [
   {
@@ -80,7 +73,7 @@ export default function WhyBookUs() {
         <div className="mb-14 max-w-2xl">
           <h2
             id="why-book-us-heading"
-            className={`${fraunces.className} text-4xl font-semibold tracking-tight text-[#1B1A2E] md:text-[2.75rem]`}
+            className="font-serif text-4xl font-semibold tracking-tight text-[#1B1A2E] md:text-[2.75rem]"
           >
             Why book with us
           </h2>

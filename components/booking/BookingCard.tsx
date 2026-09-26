@@ -117,6 +117,12 @@ export default function BookingCard({
 }: BookingCardProps) {
   const [listing, setListing] = useState<BookingListing | null>(null);
 
+  const [bookedDateRanges, setBookedDateRanges] = useState<Array<{ start: string; end: string }>>([]);
+
+  const [availabilityLoaded, setAvailabilityLoaded] = useState(false);
+
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
 
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -188,6 +194,10 @@ export default function BookingCard({
 
     setLoadError(null);
 
+    setAvailabilityLoaded(false);
+
+    setAvailabilityError(null);
+
     try {
       const { data, error } = await supabase
 
@@ -214,6 +224,24 @@ export default function BookingCard({
       }
 
       setListing(data);
+
+      try {
+        const response = await fetch(`/api/listings/${encodeURIComponent(listingId)}/availability`, { cache: "no-store" });
+        if (!response.ok) throw new Error("Availability is temporarily unavailable. Please try again later.");
+        const payload = (await response.json()) as { ranges?: Array<{ start: string; end: string }> };
+        if (!Array.isArray(payload.ranges) || payload.ranges.some((range) => typeof range.start !== "string" || typeof range.end !== "string")) {
+          throw new Error("Availability could not be verified. Please try again later.");
+        }
+        setBookedDateRanges(payload.ranges);
+        setAvailabilityLoaded(true);
+      } catch (availabilityLoadError) {
+        setAvailabilityError(
+          availabilityLoadError instanceof Error
+            ? availabilityLoadError.message
+            : "Availability is temporarily unavailable. Please try again later.",
+        );
+        setAvailabilityLoaded(true);
+      }
     } catch {
       setLoadError(
         "Unable to load this listing. Please check your connection and try again.",
@@ -236,9 +264,7 @@ export default function BookingCard({
 
   useEffect(() => {
     // The loader owns its state transitions and is intentionally started on mount.
-
     // eslint-disable-next-line react-hooks/set-state-in-effect
-
     void loadListing();
   }, [loadListing]);
 
@@ -367,6 +393,12 @@ export default function BookingCard({
       errors.dates = "Check-in can't be in the past.";
     } else if (outDate.getTime() <= inDate.getTime()) {
       errors.dates = "Check-out must be after check-in.";
+    } else if (!availabilityLoaded) {
+      errors.dates = "Checking date availability. Please try again in a moment.";
+    } else if (availabilityError) {
+      errors.dates = availabilityError;
+    } else if (bookedDateRanges.some((range) => range.start < checkOut && range.end > checkIn)) {
+      errors.dates = "Those dates include nights that are already unavailable. Choose different dates.";
     }
 
     if (!listing) {
@@ -723,6 +755,12 @@ export default function BookingCard({
               </label>
             </div>
 
+            {availabilityError && (
+              <p role="alert" className="mt-2 text-xs text-red-700">
+                {availabilityError} Booking is disabled until dates can be verified.
+              </p>
+            )}
+
             {(fieldErrors.dates ||
               fieldErrors.adults ||
               fieldErrors.children ||
@@ -974,7 +1012,7 @@ export default function BookingCard({
               />
 
               <span>
-                I agree to the property's House rules and platforms Refund & Cancellation Policy, Booking terms, Terms & Conditions and [Privacy Policy].
+                I agree to the property&apos;s House rules and platform&apos;s Refund & Cancellation Policy, Booking terms, Terms & Conditions and [Privacy Policy].
                 By checking this box, I consent to dominium bnb collecting and
                 storing my name, email address, and phone number to process my 
                 booking, manage my stay, and send transactional updates via email, 

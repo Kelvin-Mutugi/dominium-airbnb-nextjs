@@ -1,7 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { randomBytes } from "node:crypto";
 import { requireHost } from "@/app/lib/host-auth";
+import { hashCalendarToken, syncCalendarConnection, validateExternalCalendarUrl } from "@/app/lib/host/calendar-sync";
+import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 import { createClient } from "@/app/lib/supabase/server";
 import type {
   AvailabilityBlock,
@@ -126,6 +129,19 @@ export async function getHostOnboardingStatus() {
   return data;
 }
 
+export async function getHostVerificationStatus() {
+  const { user } = await requireHost();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("kyc_status, kyc_rejection_reason, host_verified_at")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (error) throw new Error("Unable to check host verification status.");
+  return data;
+}
+
 function listingPayload(values: Partial<ListingFormValues>) {
   return {
     title: String(values.title ?? "").trim(),
@@ -213,19 +229,25 @@ export async function updateHostBookingStatus(id: string, status: BookingStatus)
   const { error } = await supabase.from("bookings").update({ status }).eq("id", id).eq("host_id", user.id);
   if (error) throw new Error("Unable to update booking status.");
   revalidatePath("/host/bookings");
+  revalidatePath("/host/payouts");
   revalidatePath("/host");
 }
 
 export async function getHostDashboardData() {
   const { user } = await requireHost();
   const supabase = await createClient();
-  const [stats, listings, bookings] = await Promise.all([
+  const today = new Date().toISOString().slice(0, 10);
+  const [stats, pending, upcoming] = await Promise.all([
     supabase.from("host_dashboard_stats").select("*").eq("host_id", user.id).maybeSingle(),
-    supabase.from("listings").select("*, listing_images(id, url, sort_order)").eq("host_id", user.id).order("created_at", { ascending: false }),
     supabase.from("bookings").select("*, listing:listings(id, title, town, county)").eq("host_id", user.id).eq("status", "pending").order("check_in", { ascending: true }),
+    supabase.from("bookings").select("*, listing:listings(id, title, town, county)").eq("host_id", user.id).eq("status", "confirmed").gte("check_in", today).order("check_in", { ascending: true }),
   ]);
-  if (stats.error || listings.error || bookings.error) throw new Error("Unable to load host dashboard.");
-  return { stats: stats.data as HostDashboardStats | null, listings: listings.data as unknown as Listing[], pending: bookings.data as unknown as Booking[] };
+  if (stats.error || pending.error || upcoming.error) throw new Error("Unable to load host dashboard.");
+  return {
+    stats: stats.data as HostDashboardStats | null,
+    pending: pending.data as unknown as Booking[],
+    upcoming: upcoming.data as unknown as Booking[],
+  };
 }
 
 export async function getHostListingsData() {
@@ -247,7 +269,11 @@ export async function getHostBookingsData() {
 export async function getHostPayoutsData() {
   const { user } = await requireHost();
   const supabase = await createClient();
-  const { data, error } = await supabase.from("payouts").select("*, booking:bookings(check_in, check_out)").eq("host_id", user.id).order("created_at", { ascending: false });
+  const { data, error } = await supabase
+    .from("payouts")
+    .select("*, booking:bookings(check_in, check_out, guests_count, total_amount, host_payout_amount, guest_name, guest_email, guest_phone, listing:listings(id, title, town, county))")
+    .eq("host_id", user.id)
+    .order("created_at", { ascending: false });
   if (error) throw new Error("Unable to load payouts.");
   return data as unknown as Payout[];
 }
@@ -270,14 +296,207 @@ export async function getHostAvailabilityData(listingId: string) {
   return data as AvailabilityBlock[];
 }
 
+export async function getHostCalendarData(month: string) {
+  const { user } = await requireHost();
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new Error("Invalid calendar month.");
+
+  const [year, monthNumber] = month.split("-").map(Number);
+  const nextMonth = monthNumber === 12 ? 1 : monthNumber + 1;
+  const nextYear = monthNumber === 12 ? year + 1 : year;
+  const monthStart = `${month}-01`;
+  const nextMonthStart = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
+  const supabase = await createClient();
+  const { data: listingsData, error: listingsError } = await supabase
+    .from("listings")
+    .select("id, title, status")
+    .eq("host_id", user.id)
+    .order("title");
+
+  if (listingsError) throw new Error("Unable to load calendar listings.");
+  const listings = listingsData ?? [];
+  if (listings.length === 0) return { listings, bookings: [], blocks: [], externalBlocks: [] };
+
+  const listingIds = listings.map((listing) => listing.id);
+  const [bookingsResult, blocksResult] = await Promise.all([
+    supabase
+      .from("bookings")
+      .select("*, listing:listings(id, title, town, county)")
+      .eq("host_id", user.id)
+      .in("status", ["pending", "confirmed"])
+      .lt("check_in", nextMonthStart)
+      .gt("check_out", monthStart)
+      .order("check_in"),
+    supabase
+      .from("listing_availability_blocks")
+      .select("*")
+      .in("listing_id", listingIds)
+      .lt("start_date", nextMonthStart)
+      .gt("end_date", monthStart)
+      .order("start_date"),
+  ]);
+
+  if (bookingsResult.error || blocksResult.error) throw new Error("Unable to load host calendar.");
+  const admin = getSupabaseAdmin();
+  const { data: externalEvents, error: externalEventsError } = await admin
+    .from("host_external_calendar_events")
+    .select("id, listing_id, start_date, end_date, connection:host_calendar_connections(source_name)")
+    .eq("host_id", user.id)
+    .in("listing_id", listingIds)
+    .lt("start_date", nextMonthStart)
+    .gt("end_date", monthStart)
+    .order("start_date");
+
+  if (externalEventsError) throw new Error("Unable to load imported calendar dates.");
+  return {
+    listings,
+    bookings: (bookingsResult.data ?? []) as unknown as Booking[],
+    blocks: (blocksResult.data ?? []) as AvailabilityBlock[],
+    externalBlocks: (externalEvents ?? []).map((event) => {
+      const connection = event.connection as unknown as { source_name?: string } | null;
+      return {
+        id: event.id,
+        listing_id: event.listing_id,
+        start_date: event.start_date,
+        end_date: event.end_date,
+        source_name: connection?.source_name ?? "External calendar",
+      };
+    }),
+  };
+}
+
+export async function getHostCalendarConnections() {
+  const { user } = await requireHost();
+  const admin = getSupabaseAdmin();
+  const { data, error } = await admin
+    .from("host_calendar_connections")
+    .select("id, listing_id, source_name, last_synced_at, last_sync_status, last_sync_error, created_at")
+    .eq("host_id", user.id)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error("Unable to load calendar connections.");
+  return data ?? [];
+}
+
+export async function addHostCalendarConnection(listingId: string, sourceUrl: string, sourceName: string) {
+  const { user } = await requireHost();
+  const safeUrl = validateExternalCalendarUrl(sourceUrl.trim());
+  const safeName = sourceName.trim().replace(/[<>\r\n]/g, "").slice(0, 80) || new URL(safeUrl).hostname;
+  const sessionClient = await createClient();
+  const { data: listing } = await sessionClient
+    .from("listings")
+    .select("id")
+    .eq("id", listingId)
+    .eq("host_id", user.id)
+    .maybeSingle();
+  if (!listing) throw new Error("Listing not found.");
+
+  const admin = getSupabaseAdmin();
+  const { data: connection, error } = await admin
+    .from("host_calendar_connections")
+    .insert({ host_id: user.id, listing_id: listingId, source_name: safeName, source_url: safeUrl })
+    .select("id")
+    .single();
+  if (error || !connection) {
+    if (error?.code === "23505") throw new Error("This calendar is already connected to the listing.");
+    throw new Error("Unable to connect this calendar.");
+  }
+
+  let syncMessage: string | null = null;
+  try {
+    await syncCalendarConnection(connection.id);
+  } catch (syncError) {
+    syncMessage = syncError instanceof Error ? syncError.message : "Calendar connected, but the first sync failed.";
+  }
+  revalidatePath("/host/calendar");
+  return { id: connection.id, syncMessage };
+}
+
+export async function syncHostCalendarConnection(connectionId: string) {
+  const { user } = await requireHost();
+  const admin = getSupabaseAdmin();
+  const { data: connection } = await admin
+    .from("host_calendar_connections")
+    .select("id")
+    .eq("id", connectionId)
+    .eq("host_id", user.id)
+    .maybeSingle();
+  if (!connection) throw new Error("Calendar connection not found.");
+  const result = await syncCalendarConnection(connection.id);
+  revalidatePath("/host/calendar");
+  return result;
+}
+
+export async function removeHostCalendarConnection(connectionId: string) {
+  const { user } = await requireHost();
+  const admin = getSupabaseAdmin();
+  const { error } = await admin
+    .from("host_calendar_connections")
+    .delete()
+    .eq("id", connectionId)
+    .eq("host_id", user.id);
+  if (error) throw new Error("Unable to remove calendar connection.");
+  revalidatePath("/host/calendar");
+}
+
+export async function rotateHostCalendarExportFeed(listingId: string) {
+  const { user } = await requireHost();
+  const sessionClient = await createClient();
+  const { data: listing } = await sessionClient
+    .from("listings")
+    .select("id")
+    .eq("id", listingId)
+    .eq("host_id", user.id)
+    .maybeSingle();
+  if (!listing) throw new Error("Listing not found.");
+
+  const token = randomBytes(32).toString("base64url");
+  const admin = getSupabaseAdmin();
+  const { error } = await admin
+    .from("host_calendar_export_feeds")
+    .upsert({ listing_id: listingId, host_id: user.id, token_hash: hashCalendarToken(token) }, { onConflict: "listing_id" });
+  if (error) throw new Error("Unable to create a private calendar link.");
+  return token;
+}
+
 export async function addHostAvailabilityBlock(listingId: string, startDate: string, endDate: string, reason: string) {
   const { user } = await requireHost();
   const supabase = await createClient();
   const { data: listing } = await supabase.from("listings").select("id").eq("id", listingId).eq("host_id", user.id).maybeSingle();
   if (!listing || startDate >= endDate) throw new Error("Invalid availability dates.");
+  const [bookingConflict, blockConflict] = await Promise.all([
+    supabase
+      .from("bookings")
+      .select("id")
+      .eq("listing_id", listingId)
+      .in("status", ["pending", "confirmed"])
+      .lt("check_in", endDate)
+      .gt("check_out", startDate)
+      .limit(1),
+    supabase
+      .from("listing_availability_blocks")
+      .select("id")
+      .eq("listing_id", listingId)
+      .lt("start_date", endDate)
+      .gt("end_date", startDate)
+      .limit(1),
+  ]);
+  if (bookingConflict.error || blockConflict.error) throw new Error("Unable to verify date availability.");
+  if (bookingConflict.data?.length) throw new Error("These dates overlap a booking request or confirmed stay.");
+  if (blockConflict.data?.length) throw new Error("These dates overlap an existing blocked period.");
+  const admin = getSupabaseAdmin();
+  const { data: externalConflict, error: externalConflictError } = await admin
+    .from("host_external_calendar_events")
+    .select("id")
+    .eq("host_id", user.id)
+    .eq("listing_id", listingId)
+    .lt("start_date", endDate)
+    .gt("end_date", startDate)
+    .limit(1);
+  if (externalConflictError) throw new Error("Unable to verify imported calendar dates.");
+  if (externalConflict?.length) throw new Error("These dates overlap an imported external booking.");
   const { error } = await supabase.from("listing_availability_blocks").insert({ listing_id: listingId, start_date: startDate, end_date: endDate, reason: reason.trim() || null });
   if (error) throw new Error("Unable to block dates.");
   revalidatePath(`/host/listings/${listingId}/edit`);
+  revalidatePath("/host/calendar");
 }
 
 export async function removeHostAvailabilityBlock(id: string) {
@@ -290,6 +509,7 @@ export async function removeHostAvailabilityBlock(id: string) {
   const { error } = await supabase.from("listing_availability_blocks").delete().eq("id", id);
   if (error) throw new Error("Unable to remove blocked dates.");
   revalidatePath(`/host/listings/${block.listing_id}/edit`);
+  revalidatePath("/host/calendar");
 }
 
 export async function uploadHostListingImage(listingId: string, file: File, sortOrder: number) {

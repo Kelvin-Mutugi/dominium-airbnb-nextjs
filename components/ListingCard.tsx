@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import unsplashImageLoader from "./unsplash-image-loader";
 import { useEffect, useState } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import {
@@ -222,9 +223,11 @@ export default function ListingCard({ item, id, loading = false }: ListingCardPr
           <Image
             src={activeImage}
             alt={listing.name}
+            loader={activeImage.includes("images.unsplash.com") ? unsplashImageLoader : undefined}
             fill
-            sizes="(max-width: 768px) 100vw, 320px"
-            unoptimized={activeImage.includes("placehold.co") || activeImage.includes("images.unsplash.com")}
+            sizes="(max-width: 320px) 100vw, 320px"
+            quality={85}
+            unoptimized={activeImage.includes("placehold.co") || activeImage === "/placeholder.svg"}
             onError={() => setImageError(true)}
             className={`listing-image object-cover transition-transform duration-700 ${isHovered ? "scale-105" : "scale-100"}`}
             onMouseEnter={() => setIsHovered(true)}
