@@ -49,6 +49,19 @@ export interface ListingImage {
   sort_order: number;
 }
 
+export interface ListingArrivalGuide {
+  listing_id: string;
+  host_id: string;
+  arrival_address: string | null;
+  arrival_directions: string | null;
+  check_in_instructions: string | null;
+  wifi_name: string | null;
+  wifi_password: string | null;
+  arrival_contact: string | null;
+  local_tips: string | null;
+  updated_at: string;
+}
+
 export interface AvailabilityBlock {
   id: string;
   listing_id: string;
@@ -76,8 +89,29 @@ export interface Booking {
   guest_phone: string | null;
   special_requests: string | null;
   created_at: string;
+  unreadMessageCount?: number;
   // joined
   listing?: Pick<Listing, "id" | "title" | "town" | "county">;
+}
+
+export interface HostBookingChangeRequest {
+  id: string;
+  booking_id: string;
+  request_type: 'cancellation' | 'date_change';
+  current_check_in: string;
+  current_check_out: string;
+  requested_check_in: string | null;
+  requested_check_out: string | null;
+  quoted_total_amount: number | null;
+  amount_paid: number;
+  refund_percent: number;
+  estimated_refund_amount: number;
+  reason: string | null;
+  created_at: string;
+  booking: {
+    guest_name: string | null;
+    listing: { title: string } | null;
+  };
 }
 
 export interface Payout {
@@ -129,6 +163,13 @@ export interface ListingFormValues {
   house_rules: string[];
   check_in_time: string;
   check_out_time: string;
+  arrival_address: string;
+  arrival_directions: string;
+  check_in_instructions: string;
+  wifi_name: string;
+  wifi_password: string;
+  arrival_contact: string;
+  local_tips: string;
   min_nights: number;
   instant_book: boolean;
   cancellation_policy: string;

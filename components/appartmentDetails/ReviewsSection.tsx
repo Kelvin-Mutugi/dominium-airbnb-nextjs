@@ -1,5 +1,5 @@
 // appartmentDetails/ReviewsSection.tsx
-import { Star } from "lucide-react";
+import { ShieldCheck, Star } from "lucide-react";
 
 interface Review {
   id: string;
@@ -7,6 +7,11 @@ interface Review {
   rating: number;
   comment: string;
   date: string;
+  cleanlinessRating?: number;
+  accuracyRating?: number;
+  locationRating?: number;
+  communicationRating?: number;
+  verifiedStay?: boolean;
 }
 
 interface ReviewsSectionProps {
@@ -55,6 +60,11 @@ export function ReviewsSection({ rating, reviewCount, reviews = [] }: ReviewsSec
                     year: "numeric",
                   })}
                 </p>
+                {r.verifiedStay && (
+                  <p className="mt-1 inline-flex items-center gap-1 text-[12px] font-medium text-emerald-700">
+                    <ShieldCheck size={14} aria-hidden="true" /> Verified stay
+                  </p>
+                )}
               </div>
             </div>
             <div className="mt-3 flex items-center gap-1" aria-label={`${r.rating} out of 5 stars`}>
@@ -67,6 +77,12 @@ export function ReviewsSection({ rating, reviewCount, reviews = [] }: ReviewsSec
                 />
               ))}
             </div>
+            <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-[12px] text-[#3A3856]">
+              <div className="flex justify-between gap-2"><dt>Cleanliness</dt><dd className="font-semibold">{r.cleanlinessRating ?? r.rating}/5</dd></div>
+              <div className="flex justify-between gap-2"><dt>Accuracy</dt><dd className="font-semibold">{r.accuracyRating ?? r.rating}/5</dd></div>
+              <div className="flex justify-between gap-2"><dt>Location</dt><dd className="font-semibold">{r.locationRating ?? r.rating}/5</dd></div>
+              <div className="flex justify-between gap-2"><dt>Host communication</dt><dd className="font-semibold">{r.communicationRating ?? r.rating}/5</dd></div>
+            </dl>
             {r.comment.trim() ? (
               <p className="mt-2 text-[14px] leading-relaxed text-[#3A3856]">{r.comment}</p>
             ) : (

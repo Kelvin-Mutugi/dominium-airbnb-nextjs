@@ -1,17 +1,18 @@
-import { Listing } from "@/types/types";
+import type { Listing } from "@/types/types";
+import SaveListingButton from "@/components/listings/SaveListingButton";
 
 interface ListingCardProps {
   listing: Listing;
   onView?: (id: string) => void;
-  onToggleSave?: (id: string) => void;
-  saved?: boolean;
+  comparing?: boolean;
+  onToggleCompare?: (listing: Listing) => void;
 }
 
 export default function ListingCard({
   listing,
   onView,
-  onToggleSave,
-  saved = false,
+  comparing = false,
+  onToggleCompare,
 }: ListingCardProps) {
   return (
     <div className="grid grid-cols-1 gap-5 border-b border-ink/10 py-5 first:pt-0 sm:grid-cols-[260px_1fr]">
@@ -29,13 +30,10 @@ export default function ListingCard({
             ✓ Verified
           </span>
         )}
-        <button
-          onClick={() => onToggleSave?.(listing.id)}
-          className="absolute right-2.5 top-2.5 text-white"
-          aria-label={saved ? "Remove from saved" : "Save listing"}
-        >
-          {saved ? "♥" : "♡"}
-        </button>
+        <SaveListingButton
+          listingId={listing.id}
+          className="absolute right-2.5 top-2.5 flex size-9 items-center justify-center rounded-full bg-white/90 text-ink shadow-sm transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-white disabled:opacity-70"
+        />
       </div>
 
       {/* Body */}
@@ -72,17 +70,28 @@ export default function ListingCard({
 
         <p className="mb-3.5 max-w-lg text-sm text-ink/60">{listing.description}</p>
 
-        <div className="mt-auto flex items-center justify-between">
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm text-ink/80">
             <span className="font-semibold">{listing.rating.toFixed(1)}</span>{" "}
             · {listing.reviewCount} reviews
           </div>
-          <button
-            onClick={() => onView?.(listing.id)}
-            className="border-b border-ink text-sm font-semibold text-ink"
-          >
-            View listing →
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => onToggleCompare?.(listing)}
+              aria-pressed={comparing}
+              className="text-sm font-medium text-ink/70 underline decoration-ink/30 underline-offset-4 hover:text-ink"
+            >
+              {comparing ? "Remove compare" : "Compare"}
+            </button>
+            <button
+              type="button"
+              onClick={() => onView?.(listing.id)}
+              className="border-b border-ink text-sm font-semibold text-ink"
+            >
+              View listing →
+            </button>
+          </div>
         </div>
       </div>
     </div>

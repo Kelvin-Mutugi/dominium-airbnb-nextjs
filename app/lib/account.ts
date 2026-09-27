@@ -40,7 +40,7 @@ const BOOKING_SELECT = `
 export const getGuestBookings = cache(async (userId: string) => {
   const { supabase } = await getAccountContext();
 
-  const [bookingsRes, reviewsRes, hostReviewsRes] = await Promise.all([
+  const [bookingsRes, reviewsRes, hostReviewsRes, requestsRes] = await Promise.all([
     supabase
       .from('bookings')
       .select(BOOKING_SELECT)
@@ -49,12 +49,46 @@ export const getGuestBookings = cache(async (userId: string) => {
       .limit(200),
     supabase.from('reviews').select('booking_id').eq('guest_id', userId),
     supabase.from('host_reviews').select('booking_id').eq('guest_id', userId),
+    supabase
+      .from('booking_change_requests')
+      .select('id, booking_id, request_type, status, current_check_in, current_check_out, requested_check_in, requested_check_out, quoted_total_amount, amount_paid, refund_percent, estimated_refund_amount, refund_processing_status, host_response, created_at')
+      .eq('guest_id', userId)
+      .order('created_at', { ascending: false }),
   ]);
 
   if (bookingsRes.error) throw new Error(bookingsRes.error.message);
+  if (requestsRes.error) throw new Error(requestsRes.error.message);
 
   const reviewed = new Set((reviewsRes.data ?? []).map((r) => r.booking_id as string));
   const hostReviewed = new Set((hostReviewsRes.data ?? []).map((r) => r.booking_id as string));
+  const bookingIds = (bookingsRes.data ?? []).map((booking) => booking.id);
+  const unreadByBooking = new Map<string, number>();
+  if (bookingIds.length > 0) {
+    const [messagesRes, readsRes] = await Promise.all([
+      supabase
+        .from('booking_messages')
+        .select('booking_id, created_at')
+        .in('booking_id', bookingIds)
+        .neq('sender_id', userId),
+      supabase
+        .from('booking_thread_reads')
+        .select('booking_id, last_read_at')
+        .eq('user_id', userId)
+        .in('booking_id', bookingIds),
+    ]);
+    if (messagesRes.error || readsRes.error) throw new Error('Unable to load unread trip messages. Apply the booking thread reads migration and try again.');
+    const lastReadByBooking = new Map((readsRes.data ?? []).map((receipt) => [receipt.booking_id, Date.parse(receipt.last_read_at)]));
+    for (const message of messagesRes.data ?? []) {
+      const lastReadAt = lastReadByBooking.get(message.booking_id) ?? 0;
+      if (Date.parse(message.created_at) > lastReadAt) {
+        unreadByBooking.set(message.booking_id, (unreadByBooking.get(message.booking_id) ?? 0) + 1);
+      }
+    }
+  }
+  const requestByBooking = new Map<string, (typeof requestsRes.data)[number]>();
+  for (const request of requestsRes.data ?? []) {
+    if (!requestByBooking.has(request.booking_id)) requestByBooking.set(request.booking_id, request);
+  }
   const today = todayISO();
   const rows = (bookingsRes.data ?? []) as unknown as BookingRow[];
 
@@ -67,7 +101,15 @@ export const getGuestBookings = cache(async (userId: string) => {
       phase = 'cancelled';
       expired = true;
     } else phase = 'past';
-    return { ...b, phase, expired, reviewed: reviewed.has(b.id), hostReviewed: hostReviewed.has(b.id) };
+    return {
+      ...b,
+      phase,
+      expired,
+      reviewed: reviewed.has(b.id),
+      hostReviewed: hostReviewed.has(b.id),
+      changeRequest: requestByBooking.get(b.id) ?? null,
+      unreadMessageCount: unreadByBooking.get(b.id) ?? 0,
+    };
   });
 
   const newestStayFirst = (a: BookingView, b: BookingView) => b.check_in.localeCompare(a.check_in);

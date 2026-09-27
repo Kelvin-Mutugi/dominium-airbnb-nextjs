@@ -7,13 +7,16 @@ import {
   Check,
   CheckCircle2,
   Loader2,
+  MessageCircle,
   X,
 } from "lucide-react";
 import {
+  getHostBookingChangeRequestsData,
   getHostBookingsData,
+  respondToBookingChangeRequest,
   updateHostBookingStatus,
 } from "@/app/lib/host/actions";
-import type { Booking, BookingStatus } from "@/app/lib/host/types";
+import type { Booking, BookingStatus, HostBookingChangeRequest } from "@/app/lib/host/types";
 import StatusBadge from "@/components/host/StatusBadge";
 
 const FILTERS: { label: string; value: BookingStatus | "all" }[] = [
@@ -26,6 +29,7 @@ const FILTERS: { label: string; value: BookingStatus | "all" }[] = [
 
 export default function HostBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [changeRequests, setChangeRequests] = useState<HostBookingChangeRequest[]>([]);
   const [filter, setFilter] = useState<BookingStatus | "all">("all");
   const [focusBookingId, setFocusBookingId] = useState<string | null>(null);
 
@@ -38,6 +42,7 @@ export default function HostBookingsPage() {
   // Status being applied to the booking
   const [updatingStatus, setUpdatingStatus] =
     useState<BookingStatus | null>(null);
+  const [updatingRequestId, setUpdatingRequestId] = useState<string | null>(null);
 
   // Error message shown to the host
   const [error, setError] = useState<string | null>(null);
@@ -53,8 +58,12 @@ export default function HostBookingsPage() {
 
       setError(null);
 
-      const data = await getHostBookingsData();
+      const [data, requests] = await Promise.all([
+        getHostBookingsData(),
+        getHostBookingChangeRequestsData(),
+      ]);
       setBookings(data);
+      setChangeRequests(requests);
     } catch (err) {
       console.error("Failed to load bookings:", err);
       setError("We couldn't load your bookings. Please try again.");
@@ -121,6 +130,22 @@ export default function HostBookingsPage() {
     } finally {
       setUpdatingId(null);
       setUpdatingStatus(null);
+    }
+  }
+
+  async function handleRequestResponse(requestId: string, approve: boolean) {
+    if (updatingRequestId) return;
+    setUpdatingRequestId(requestId);
+    setError(null);
+    setSuccess(null);
+    try {
+      await respondToBookingChangeRequest(requestId, approve);
+      await load();
+      setSuccess(approve ? "Guest request approved." : "Guest request declined.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "We couldn't update this request.");
+    } finally {
+      setUpdatingRequestId(null);
     }
   }
 
@@ -201,6 +226,44 @@ export default function HostBookingsPage() {
         </div>
       )}
 
+      {changeRequests.length > 0 && (
+        <section aria-labelledby="booking-change-requests-heading" className="space-y-3">
+          <div>
+            <h2 id="booking-change-requests-heading" className="text-lg font-semibold text-[#12231d]">Guest change requests</h2>
+            <p className="text-sm text-gray-500">Review requested dates or cancellation before updating the booking.</p>
+          </div>
+          {changeRequests.map((request) => {
+            const isUpdatingRequest = updatingRequestId === request.id;
+            const listing = Array.isArray(request.booking.listing) ? request.booking.listing[0] : request.booking.listing;
+            return (
+              <article key={request.id} className="rounded-xl border border-gray-200 bg-white p-4">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-[#12231d]">{request.request_type === "cancellation" ? "Cancellation" : "Date change"} · {listing?.title ?? "Booking"}</p>
+                    <p className="mt-1 text-sm text-gray-600">Guest: {request.booking.guest_name ?? "Guest"}</p>
+                    <p className="mt-1 text-sm text-gray-600">Current: {request.current_check_in} to {request.current_check_out}</p>
+                    {request.request_type === "date_change" && request.requested_check_in && request.requested_check_out && (
+                      <p className="mt-1 text-sm font-medium text-[#12231d]">Requested: {request.requested_check_in} to {request.requested_check_out}</p>
+                    )}
+                    {request.request_type === "cancellation" && (
+                      <p className="mt-1 text-sm text-gray-600">Estimated refund: KES {Number(request.estimated_refund_amount).toLocaleString("en-KE")} ({request.refund_percent}% of KES {Number(request.amount_paid).toLocaleString("en-KE")}); manual processing after approval.</p>
+                    )}
+                    {request.request_type === "date_change" && request.quoted_total_amount != null && (
+                      <p className="mt-1 text-sm text-gray-600">Estimated revised total: KES {Number(request.quoted_total_amount).toLocaleString("en-KE")}. Approval is available only when the total is unchanged.</p>
+                    )}
+                    {request.reason && <p className="mt-2 whitespace-pre-wrap text-sm text-gray-500">Guest note: {request.reason}</p>}
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <button type="button" disabled={isUpdatingRequest} onClick={() => handleRequestResponse(request.id, false)} className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 disabled:opacity-50">Decline</button>
+                    <button type="button" disabled={isUpdatingRequest} onClick={() => handleRequestResponse(request.id, true)} className="rounded-md bg-[#12231d] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">{isUpdatingRequest ? "Saving…" : "Approve"}</button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+      )}
+
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
         {FILTERS.map((f) => {
@@ -273,6 +336,19 @@ export default function HostBookingsPage() {
                         &quot;{b.special_requests}&quot;
                       </p>
                     )}
+                    <Link
+                      href={`/host/bookings/${b.id}`}
+                      className="mt-2 inline-flex items-center gap-1.5 py-1 text-sm font-medium text-gray-600 transition hover:text-[#12231d] focus:outline-none focus:underline focus:underline-offset-2"
+                    >
+                      <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                      Message guest
+                      {(b.unreadMessageCount ?? 0) > 0 && (
+                        <span className="ml-1 inline-flex items-center gap-1 text-xs font-semibold text-[#9C2454]" aria-label={`${b.unreadMessageCount} new ${b.unreadMessageCount === 1 ? 'message' : 'messages'}`}>
+                          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[#E23E85]" />
+                          {b.unreadMessageCount === 1 ? "New" : `${b.unreadMessageCount} new`}
+                        </span>
+                      )}
+                    </Link>
                   </div>
 
                   <div className="text-right text-sm">

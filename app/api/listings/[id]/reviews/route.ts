@@ -11,34 +11,29 @@ export async function GET(
   if (!UUID_RE.test(id)) return NextResponse.json({ reviews: [] }, { status: 200 });
 
   const admin = getSupabaseAdmin();
-  let { data: reviews, error } = await admin
+  const { data: reviews, error } = await admin
     .from('reviews')
-    .select('id, guest_id, rating, comment, created_at')
+    .select('id, guest_id, booking_id, rating, cleanliness_rating, accuracy_rating, location_rating, communication_rating, comment, created_at')
     .eq('listing_id', id)
     .eq('moderation_status', 'published')
     .order('created_at', { ascending: false })
     .limit(50);
 
-  if (error?.code === '42703') {
-    const legacyResult = await admin
-      .from('reviews')
-      .select('id, guest_id, rating, comment, created_at')
-      .eq('listing_id', id)
-      .order('created_at', { ascending: false })
-      .limit(50);
-    reviews = legacyResult.data;
-    error = legacyResult.error;
-  }
-
   if (error) return NextResponse.json({ error: 'Unable to load listing reviews.' }, { status: 500 });
 
   const guestIds = [...new Set((reviews ?? []).map((review) => review.guest_id).filter(Boolean))];
-  const { data: guests, error: guestError } = guestIds.length
-    ? await admin.from('profiles').select('id, full_name').in('id', guestIds)
-    : { data: [], error: null };
-  if (guestError) return NextResponse.json({ error: 'Unable to load listing reviews.' }, { status: 500 });
+  const bookingIds = [...new Set((reviews ?? []).map((review) => review.booking_id).filter(Boolean))];
+  const [{ data: guests, error: guestError }, { data: bookings, error: bookingError }] = await Promise.all([
+    guestIds.length ? admin.from('profiles').select('id, full_name').in('id', guestIds) : Promise.resolve({ data: [], error: null }),
+    bookingIds.length ? admin.from('bookings').select('id, status, check_out').in('id', bookingIds) : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (guestError || bookingError) return NextResponse.json({ error: 'Unable to load listing reviews.' }, { status: 500 });
 
   const names = new Map((guests ?? []).map((guest) => [guest.id, guest.full_name]));
+  const today = new Date().toISOString().slice(0, 10);
+  const completedBookingIds = new Set((bookings ?? [])
+    .filter((booking) => booking.status === 'completed' && booking.check_out <= today)
+    .map((booking) => booking.id));
   return NextResponse.json({
     reviews: (reviews ?? []).map((review) => ({
       id: review.id,
@@ -46,6 +41,11 @@ export async function GET(
       rating: Number(review.rating),
       comment: review.comment ?? '',
       date: review.created_at,
+      cleanlinessRating: Number(review.cleanliness_rating),
+      accuracyRating: Number(review.accuracy_rating),
+      locationRating: Number(review.location_rating),
+      communicationRating: Number(review.communication_rating),
+      verifiedStay: completedBookingIds.has(review.booking_id),
     })),
   }, { headers: { 'Cache-Control': 'public, max-age=60, stale-while-revalidate=300' } });
 }

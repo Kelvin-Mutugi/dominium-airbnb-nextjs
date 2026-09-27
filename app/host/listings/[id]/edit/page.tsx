@@ -28,12 +28,12 @@ import type {
 
 type ListingWithImages = Listing & {
   listing_images?: ListingImage[];
-};
+} & Pick<ListingFormValues, "arrival_address" | "arrival_directions" | "check_in_instructions" | "wifi_name" | "wifi_password" | "arrival_contact" | "local_tips">;
 
 export default function EditListingPage() {
   const { id } = useParams<{ id: string }>();
 
-  const [listing, setListing] = useState<Listing | null>(null);
+  const [listing, setListing] = useState<ListingWithImages | null>(null);
   const [images, setImages] = useState<ListingImage[]>([]);
   const [blocks, setBlocks] = useState<AvailabilityBlock[]>([]);
 
@@ -83,7 +83,7 @@ export default function EditListingPage() {
       );
 
       setListing((prev) =>
-        prev ? { ...prev, ...updated } : updated,
+        prev ? { ...prev, ...updated, ...values } : { ...updated, ...values },
       );
 
       setSuccess("Listing changes saved successfully.");
@@ -268,6 +268,13 @@ export default function EditListingPage() {
     house_rules: listing.house_rules ?? [],
     check_in_time: listing.check_in_time,
     check_out_time: listing.check_out_time,
+    arrival_address: listing.arrival_address ?? listing.address ?? "",
+    arrival_directions: listing.arrival_directions ?? "",
+    check_in_instructions: listing.check_in_instructions ?? "",
+    wifi_name: listing.wifi_name ?? "",
+    wifi_password: listing.wifi_password ?? "",
+    arrival_contact: listing.arrival_contact ?? "",
+    local_tips: listing.local_tips ?? "",
     min_nights: listing.min_nights,
     instant_book: listing.instant_book,
     cancellation_policy:

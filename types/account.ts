@@ -68,6 +68,25 @@ export interface BookingView extends BookingRow {
   expired: boolean;
   reviewed: boolean;
   hostReviewed: boolean;
+  changeRequest: BookingChangeRequest | null;
+  unreadMessageCount: number;
+}
+
+export interface BookingChangeRequest {
+  id: string;
+  request_type: 'cancellation' | 'date_change';
+  status: 'pending' | 'approved' | 'declined';
+  current_check_in: string;
+  current_check_out: string;
+  requested_check_in: string | null;
+  requested_check_out: string | null;
+  quoted_total_amount: number | null;
+  amount_paid: number;
+  refund_percent: number;
+  estimated_refund_amount: number;
+  refund_processing_status: string;
+  host_response: string | null;
+  created_at: string;
 }
 
 export interface PaymentRow {

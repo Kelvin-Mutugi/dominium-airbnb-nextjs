@@ -4,20 +4,17 @@ import Image from "next/image";
 import Link from "next/link";
 import { unsplashCardImageLoader } from "./unsplash-image-loader";
 import { useEffect, useState } from "react";
-import type { MouseEvent } from "react";
-import { BadgeCheck, BedDouble, Heart, Star, Users } from "lucide-react";
+import { BedDouble, Star, Users } from "lucide-react";
 
 import { supabase } from "@/app/lib/supabase/client";
+import SaveListingButton from "@/components/listings/SaveListingButton";
 import { LISTINGS, type Listing } from "./homeData";
 
 interface FeaturedListingCardProps {
   item?: Listing;
   id?: string;
   loading?: boolean;
-  /**
-   * Shows the heart button. It only toggles local state for now, so leave this
-   * off until saved listings are stored somewhere (e.g. a saved_listings table).
-   */
+  /** Shows the persisted save control. */
   showSave?: boolean;
 }
 
@@ -31,7 +28,6 @@ export default function FeaturedListingCard({
   showSave = false,
 }: FeaturedListingCardProps) {
   const [dbListing, setDbListing] = useState<Listing | null>(null);
-  const [isSaved, setIsSaved] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [imageIndex, setImageIndex] = useState(0);
   // Track which image URLs failed, so one bad photo doesn't replace the whole gallery
@@ -167,12 +163,6 @@ export default function FeaturedListingCard({
   const handleMouseLeave = () => {
     setIsHovered(false);
     setImageIndex(0); // go back to the cover photo
-  };
-
-  const handleSaveClick = (event: MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setIsSaved((current) => !current);
   };
 
   // Loading state
@@ -324,22 +314,11 @@ export default function FeaturedListingCard({
 
       {/* Save button: a sibling of the link, so we don't nest a button inside an <a> */}
       {showSave && (
-        <button
-          type="button"
-          aria-label={
-            isSaved ? "Remove from saved listings" : "Save listing"
-          }
-          aria-pressed={isSaved}
-          onClick={handleSaveClick}
+        <SaveListingButton
+          listingId={listing.id}
+          iconSize={15}
           className={`absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[#1B1A2E] shadow-sm backdrop-blur-sm transition hover:bg-white ${focusRing}`}
-        >
-          <Heart
-            size={15}
-            className={
-              isSaved ? "fill-[#E23E85] text-[#E23E85]" : "text-[#1B1A2E]"
-            }
-          />
-        </button>
+        />
       )}
     </article>
   );

@@ -104,7 +104,7 @@ function formatCurrency(amount: number): string {
 
     currency: "KES",
 
-    maximumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(amount);
 }
 
@@ -350,15 +350,43 @@ export default function BookingCard({
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
   }, [listing]);
 
-  const totalPrice = nightlyPrice * nights;
+  const totalPrice = Math.round(nightlyPrice * nights * 100) / 100;
 
   const serviceFeeRate = Number(listing?.service_fee_percent ?? 0);
 
   const serviceFee = Math.round(
-    totalPrice * (Number.isFinite(serviceFeeRate) ? serviceFeeRate : 0),
-  );
+    totalPrice * (Number.isFinite(serviceFeeRate) ? serviceFeeRate : 0) * 100,
+  ) / 100;
 
   const grandTotal = totalPrice + serviceFee;
+
+  const priceSummary = (
+    <dl className="space-y-2 border-t border-[#E9E6DD] pt-3 text-sm text-[#3A3856]">
+      {nights > 0 ? (
+        <>
+          <div className="flex justify-between gap-4">
+            <dt>{formatCurrency(nightlyPrice)} × {nights} night{nights === 1 ? "" : "s"}</dt>
+            <dd>{formatCurrency(totalPrice)}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt>Service fee</dt>
+            <dd>{formatCurrency(serviceFee)}</dd>
+          </div>
+          <div className="flex justify-between gap-4 text-xs text-[#6B6A78]">
+            <dt>Taxes</dt>
+            <dd>No separate tax configured</dd>
+          </div>
+          <div className="flex justify-between gap-4 border-t border-[#E9E6DD] pt-3 text-base font-semibold text-[#1B1A2E]">
+            <dt>Total</dt>
+            <dd>{formatCurrency(grandTotal)}</dd>
+          </div>
+          <p className="text-xs leading-5 text-[#6B6A78]">Pay in full now to confirm the booking. No later balance is scheduled.</p>
+        </>
+      ) : (
+        <p className="text-sm text-[#6B6A78]">Select your dates to see the full total. Nightly rate: {formatCurrency(nightlyPrice)}.</p>
+      )}
+    </dl>
+  );
 
   const totalGuests = adults + children;
 
@@ -781,6 +809,11 @@ export default function BookingCard({
               · {totalGuests} guest
               {totalGuests === 1 ? "" : "s"}
             </p>
+
+            <div className="mt-4 rounded-md border border-[#E9E6DD] bg-white p-4">
+              <p className="mb-3 font-semibold text-[#1B1A2E]">Price for your stay</p>
+              {priceSummary}
+            </div>
           </div>
 
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -964,19 +997,7 @@ export default function BookingCard({
               <span className="font-medium">Nights:</span> {nights}
             </p>
 
-            <p>
-              <span className="font-medium">Subtotal:</span>{" "}
-              {formatCurrency(totalPrice)}
-            </p>
-
-            <p>
-              <span className="font-medium">Service fee:</span>{" "}
-              {formatCurrency(serviceFee)}
-            </p>
-
-            <p className="text-base font-semibold text-[#1B1A2E]">
-              Total: {formatCurrency(grandTotal)}
-            </p>
+            {priceSummary}
 
             <p>
               <span className="font-medium">Cancellation:</span>{" "}
@@ -1049,6 +1070,11 @@ export default function BookingCard({
       {step === 3 && (
         <section>
           <h2 className="text-xl font-semibold text-[#1B1A2E]">3. Payment</h2>
+
+          <div className="mt-4 rounded-md border border-[#E9E6DD] bg-[#F8F7F4] p-4">
+            <p className="mb-3 font-semibold text-[#1B1A2E]">Amount due now</p>
+            {priceSummary}
+          </div>
 
           <div className="mt-4 space-y-3">
             {(["mpesa", "card"] as const).map((method) => (

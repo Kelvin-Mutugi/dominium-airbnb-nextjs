@@ -77,7 +77,7 @@ export default function FeaturedListings({
               key={item.id}
               className="w-[180px] shrink-0 snap-start"
             >
-              <FeaturedListingCard item={item} />
+              <FeaturedListingCard item={item} showSave />
             </div>
           ))}
         </HorizontalListingCarousel>
