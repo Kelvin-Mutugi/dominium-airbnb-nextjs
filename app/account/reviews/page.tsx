@@ -12,7 +12,7 @@ import type { ReviewRow } from '@/types/account';
 export default async function ReviewsPage() {
   const { supabase, user } = await getAccountContext();
   const { past } = await getGuestBookings(user.id);
-  const awaiting = past.filter((b) => !b.reviewed || !b.hostReviewed);
+  const awaiting = past.filter((b) => b.status === 'completed' && (!b.reviewed || !b.hostReviewed));
 
   const { data, error } = await supabase
     .from('reviews')

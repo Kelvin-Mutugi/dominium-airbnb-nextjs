@@ -40,8 +40,6 @@ export default function CountyBasedListings({
 
   const [page, setPage] = useState(1);
 
-  const [savedIds, setSavedIds] = useState<string[]>([]);
-
   const [databaseListings, setDatabaseListings] =
     useState<Listing[]>(initialListings);
 
@@ -225,14 +223,6 @@ export default function CountyBasedListings({
     setPage(1);
   };
 
-  const toggleSaved = (id: string) => {
-    setSavedIds((current) =>
-      current.includes(id)
-        ? current.filter((savedId) => savedId !== id)
-        : [...current, id],
-    );
-  };
-
   const handleNextPage = async () => {
     if (page !== totalPages) {
       setPage((current) => current + 1);
@@ -327,8 +317,6 @@ export default function CountyBasedListings({
                   <ListingCard
                     key={listing.id}
                     listing={listing}
-                    saved={savedIds.includes(listing.id)}
-                    onToggleSave={toggleSaved}
                     onView={(id) => router.push(`/apartments/${id}`)}
                   />
                 ))}

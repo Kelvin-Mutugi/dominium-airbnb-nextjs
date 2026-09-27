@@ -84,6 +84,11 @@ export interface Listing {
     rating: number;
     comment: string;
     date: string;
+    cleanlinessRating?: number;
+    accuracyRating?: number;
+    locationRating?: number;
+    communicationRating?: number;
+    verifiedStay?: boolean;
   }[];
 
   // Dates already booked

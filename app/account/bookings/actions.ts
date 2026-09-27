@@ -37,7 +37,10 @@ export async function cancelBooking(bookingId: string): Promise<ActionResult> {
 
 export async function submitReview(input: {
   bookingId: string;
-  rating: number;
+  cleanlinessRating: number;
+  accuracyRating: number;
+  locationRating: number;
+  communicationRating: number;
   comment: string;
 }): Promise<ActionResult> {
   const supabase = await createClient();
@@ -46,10 +49,17 @@ export async function submitReview(input: {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: SESSION_EXPIRED };
 
-  const rating = Math.round(Number(input.rating));
-  if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
-    return { ok: false, error: 'Choose a rating from 1 to 5 stars.' };
+  const ratings = [
+    Number(input.cleanlinessRating),
+    Number(input.accuracyRating),
+    Number(input.locationRating),
+    Number(input.communicationRating),
+  ];
+  if (ratings.some((rating) => !Number.isInteger(rating) || rating < 1 || rating > 5)) {
+    return { ok: false, error: 'Rate cleanliness, accuracy, location, and host communication from 1 to 5.' };
   }
+  const [cleanlinessRating, accuracyRating, locationRating, communicationRating] = ratings;
+  const rating = Math.round(ratings.reduce((total, score) => total + score, 0) / ratings.length);
   const comment = (input.comment ?? '').trim().slice(0, 2000);
 
   const { data: booking } = await supabase
@@ -60,7 +70,7 @@ export async function submitReview(input: {
     .maybeSingle();
 
   if (!booking) return { ok: false, error: 'We couldn’t find that booking.' };
-  if (booking.status === 'pending' || booking.status === 'cancelled' || booking.check_out > todayISO()) {
+  if (booking.status !== 'completed' || booking.check_out > todayISO()) {
     return { ok: false, error: 'You can review a stay once you’ve checked out.' };
   }
 
@@ -69,7 +79,12 @@ export async function submitReview(input: {
     booking_id: booking.id,
     guest_id: user.id,
     rating,
+    cleanliness_rating: cleanlinessRating,
+    accuracy_rating: accuracyRating,
+    location_rating: locationRating,
+    communication_rating: communicationRating,
     comment: comment || null,
+    moderation_status: 'pending',
   });
 
   if (error) {
@@ -107,7 +122,7 @@ export async function submitHostReview(input: {
     .maybeSingle();
 
   if (!booking) return { ok: false, error: 'We couldn’t find that booking.' };
-  if (booking.status === 'pending' || booking.status === 'cancelled' || booking.check_out > todayISO()) {
+  if (booking.status !== 'completed' || booking.check_out > todayISO()) {
     return { ok: false, error: 'You can review the host once your stay is complete.' };
   }
   if (!booking.host_id || booking.host_id === user.id) {

@@ -19,9 +19,9 @@ import {
   User,
   X,
 } from "lucide-react";
-import logo_icon from "@/app/assets/logo_icon.png";
-import black_logo from "@/app/assets/logo.png";
-import white_logo from "@/app/assets/logo1.png";
+import logo_icon from "@/app/assets/logo_icon1.png";
+import black_logo from "@/app/assets/logo2.png";
+import white_logo from "@/app/assets/logo3.png";
 import type { LucideIcon } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "@/app/lib/supabase/client";
@@ -459,15 +459,15 @@ export default function Navbar() {
           <Image
             src={black_logo}
             alt=""
-            width={160}
-            height={48}
+            width={200}
+            height={58}
             className="hidden h-12 w-40 object-contain md:block lg:hidden"
           />
           <Image
             src={overHero ? white_logo : black_logo}
             alt=""
-            width={160}
-            height={48}
+            width={200}
+            height={58}
             className="hidden h-12 w-40 object-contain lg:block"
           />
           {/* <span

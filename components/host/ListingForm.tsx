@@ -24,6 +24,13 @@ const DEFAULTS: ListingFormValues = {
   house_rules: [],
   check_in_time: "2:00 PM",
   check_out_time: "11:00 AM",
+  arrival_address: "",
+  arrival_directions: "",
+  check_in_instructions: "",
+  wifi_name: "",
+  wifi_password: "",
+  arrival_contact: "",
+  local_tips: "",
   min_nights: 1,
   instant_book: true,
   cancellation_policy: "",
@@ -203,6 +210,43 @@ export default function ListingForm({
               Add
             </button>
           </div>
+        </div>
+      </section>
+
+      <section className="space-y-4 rounded-2xl bg-white p-5 shadow-sm">
+        <div>
+          <h2 className="font-semibold text-[#12231d]">Arrival guide</h2>
+          <p className="mt-1 text-sm text-gray-500">These private details are shown only to guests with a booking for this listing.</p>
+        </div>
+        <div>
+          <label className={labelClass}>Exact arrival address <span className="font-normal text-gray-500">(overrides the listing address above)</span></label>
+          <textarea maxLength={1000} className={inputClass} rows={2} value={values.arrival_address} onChange={(e) => set("arrival_address", e.target.value)} placeholder="Building name, street, gate or unit details" />
+        </div>
+        <div>
+          <label className={labelClass}>Directions</label>
+          <textarea maxLength={5000} className={inputClass} rows={4} value={values.arrival_directions} onChange={(e) => set("arrival_directions", e.target.value)} placeholder="Landmarks, entrance, parking, and the best route to the property" />
+        </div>
+        <div>
+          <label className={labelClass}>Check-in steps</label>
+          <textarea maxLength={5000} className={inputClass} rows={4} value={values.check_in_instructions} onChange={(e) => set("check_in_instructions", e.target.value)} placeholder="How to collect keys, access the building, and get inside" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className={labelClass}>Wi-Fi network</label>
+            <input maxLength={120} className={inputClass} value={values.wifi_name} onChange={(e) => set("wifi_name", e.target.value)} autoComplete="off" />
+          </div>
+          <div>
+            <label className={labelClass}>Wi-Fi password</label>
+            <input maxLength={200} className={inputClass} value={values.wifi_password} onChange={(e) => set("wifi_password", e.target.value)} autoComplete="new-password" />
+          </div>
+        </div>
+        <div>
+          <label className={labelClass}>Arrival contact</label>
+          <textarea maxLength={500} className={inputClass} rows={2} value={values.arrival_contact} onChange={(e) => set("arrival_contact", e.target.value)} placeholder="Name and phone number for arrival-day help" />
+        </div>
+        <div>
+          <label className={labelClass}>Local tips</label>
+          <textarea maxLength={5000} className={inputClass} rows={4} value={values.local_tips} onChange={(e) => set("local_tips", e.target.value)} placeholder="Nearby shops, food, transport, or useful local advice" />
         </div>
       </section>
 

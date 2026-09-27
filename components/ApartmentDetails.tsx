@@ -17,6 +17,7 @@ import { LocationMap } from "./appartmentDetails/LocationMap";
 import { PhotoLightbox } from "./appartmentDetails/PhotoLightbox";
 import { StickyPriceBar } from "./appartmentDetails/StickyPriceBar";
 import { RelatedListings } from "./appartmentDetails/RelatedListings";
+import SaveListingButton from "@/components/listings/SaveListingButton";
 
 interface ApartmentDetailsProps {
   listing: Listing | null;
@@ -144,11 +145,12 @@ export default function ApartmentDetails({
                 </h2>
 
                 <AmenitiesGrid listing={listing} />
-                <ListingPolicies listing={listing} />
 
                 <p className="text-[16px] leading-7 text-[#3A3856]">
                   {listing.description}
                 </p>
+                
+                 <ListingPolicies listing={listing} />
 
                 <ReviewsSection
                   rating={listing.rating}
@@ -166,9 +168,16 @@ export default function ApartmentDetails({
 
             <div className="flex flex-col p-6 md:p-8">
               <div>
-                <h1 className="font-semibold text-[clamp(28px,4vw,44px)] leading-none">
-                  {listing.name}
-                </h1>
+                <div className="flex items-start justify-between gap-4">
+                  <h1 className="min-w-0 font-semibold text-[clamp(28px,4vw,44px)] leading-none">
+                    {listing.name}
+                  </h1>
+                  <SaveListingButton
+                    listingId={listing.id}
+                    showLabel
+                    className="inline-flex shrink-0 items-center gap-2 rounded-md border border-[#E9E6DD] bg-white px-3 py-2 text-sm font-semibold text-[#1B1A2E] shadow-sm transition hover:border-[#E23E85] hover:text-[#E23E85] disabled:opacity-60"
+                  />
+                </div>
 
                 <div className="mt-3 flex items-center gap-2 text-[15px] text-[#3A3856]">
                   <MapPin size={18} className="text-[#1B1A2E]" />

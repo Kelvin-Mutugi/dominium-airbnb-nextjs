@@ -19,7 +19,7 @@ export default async function AccountOverviewPage() {
   const isHost = profile.role === 'host';
   const firstName = profile.full_name.trim().split(/\s+/)[0];
   const next = upcoming[0];
-  const awaitingReview = past.filter((b) => !b.reviewed).length;
+  const awaitingReview = past.filter((b) => b.status === 'completed' && !b.reviewed).length;
   const spent = all
     .filter((b) => b.status === 'confirmed' || b.status === 'completed')
     .reduce((sum, b) => sum + Number(b.total_amount), 0);

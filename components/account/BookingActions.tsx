@@ -39,20 +39,27 @@ export function CancelBookingButton({ bookingId }: { bookingId: string }) {
 export function ReviewButton({ bookingId, listingTitle }: { bookingId: string; listingTitle: string }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
-  const [rating, setRating] = useState(0);
+  const [ratings, setRatings] = useState({ cleanlinessRating: 0, accuracyRating: 0, locationRating: 0, communicationRating: 0 });
   const [comment, setComment] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
   const { run, pending, result } = useAction(submitReview);
 
   async function submit() {
-    if (rating < 1) {
-      setLocalError('Choose a star rating first.');
+    if (Object.values(ratings).some((rating) => rating < 1)) {
+      setLocalError('Rate each part of your stay before submitting.');
       return;
     }
     setLocalError(null);
-    const res = await run({ bookingId, rating, comment });
+    const res = await run({ bookingId, ...ratings, comment });
     if (res.ok) dialogRef.current?.close();
   }
+
+  const ratingCategories = [
+    ['cleanlinessRating', 'Cleanliness'],
+    ['accuracyRating', 'Accuracy'],
+    ['locationRating', 'Location'],
+    ['communicationRating', 'Host communication'],
+  ] as const;
 
   return (
     <>
@@ -70,19 +77,26 @@ export function ReviewButton({ bookingId, listingTitle }: { bookingId: string; l
             How was {listingTitle}?
           </h2>
 
-          <div role="radiogroup" aria-label="Rating" className="mt-4 flex gap-1">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                type="button"
-                role="radio"
-                aria-checked={rating === n}
-                aria-label={`${n} ${n === 1 ? 'star' : 'stars'}`}
-                onClick={() => setRating(n)}
-                className={`rounded p-1 ${focusRing}`}
-              >
-                <StarIcon size={30} className={n <= rating ? 'text-amber-500' : 'text-neutral-300'} />
-              </button>
+          <div className="mt-4 space-y-3">
+            {ratingCategories.map(([key, label]) => (
+              <div key={key} className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm font-medium text-neutral-700">{label}</span>
+                <div role="radiogroup" aria-label={label} className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      role="radio"
+                      aria-checked={ratings[key] === value}
+                      aria-label={`${value} ${value === 1 ? 'star' : 'stars'} for ${label.toLowerCase()}`}
+                      onClick={() => setRatings((current) => ({ ...current, [key]: value }))}
+                      className={`rounded p-1 ${focusRing}`}
+                    >
+                      <StarIcon size={22} className={value <= ratings[key] ? 'text-amber-500' : 'text-neutral-300'} />
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
 

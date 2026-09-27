@@ -11,6 +11,7 @@ import type {
   Booking,
   BookingStatus,
   HostDashboardStats,
+  HostBookingChangeRequest,
   Listing,
   ListingFormValues,
   ListingImage,
@@ -176,6 +177,39 @@ function validateListing(values: ReturnType<typeof listingPayload>) {
   }
 }
 
+function arrivalGuidePayload(listingId: string, hostId: string, values: Partial<ListingFormValues>) {
+  return {
+    listing_id: listingId,
+    host_id: hostId,
+    arrival_address: String(values.arrival_address ?? "").trim() || String(values.address ?? "").trim() || null,
+    arrival_directions: String(values.arrival_directions ?? "").trim() || null,
+    check_in_instructions: String(values.check_in_instructions ?? "").trim() || null,
+    wifi_name: String(values.wifi_name ?? "").trim() || null,
+    wifi_password: String(values.wifi_password ?? "").trim() || null,
+    arrival_contact: String(values.arrival_contact ?? "").trim() || null,
+    local_tips: String(values.local_tips ?? "").trim() || null,
+  };
+}
+
+function validateArrivalGuide(values: Partial<ListingFormValues>) {
+  if ((values.arrival_directions ?? "").length > 5000) throw new Error("Arrival directions must be 5000 characters or fewer.");
+  if ((values.arrival_address ?? "").length > 1000) throw new Error("Arrival address must be 1000 characters or fewer.");
+  if ((values.check_in_instructions ?? "").length > 5000) throw new Error("Check-in instructions must be 5000 characters or fewer.");
+  if ((values.wifi_name ?? "").length > 120) throw new Error("Wi-Fi name must be 120 characters or fewer.");
+  if ((values.wifi_password ?? "").length > 200) throw new Error("Wi-Fi password must be 200 characters or fewer.");
+  if ((values.arrival_contact ?? "").length > 500) throw new Error("Arrival contact must be 500 characters or fewer.");
+  if ((values.local_tips ?? "").length > 5000) throw new Error("Local tips must be 5000 characters or fewer.");
+}
+
+async function saveArrivalGuide(listingId: string, hostId: string, values: Partial<ListingFormValues>) {
+  validateArrivalGuide(values);
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("listing_arrival_guides")
+    .upsert(arrivalGuidePayload(listingId, hostId, values), { onConflict: "listing_id" });
+  if (error) throw new Error("Unable to save arrival guide details.");
+}
+
 export async function createHostListing(values: ListingFormValues) {
   const { user } = await requireHost();
   const payload = listingPayload(values);
@@ -184,6 +218,7 @@ export async function createHostListing(values: ListingFormValues) {
   const slug = `${payload.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}-${crypto.randomUUID().slice(0, 6)}`;
   const { data, error } = await supabase.from("listings").insert({ ...payload, slug, host_id: user.id, status: "draft" }).select().single();
   if (error) throw new Error("Unable to create listing.");
+  await saveArrivalGuide(data.id, user.id, values);
   revalidatePath("/host");
   revalidatePath("/host/listings");
   return data as Listing;
@@ -196,6 +231,7 @@ export async function updateHostListing(id: string, values: Partial<ListingFormV
   const supabase = await createClient();
   const { data, error } = await supabase.from("listings").update(payload).eq("id", id).eq("host_id", user.id).select().single();
   if (error) throw new Error("Unable to update listing.");
+  await saveArrivalGuide(id, user.id, values);
   revalidatePath(`/host/listings/${id}/edit`);
   revalidatePath("/host/listings");
   revalidatePath("/host");
@@ -263,7 +299,59 @@ export async function getHostBookingsData() {
   const supabase = await createClient();
   const { data, error } = await supabase.from("bookings").select("*, listing:listings(id, title, town, county)").eq("host_id", user.id).order("check_in", { ascending: true });
   if (error) throw new Error("Unable to load bookings.");
-  return data as unknown as Booking[];
+  const bookings = (data ?? []) as unknown as Booking[];
+  if (!bookings.length) return bookings;
+
+  const bookingIds = bookings.map((booking) => booking.id);
+  const [messagesRes, readsRes] = await Promise.all([
+    supabase.from('booking_messages').select('booking_id, created_at').in('booking_id', bookingIds).neq('sender_id', user.id),
+    supabase.from('booking_thread_reads').select('booking_id, last_read_at').eq('user_id', user.id).in('booking_id', bookingIds),
+  ]);
+  if (messagesRes.error || readsRes.error) throw new Error('Unable to load unread trip messages. Apply the booking thread reads migration and try again.');
+  const lastReadByBooking = new Map((readsRes.data ?? []).map((receipt) => [receipt.booking_id, Date.parse(receipt.last_read_at)]));
+  const unreadByBooking = new Map<string, number>();
+  for (const message of messagesRes.data ?? []) {
+    if (Date.parse(message.created_at) > (lastReadByBooking.get(message.booking_id) ?? 0)) {
+      unreadByBooking.set(message.booking_id, (unreadByBooking.get(message.booking_id) ?? 0) + 1);
+    }
+  }
+  return bookings.map((booking) => ({ ...booking, unreadMessageCount: unreadByBooking.get(booking.id) ?? 0 }));
+}
+
+export async function getHostBookingChangeRequestsData() {
+  const { user } = await requireHost();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('booking_change_requests')
+    .select('id, booking_id, request_type, current_check_in, current_check_out, requested_check_in, requested_check_out, quoted_total_amount, amount_paid, refund_percent, estimated_refund_amount, reason, created_at, booking:bookings!inner(guest_name, listing:listings(title))')
+    .eq('host_id', user.id)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true });
+  if (error) throw new Error('Unable to load booking change requests.');
+  return (data ?? []) as unknown as HostBookingChangeRequest[];
+}
+
+export async function respondToBookingChangeRequest(requestId: string, approve: boolean) {
+  await requireHost();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('respond_to_booking_change_request', {
+    p_request_id: requestId,
+    p_approve: approve,
+    p_host_response: null,
+  });
+  if (error) {
+    if (error.message.includes('PRICE_CHANGE_REQUIRES_SUPPORT')) {
+      throw new Error('The new dates change the total. Contact the guest and support to arrange the price difference before changing this booking.');
+    }
+    if (error.message.includes('REQUESTED_DATES_UNAVAILABLE')) {
+      throw new Error('Those dates are no longer available. Decline the request and ask the guest to choose other dates.');
+    }
+    if (error.message.includes('REQUEST_ALREADY_HANDLED')) throw new Error('This request has already been handled.');
+    throw new Error('Unable to update this booking request.');
+  }
+  revalidatePath('/host/bookings');
+  revalidatePath('/account/bookings');
+  revalidatePath('/host/payouts');
 }
 
 export async function getHostPayoutsData() {
@@ -283,7 +371,13 @@ export async function getHostListingData(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase.from("listings").select("*, listing_images(id, url, sort_order)").eq("id", id).eq("host_id", user.id).single();
   if (error) throw new Error("Listing not found.");
-  return data as unknown as Listing & { listing_images?: ListingImage[] };
+  const { data: arrivalGuide, error: guideError } = await supabase
+    .from("listing_arrival_guides")
+    .select("arrival_address, arrival_directions, check_in_instructions, wifi_name, wifi_password, arrival_contact, local_tips")
+    .eq("listing_id", id)
+    .maybeSingle();
+  if (guideError) throw new Error("Unable to load arrival guide details.");
+  return { ...data, ...arrivalGuide } as unknown as Listing & ListingFormValues & { listing_images?: ListingImage[] };
 }
 
 export async function getHostAvailabilityData(listingId: string) {

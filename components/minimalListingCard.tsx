@@ -4,10 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { unsplashCardImageLoader } from "./unsplash-image-loader";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import type { KeyboardEvent, MouseEvent } from "react";
-import { BedDouble, Heart, Star, Gem, Users } from "lucide-react";
+import type { KeyboardEvent } from "react";
+import { BedDouble, Star, Gem, Users } from "lucide-react";
 import { supabase } from "@/app/lib/supabase/client";
+import SaveListingButton from "@/components/listings/SaveListingButton";
 import type { Amenity, Listing } from "./homeData";
 
 // ---------- helpers ----------
@@ -70,9 +70,7 @@ export default function MinimalListingCard({
   id,
   loading = false,
 }: ListingCardProps) {
-  const router = useRouter();
   const [dbListing, setDbListing] = useState<Listing | null>(null);
-  const [isSaved, setIsSaved] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [imageIndex, setImageIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
@@ -210,28 +208,6 @@ export default function MinimalListingCard({
     return () => clearInterval(interval);
   }, [isHovered, listing]);
 
-  const handleSaveClick = async (event: MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (!supabase || !listing) return;
-
-    // Never let an unauthenticated visitor's click imply a persisted,
-    // user-scoped action. Confirm a real session before flipping state.
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session) {
-      router.push(`/login?redirect=/apartments/${listing.id}`);
-      return;
-    }
-
-    setIsSaved((current) => !current);
-    // TODO: once a `favorites (user_id, listing_id)` table with RLS
-    // ("owner can insert/select/delete own rows only") exists, persist
-    // here scoped to `session.user.id` instead of local component state.
-  };
-
   const handleKeyDown = (event: KeyboardEvent<HTMLAnchorElement>) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -320,17 +296,11 @@ export default function MinimalListingCard({
             </span>
           )}
 
-          {/* <button
-            type="button"
-            aria-label={isSaved ? "Remove from saved listings" : "Save listing"}
-            onClick={handleSaveClick}
-            className="absolute right-2.5 top-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/85 text-[#1B1A2E] shadow-sm backdrop-blur-sm"
-          >
-            <Heart
-              size={15}
-              className={isSaved ? "fill-[#E23E85] text-[#E23E85]" : "text-[#1B1A2E]"}
-            />
-          </button> */}
+          <SaveListingButton
+            listingId={listing.id}
+            iconSize={15}
+            className="absolute right-2.5 top-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[#1B1A2E] shadow-sm backdrop-blur-sm transition hover:bg-white disabled:opacity-70"
+          />
         </div>
 
         <div className="px-1.5 pt-3 pb-2">

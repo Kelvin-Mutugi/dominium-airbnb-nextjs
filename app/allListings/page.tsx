@@ -139,7 +139,8 @@ function AllListingsContent() {
   const [sort, setSort] = useState<SortOption>("recommended");
   const [view, setView] = useState<ViewMode>("list");
   const [page, setPage] = useState(1);
-  const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [comparison, setComparison] = useState<Listing[]>([]);
+  const [isComparisonOpen, setIsComparisonOpen] = useState(false);
   const [databaseListings, setDatabaseListings] = useState<Listing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -279,10 +280,14 @@ function AllListingsContent() {
     setPage(1);
   };
 
-  const toggleSaved = (id: string) => {
-    setSavedIds((current) =>
-      current.includes(id) ? current.filter((savedId) => savedId !== id) : [...current, id],
-    );
+  const toggleCompare = (listing: Listing) => {
+    setComparison((current) => {
+      if (current.some((selected) => selected.id === listing.id)) {
+        return current.filter((selected) => selected.id !== listing.id);
+      }
+      if (current.length >= 3) return current;
+      return [...current, listing];
+    });
   };
 
   return (
@@ -344,8 +349,8 @@ function AllListingsContent() {
                   <ListingCard
                     key={listing.id}
                     listing={listing}
-                    saved={savedIds.includes(listing.id)}
-                    onToggleSave={toggleSaved}
+                    comparing={comparison.some((selected) => selected.id === listing.id)}
+                    onToggleCompare={toggleCompare}
                     onView={(id) => router.push(`/apartments/${id}`)}
                   />
                 ))}
@@ -367,6 +372,108 @@ function AllListingsContent() {
           </section>
         </div>
       </main>
+
+      {comparison.length > 0 && (
+        <>
+          <aside className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white px-4 py-3 shadow-[0_-8px_30px_rgba(27,26,46,0.12)] sm:px-6">
+            <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-[#1B1A2E]">
+                  {comparison.length} of 3 stays selected
+                </p>
+                <p className="text-xs text-neutral-500">
+                  {comparison.length < 2 ? "Select one more stay to compare" : "Compare price, space, ratings, and amenities"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {comparison.map((listing) => (
+                  <button
+                    key={listing.id}
+                    type="button"
+                    onClick={() => toggleCompare(listing)}
+                    className="hidden max-w-36 truncate text-xs text-neutral-600 underline underline-offset-2 sm:block"
+                    aria-label={`Remove ${listing.title} from comparison`}
+                  >
+                    {listing.title} ×
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  disabled={comparison.length < 2}
+                  onClick={() => setIsComparisonOpen(true)}
+                  className="rounded-md bg-[#1B1A2E] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#35344A] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Compare stays
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setComparison([])}
+                  className="px-2 py-2 text-sm text-neutral-600 hover:text-neutral-950"
+                  aria-label="Clear selected stays"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          </aside>
+
+          {isComparisonOpen && (
+            <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-6">
+              <section
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="compare-heading"
+                className="max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-t-xl bg-white shadow-2xl sm:rounded-xl"
+              >
+                <header className="flex items-center justify-between border-b border-neutral-200 px-5 py-4 sm:px-7">
+                  <div>
+                    <h2 id="compare-heading" className="text-lg font-semibold text-[#1B1A2E]">Compare stays</h2>
+                    <p className="mt-0.5 text-sm text-neutral-500">A side-by-side look at your shortlist.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsComparisonOpen(false)}
+                    className="rounded-md px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950"
+                  >
+                    Close
+                  </button>
+                </header>
+                <div className="overflow-auto p-5 sm:p-7">
+                  <table className="w-full min-w-[680px] table-fixed text-left text-sm">
+                    <thead>
+                      <tr>
+                        <th className="w-32 pb-4 pr-4 font-medium text-neutral-500">Stay</th>
+                        {comparison.map((listing) => (
+                          <th key={listing.id} className="min-w-44 pb-4 px-3 align-top">
+                            <p className="line-clamp-2 font-semibold text-[#1B1A2E]">{listing.title}</p>
+                            <p className="mt-1 truncate text-xs font-normal text-neutral-500">{listing.location}</p>
+                            <button
+                              type="button"
+                              onClick={() => toggleCompare(listing)}
+                              className="mt-2 text-xs font-medium text-rose-700 underline underline-offset-2"
+                            >
+                              Remove
+                            </button>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-200">
+                      <tr><th className="py-3 pr-4 font-medium text-neutral-500">Price / night</th>{comparison.map((listing) => <td key={listing.id} className="px-3 py-3 font-semibold text-[#1B1A2E]">KES {listing.pricePerNight.toLocaleString()}</td>)}</tr>
+                      <tr><th className="py-3 pr-4 font-medium text-neutral-500">Bedrooms</th>{comparison.map((listing) => <td key={listing.id} className="px-3 py-3">{listing.bedrooms}</td>)}</tr>
+                      <tr><th className="py-3 pr-4 font-medium text-neutral-500">Guests</th>{comparison.map((listing) => <td key={listing.id} className="px-3 py-3">{listing.guests}</td>)}</tr>
+                      <tr><th className="py-3 pr-4 font-medium text-neutral-500">Rating</th>{comparison.map((listing) => <td key={listing.id} className="px-3 py-3">{listing.rating.toFixed(1)} ({listing.reviewCount})</td>)}</tr>
+                      <tr><th className="py-3 pr-4 align-top font-medium text-neutral-500">Amenities</th>{comparison.map((listing) => <td key={listing.id} className="px-3 py-3 align-top">{listing.amenities.slice(0, 6).join(", ") || "Not listed"}</td>)}</tr>
+                      <tr><th className="py-3 pr-4 font-medium text-neutral-500">Location</th>{comparison.map((listing) => <td key={listing.id} className="px-3 py-3">{listing.location || "Not listed"}</td>)}</tr>
+                      <tr><th className="py-3 pr-4" />{comparison.map((listing) => <td key={listing.id} className="px-3 py-4"><button type="button" onClick={() => router.push(`/apartments/${listing.id}`)} className="font-semibold text-rose-700 underline underline-offset-4">View stay</button></td>)}</tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          )}
+        </>
+      )}
     </>
   );
 }

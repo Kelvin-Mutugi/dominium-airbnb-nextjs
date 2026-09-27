@@ -39,6 +39,22 @@ function XIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+function YouTubeIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.6V8.4l6.3 3.6-6.3 3.6Z" />
+    </svg>
+  );
+}
+
+function TikTokIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M19.6 6.2a5.5 5.5 0 0 1-3.4-1.2 5.6 5.6 0 0 1-1.9-3.4h-3.6v15.1a3.3 3.3 0 1 1-3.3-3.3c.4 0 .8.1 1.2.2V10a7 7 0 1 0 5.7 6.9V9.2a9 9 0 0 0 5.3 1.7V7.3c-.1 0-.1 0 0 0Z" />
+    </svg>
+  );
+}
+
 const POPULAR_COUNTIES = [
   "Nairobi",
   "Mombasa",
@@ -199,14 +215,20 @@ export default function Footer() {
           </div>
 
           <div className="flex items-center gap-4 text-neutral-400">
-            <a href="#" aria-label="Facebook" className="transition hover:text-white">
+            <a href="https://www.facebook.com/profile.php?id=61594166234805" aria-label="Facebook" className="transition hover:text-white">
               <FacebookIcon className="h-5 w-5" />
             </a>
-            <a href="#" aria-label="Instagram" className="transition hover:text-white">
+            <a href="https://www.instagram.com/dominiumbnb?stkn=MWt0M3hnY2MzZ2c2eQ==" aria-label="Instagram" className="transition hover:text-white">
               <InstagramIcon className="h-5 w-5" />
             </a>
             <a href="#" aria-label="X (Twitter)" className="transition hover:text-white">
               <XIcon className="h-5 w-5" />
+            </a>
+            <a href="https://www.youtube.com/@Dominiumbnb" aria-label="YouTube" className="transition hover:text-white">
+              <YouTubeIcon className="h-5 w-5" />
+            </a>
+            <a href="https://www.tiktok.com/@dominium.bnb?_r=1&_t=ZS-9A3yTdUst2i" aria-label="TikTok" className="transition hover:text-white">
+              <TikTokIcon className="h-5 w-5" />
             </a>
           </div>
         </div>
@@ -226,7 +248,7 @@ export default function Footer() {
       {/* Bottom bar */}
       <div className="border-t border-neutral-800">
         <div className="mx-auto flex max-w-7xl flex-col-reverse items-center justify-between gap-3 px-4 py-5 text-xs text-neutral-500 sm:flex-row sm:gap-4 sm:px-6 sm:py-6">
-          <p>© {year} Dominium Airbnb. All rights reserved.</p>
+          <p>© {year} Dominium bnb. All rights reserved.</p>
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             {LEGAL_LINKS.map((link) => (
               <a
