@@ -6,6 +6,7 @@ import ApartmentDetails from "@/components/ApartmentDetails";
 import Navbar from "@/components/navigationBar";
 import type { Listing, RelatedListingSummary } from "@/components/homeData";
 import { supabase } from "@/app/lib/supabase/client";
+import { normalizeListingAdditionalCharges } from "@/app/lib/listing-charges";
 
 function normalizeAmenities(value: unknown): string[] {
   return Array.isArray(value)
@@ -31,6 +32,7 @@ export default function ApartmentPage() {
             description,
             county,
             town,
+            property_type,
             price_per_night,
             max_guests,
             bedrooms,
@@ -47,6 +49,8 @@ export default function ApartmentPage() {
             check_out_time,
             min_nights,
             service_fee_percent,
+            platform_fee_per_night,
+            additional_charges,
             is_rare_find,
             rare_find_note,
             average_rating,
@@ -139,6 +143,8 @@ export default function ApartmentPage() {
         id: String(data.id),
         name: data.title,
         loc: [data.town, data.county].filter(Boolean).join(", "),
+        propertyType: data.property_type ?? undefined,
+        additionalCharges: normalizeListingAdditionalCharges(data.additional_charges),
         price: new Intl.NumberFormat("en-KE", {
           style: "currency",
           currency: "KES",
@@ -163,6 +169,7 @@ export default function ApartmentPage() {
         minNights: data.min_nights,
         pricePerNight: price,
         serviceFeePercent: Number(data.service_fee_percent),
+        serviceFeePerNight: data.platform_fee_per_night == null ? undefined : Number(data.platform_fee_per_night),
         latitude: data.latitude == null ? undefined : Number(data.latitude),
         longitude: data.longitude == null ? undefined : Number(data.longitude),
         rating: Number(data.average_rating ?? 0),

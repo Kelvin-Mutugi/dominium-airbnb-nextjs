@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { formatDate, humanize } from '@/app/lib/format';
 import { getSupabaseAdmin } from '@/app/lib/supabase/admin';
-import { reviewHostVerification } from './actions';
+import { HostVerificationActions } from '@/components/admin/verification/host-verification-actions';
 
 type HostApplication = {
   id: string;
@@ -157,20 +157,7 @@ export default async function HostVerificationPage({
                 </div>
 
                 {canReview && (
-                  <div className="space-y-4 border-t pt-4 xl:border-l xl:border-t-0 xl:pl-5 xl:pt-0">
-                    <form action={reviewHostVerification}>
-                      <input type="hidden" name="host_id" value={host.id} />
-                      <input type="hidden" name="decision" value="approved" />
-                      <button type="submit" className="w-full rounded-md bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800">Approve host</button>
-                    </form>
-                    <form action={reviewHostVerification} className="space-y-2">
-                      <input type="hidden" name="host_id" value={host.id} />
-                      <input type="hidden" name="decision" value="rejected" />
-                      <label htmlFor={`reason-${host.id}`} className="block text-sm font-medium text-[#1B1A2E]">Reason for rejection</label>
-                      <textarea id={`reason-${host.id}`} name="reason" required minLength={10} maxLength={1000} rows={4} placeholder="Explain what needs correction so the host can resubmit." className="w-full rounded-md border border-[#D9D5CF] bg-[#F7F5F2] px-3 py-2 text-sm text-[#1B1A2E] placeholder:text-gray-400 focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" />
-                      <button type="submit" className="w-full rounded-md border border-rose-300 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-50">Reject and request changes</button>
-                    </form>
-                  </div>
+                  <HostVerificationActions hostId={host.id} />
                 )}
               </article>
             );

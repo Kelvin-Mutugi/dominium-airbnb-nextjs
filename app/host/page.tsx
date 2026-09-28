@@ -131,10 +131,10 @@ export default function HostDashboardPage() {
         <section className="flex flex-col gap-4 rounded-xl border border-[#12231d]/10 bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="font-semibold text-[#12231d]">No bookable listings yet</h2>
-            <p className="mt-1 text-sm text-gray-500">Create or update a listing to start receiving booking requests.</p>
+            <p className="mt-1 text-sm text-gray-500">Listings are reviewed and published by the admin team during the verification phase.</p>
           </div>
-          <Link href="/host/listings/new" className="inline-flex shrink-0 items-center justify-center rounded-lg bg-[#12231d] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#243c34]">
-            Create listing
+          <Link href="/host/listings" className="inline-flex shrink-0 items-center justify-center rounded-lg bg-[#12231d] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#243c34]">
+            View listings
           </Link>
         </section>
       )}

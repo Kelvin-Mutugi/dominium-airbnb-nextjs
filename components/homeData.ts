@@ -1,4 +1,5 @@
 import { Wifi } from "lucide-react";
+import type { ListingAdditionalCharge } from "@/app/lib/host/types";
 
 export const HERO_IMAGES: string[] = [
   "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2",
@@ -58,6 +59,9 @@ export interface Listing {
   minNights: number;
   pricePerNight: number;
   serviceFeePercent: number;
+  serviceFeePerNight?: number;
+  propertyType?: string;
+  additionalCharges?: ListingAdditionalCharge[];
   cancellationDeadline?: string;
 
   // Location

@@ -29,8 +29,11 @@ export default async function AdminListingsPage({
       `id, title, county, town, price_per_night, status, created_at,
        profiles:host_id ( full_name, business_name ),
        listing_images ( url, sort_order )`
-    )
-    .eq("status", activeStatus);
+    );
+
+  if (activeStatus !== "all") {
+    listingsQuery = listingsQuery.eq("status", activeStatus);
+  }
 
   if (searchTerm) {
     const pattern = `%${searchTerm}%`;
@@ -50,7 +53,13 @@ export default async function AdminListingsPage({
         Review submissions, and manage whats live on the site.
       </p>
 
-      <AdminSearchInput placeholder="Search by title, town, county, or ID" />
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <AdminSearchInput placeholder="Search by title, town, county, or ID" />
+        <Link href="/admin/listings/new" className="inline-flex items-center rounded-lg bg-[#E23E85] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#c93075]">
+          Add listing
+        </Link>
+      </div>
+
       <ListingTabs />
 
       <div className="grid gap-4">
@@ -69,8 +78,6 @@ export default async function AdminListingsPage({
             >
               <Link
                 href={`/admin/listings/${l.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="flex flex-1 min-w-0 gap-4 items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E23E85]"
               >
                 <div className="w-24 h-24 bg-gray-100 rounded overflow-hidden shrink-0">

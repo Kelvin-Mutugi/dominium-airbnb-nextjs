@@ -12,6 +12,7 @@ import {
   LifeBuoy,
   BadgeCheck,
   Star,
+  History,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { href: "/admin/payouts", label: "Payments & Payouts", icon: Wallet },
   { href: "/admin/support", label: "Support & Disputes", icon: LifeBuoy },
   { href: "/admin/reviews", label: "Reviews Moderation", icon: Star },
+  { href: "/admin/audit-log", label: "Audit Log", icon: History },
 ];
 
 export function AdminSidebar() {

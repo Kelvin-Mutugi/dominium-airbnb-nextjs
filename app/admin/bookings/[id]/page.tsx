@@ -89,6 +89,10 @@ export default async function AdminBookingDetailPage({
   const listing = one(booking.listing);
   const guest = one(booking.guest);
   const host = one(booking.host);
+  const [{ count: paymentCount }, { count: payoutCount }] = await Promise.all([
+    admin.from("payments").select("id", { count: "exact", head: true }).eq("booking_id", booking.id),
+    admin.from("payouts").select("id", { count: "exact", head: true }).eq("booking_id", booking.id),
+  ]);
 
   return (
     <div className="max-w-6xl">
@@ -123,6 +127,11 @@ export default async function AdminBookingDetailPage({
           <DetailField label="Guest phone" value={booking.guest_phone ?? guest?.phone} />
           <DetailField label="Special requests" value={booking.special_requests} />
         </dl>
+        {booking.listing_id && (
+          <Link href={`/admin/listings/${booking.listing_id}`} className="mt-5 inline-block text-sm font-medium text-[#E23E85] hover:underline">
+            Open listing details →
+          </Link>
+        )}
       </section>
 
       <section className="mt-6 rounded-lg bg-white p-6 shadow-sm">
@@ -132,6 +141,14 @@ export default async function AdminBookingDetailPage({
           <DetailField label="Commission" value={amount(booking.commission_amount)} />
           <DetailField label="Host payout" value={amount(booking.host_payout_amount)} />
         </dl>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Link href={`/admin/payouts?view=payments&bookingId=${booking.id}`} className="rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-[#1B1A2E] hover:border-[#E23E85] hover:text-[#CF2F74]">
+            Payment records ({paymentCount ?? 0})
+          </Link>
+          <Link href={`/admin/payouts?view=payouts&bookingId=${booking.id}`} className="rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-[#1B1A2E] hover:border-[#E23E85] hover:text-[#CF2F74]">
+            Payout records ({payoutCount ?? 0})
+          </Link>
+        </div>
       </section>
 
       <section className="mt-6 grid gap-6 md:grid-cols-2">
@@ -145,8 +162,6 @@ export default async function AdminBookingDetailPage({
           {booking.guest_id && (
             <Link
               href={`/admin/users/${booking.guest_id}`}
-              target="_blank"
-              rel="noopener noreferrer"
               className="mt-5 inline-block text-sm font-medium text-[#E23E85] hover:underline"
             >
               Open guest profile
@@ -165,8 +180,6 @@ export default async function AdminBookingDetailPage({
           {booking.host_id && (
             <Link
               href={`/admin/users/${booking.host_id}`}
-              target="_blank"
-              rel="noopener noreferrer"
               className="mt-5 inline-block text-sm font-medium text-[#E23E85] hover:underline"
             >
               Open host profile
@@ -184,8 +197,6 @@ export default async function AdminBookingDetailPage({
         {booking.listing_id && (
           <Link
             href={`/admin/listings/${booking.listing_id}`}
-            target="_blank"
-            rel="noopener noreferrer"
             className="mt-5 inline-block text-sm font-medium text-[#E23E85] hover:underline"
           >
             Open listing details

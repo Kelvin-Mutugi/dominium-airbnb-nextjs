@@ -1,8 +1,13 @@
 // appartmentDetails/PriceBreakdown.tsx
+import type { ListingAdditionalCharge } from "@/app/lib/host/types";
+import { calculateListingAdditionalCharges } from "@/app/lib/listing-charges";
+
 interface PriceBreakdownProps {
   pricePerNight: number;
   nights: number;
   serviceFeePercent: number;
+  serviceFeePerNight?: number;
+  additionalCharges: ListingAdditionalCharge[];
   currency?: string;
 }
 
@@ -10,11 +15,16 @@ export function PriceBreakdown({
   pricePerNight,
   nights,
   serviceFeePercent,
+  serviceFeePerNight,
+  additionalCharges,
   currency = "KES",
 }: PriceBreakdownProps) {
   const subtotal = pricePerNight * nights;
-  const serviceFee = Math.round(subtotal * serviceFeePercent);
-  const total = subtotal + serviceFee;
+  const serviceFee = serviceFeePerNight == null
+    ? Math.round(subtotal * serviceFeePercent)
+    : Math.round(serviceFeePerNight * nights * 100) / 100;
+  const customCharges = calculateListingAdditionalCharges(additionalCharges, nights);
+  const total = subtotal + serviceFee + customCharges.total;
 
   const fmt = (n: number) => `${currency} ${n.toLocaleString()}`;
 
@@ -29,15 +39,21 @@ export function PriceBreakdown({
         <span>{fmt(subtotal)}</span>
       </div>
       <div className="flex justify-between">
-        <span>Service fee</span>
+        <span>Platform service fee</span>
         <span>{fmt(serviceFee)}</span>
       </div>
+      {customCharges.lines.map((charge, index) => (
+        <div key={`${charge.name}-${charge.frequency}-${index}`} className="flex justify-between gap-4">
+          <span>{charge.name}{charge.frequency === "per_night" ? ` · ${fmt(charge.amount)} × ${nights} nights` : " · per booking"}</span>
+          <span className="shrink-0">{fmt(charge.total)}</span>
+        </div>
+      ))}
       <div className="flex justify-between border-t border-[#EDEBE4] pt-2 text-[15px] font-semibold text-[#1B1A2E]">
         <span>Total</span>
         <span>{fmt(total)}</span>
       </div>
       <p className="pt-1 text-[12px] text-[#3A3856]/60">
-        You won't be charged yet
+        You will not be charged yet
       </p>
     </div>
   );

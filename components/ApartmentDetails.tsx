@@ -18,6 +18,7 @@ import { PhotoLightbox } from "./appartmentDetails/PhotoLightbox";
 import { StickyPriceBar } from "./appartmentDetails/StickyPriceBar";
 import { RelatedListings } from "./appartmentDetails/RelatedListings";
 import SaveListingButton from "@/components/listings/SaveListingButton";
+import { calculateListingAdditionalCharges } from "@/app/lib/listing-charges";
 
 interface ApartmentDetailsProps {
   listing: Listing | null;
@@ -81,7 +82,11 @@ export default function ApartmentDetails({
   const gallery = listing.gallery.filter(Boolean);
   const hostName = listing.hostProfile?.displayName || listing.host || "Host";
   const staySubtotal = listing.pricePerNight * nights;
-  const tripTotal = staySubtotal + Math.round(staySubtotal * listing.serviceFeePercent);
+  const serviceFee = listing.serviceFeePerNight == null
+    ? Math.round(staySubtotal * listing.serviceFeePercent)
+    : Math.round(listing.serviceFeePerNight * nights * 100) / 100;
+  const additionalCharges = calculateListingAdditionalCharges(listing.additionalCharges ?? [], nights);
+  const tripTotal = staySubtotal + serviceFee + additionalCharges.total;
   const formatPrice = (amount: number) => `KES ${amount.toLocaleString("en-KE")}`;
 
   return (
@@ -183,6 +188,9 @@ export default function ApartmentDetails({
                   <MapPin size={18} className="text-[#1B1A2E]" />
                   {listing.loc}
                 </div>
+                {listing.propertyType && (
+                  <p className="mt-2 text-sm text-[#3A3856]">{listing.propertyType}</p>
+                )}
 
                 {Boolean(listing.reviewCount) && (
                   <a href="#listing-reviews" className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[#3A3856] underline decoration-[#3A3856]/30 underline-offset-4 hover:decoration-[#3A3856]">
@@ -216,8 +224,11 @@ export default function ApartmentDetails({
                   Price and availability
                 </div>
                 <div className="text-[28px] font-bold text-[#1B1A2E]">
-                  {formatPrice(listing.pricePerNight)} <span className="text-sm font-normal text-[#3A3856]">/ night</span>
+                  {formatPrice(listing.pricePerNight)} <span className="text-sm font-normal text-[#3A3856]">host rate / night</span>
                 </div>
+                <p className="mt-1 text-xs text-[#3A3856]/70">
+                  Plus {formatPrice(listing.serviceFeePerNight ?? listing.pricePerNight * listing.serviceFeePercent)} platform fee per night.
+                </p>
 
                 {listing.cancelationPolicy && (
                   <p className="mt-2 line-clamp-3 text-sm leading-5 text-[#3A3856]">
@@ -243,6 +254,8 @@ export default function ApartmentDetails({
                   pricePerNight={listing.pricePerNight}
                   nights={nights}
                   serviceFeePercent={listing.serviceFeePercent}
+                  serviceFeePerNight={listing.serviceFeePerNight}
+                  additionalCharges={listing.additionalCharges ?? []}
                 />
                 {nights === 0 && (
                   <p className="mt-3 text-xs text-[#3A3856]/70">Choose dates to see the service fee and trip total before continuing.</p>

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/app/lib/admin-auth';
+import { recordAdminAuditEvent } from '@/app/lib/admin-audit';
 import { getSupabaseAdmin } from '@/app/lib/supabase/admin';
 
 export async function reviewHostVerification(formData: FormData) {
@@ -57,6 +58,16 @@ export async function reviewHostVerification(formData: FormData) {
     .maybeSingle();
   if (error) throw new Error('Unable to save the host verification decision.');
   if (!data) throw new Error('Another administrator already reviewed this application. Refresh the queue.');
+
+  await recordAdminAuditEvent({
+    actorId: adminUser.id,
+    action: `host_verification.${decision}`,
+    entityType: 'host_verification',
+    entityId: hostId,
+    summary: `Host verification ${decision}.`,
+    before: { status: 'pending' },
+    after: { status: decision },
+  });
 
   revalidatePath('/admin/verification');
   revalidatePath('/admin/users');

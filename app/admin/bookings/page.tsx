@@ -34,10 +34,11 @@ type AdminBooking = {
 export default async function AdminBookingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; listingId?: string }>;
 }) {
-  const { status, q } = await searchParams;
-  const activeStatus = status ?? "pending";
+  const { status, q, listingId: requestedListingId } = await searchParams;
+  const listingId = isUuid(requestedListingId ?? "") ? requestedListingId : undefined;
+  const activeStatus = status ?? (listingId ? "all" : "pending");
   const searchTerm = escapeSearchTerm(q ?? "");
 
   const admin = getSupabaseAdmin();
@@ -49,8 +50,10 @@ export default async function AdminBookingsPage({
        listing:listing_id ( title, town, county ),
        guest:guest_id ( full_name, phone ),
        host:host_id ( full_name, business_name )`
-    )
-    .eq("status", activeStatus);
+    );
+
+  if (activeStatus !== "all") bookingsQuery = bookingsQuery.eq("status", activeStatus);
+  if (listingId) bookingsQuery = bookingsQuery.eq("listing_id", listingId);
 
   if (searchTerm) {
     const pattern = `%${searchTerm}%`;
@@ -102,6 +105,12 @@ export default async function AdminBookingsPage({
         Review bookings, confirm pending ones, and cancel when needed.
       </p>
 
+      {listingId && (
+        <p className="mb-3 text-sm text-gray-600">
+          Showing bookings for listing <span className="font-mono">{listingId.slice(0, 8)}</span>{" "}
+          <Link href="/admin/bookings?status=all" className="ml-2 font-medium text-[#CF2F74] hover:underline">Clear listing filter</Link>
+        </p>
+      )}
       <AdminSearchInput placeholder="Search by guest, host, listing, email, date, or booking ID" />
       <BookingTabs />
 

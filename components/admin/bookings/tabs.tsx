@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 const STATUSES = [
+  { value: "all", label: "All" },
   { value: "pending", label: "Pending" },
   { value: "confirmed", label: "Confirmed" },
   { value: "completed", label: "Completed" },
@@ -24,6 +25,7 @@ export function BookingTabs() {
           href={`${pathname}?${new URLSearchParams({
             status: s.value,
             ...(searchParams.get("q") ? { q: searchParams.get("q") ?? "" } : {}),
+            ...(searchParams.get("listingId") ? { listingId: searchParams.get("listingId") ?? "" } : {}),
           }).toString()}`}
           className={`px-4 py-2 text-sm font-medium border-b-2 ${
             active === s.value

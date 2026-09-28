@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { formatDate, humanize } from '@/app/lib/format';
 import { getSupabaseAdmin } from '@/app/lib/supabase/admin';
-import { moderateReview } from './actions';
+import { ReviewModerationActions } from '@/components/admin/reviews/review-moderation-actions';
 
 type ListingReview = {
   id: string;
@@ -49,25 +49,33 @@ const STATUS_STYLES: Record<string, string> = {
   hidden: 'bg-gray-100 text-gray-700',
 };
 
-function hrefFor(status: string, query: string) {
+function hrefFor(status: string, query: string, listingId: string | null) {
   const params = new URLSearchParams();
   if (status !== 'pending') params.set('status', status);
   if (query) params.set('q', query);
+  if (listingId) params.set('listingId', listingId);
   return `/admin/reviews${params.size ? `?${params.toString()}` : ''}`;
 }
 
 export default async function AdminReviewsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; listingId?: string }>;
 }) {
   const params = await searchParams;
   const status = FILTERS.includes(params.status ?? 'pending') ? params.status ?? 'pending' : 'pending';
   const query = (params.q ?? '').trim().slice(0, 100).toLowerCase();
+  const listingId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(params.listingId ?? '')
+    ? params.listingId!
+    : null;
   const admin = getSupabaseAdmin();
+  let listingReviewsQuery = admin.from('reviews').select('id, listing_id, guest_id, booking_id, rating, comment, moderation_status, created_at').order('created_at', { ascending: false }).limit(250);
+  if (listingId) listingReviewsQuery = listingReviewsQuery.eq('listing_id', listingId);
   const [listingResult, hostResult] = await Promise.all([
-    admin.from('reviews').select('id, listing_id, guest_id, booking_id, rating, comment, moderation_status, created_at').order('created_at', { ascending: false }).limit(250),
-    admin.from('host_reviews').select('id, host_id, guest_id, booking_id, rating, comment, moderation_status, created_at').order('created_at', { ascending: false }).limit(250),
+    listingReviewsQuery,
+    listingId
+      ? Promise.resolve({ data: [], error: null })
+      : admin.from('host_reviews').select('id, host_id, guest_id, booking_id, rating, comment, moderation_status, created_at').order('created_at', { ascending: false }).limit(250),
   ]);
   if (listingResult.error || hostResult.error) {
     throw new Error('Unable to load reviews. Apply the host reviews and moderation migration, then retry.');
@@ -105,7 +113,7 @@ export default async function AdminReviewsPage({
       id: review.id,
       type: 'host' as const,
       target: profileById.get(review.host_id) ?? 'Host unavailable',
-      targetHref: null,
+      targetHref: `/admin/users/${review.host_id}`,
       guest: profileById.get(review.guest_id) ?? bookingById.get(review.booking_id)?.guest_name ?? 'Guest unavailable',
       bookingId: review.booking_id,
       rating: review.rating,
@@ -129,18 +137,21 @@ export default async function AdminReviewsPage({
       <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-3">
         <nav aria-label="Review moderation status" className="flex flex-wrap gap-1">
           {FILTERS.map((filter) => (
-            <Link key={filter} href={hrefFor(filter, query)} aria-current={status === filter ? 'page' : undefined} className={`rounded-md px-3 py-2 text-sm ${status === filter ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
+              <Link key={filter} href={hrefFor(filter, query, listingId)} aria-current={status === filter ? 'page' : undefined} className={`rounded-md px-3 py-2 text-sm ${status === filter ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
               {humanize(filter)}
             </Link>
           ))}
         </nav>
         <form action="/admin/reviews" className="flex w-full max-w-md gap-2">
           {status !== 'pending' && <input type="hidden" name="status" value={status} />}
+          {listingId && <input type="hidden" name="listingId" value={listingId} />}
           <label htmlFor="reviews-search" className="sr-only">Search reviews</label>
           <input id="reviews-search" name="q" type="search" defaultValue={params.q ?? ''} maxLength={100} placeholder="Search guest, target, or booking" className="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#1B1A2E] focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" />
           <button type="submit" className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700">Search</button>
         </form>
       </div>
+
+      {listingId && <p className="text-sm text-gray-600">Filtered to listing <span className="font-mono">{listingId.slice(0, 8)}</span>. <Link href={hrefFor(status, query, null)} className="font-medium text-[#CF2F74] hover:underline">Clear listing filter</Link></p>}
 
       <p className="text-xs text-gray-500">{visibleItems.length} reviews shown · latest 500</p>
       {visibleItems.length === 0 ? (
@@ -161,24 +172,7 @@ export default async function AdminReviewsPage({
                 <p className="mt-1 text-xs text-gray-500">By {item.guest} · {formatDate(item.createdAt, 'long')} · booking <Link href={`/admin/bookings/${item.bookingId}`} className="font-medium text-[#CF2F74] hover:underline">{item.bookingId.slice(0, 8)}</Link></p>
                 {item.comment ? <p className="mt-4 max-w-3xl whitespace-pre-wrap text-sm leading-6 text-gray-700">{item.comment}</p> : <p className="mt-4 text-sm italic text-gray-400">No written comment.</p>}
               </div>
-              <div className="flex flex-wrap items-start gap-2 border-t pt-4 xl:flex-col xl:border-l xl:border-t-0 xl:pl-5 xl:pt-0">
-                {item.status !== 'published' && (
-                  <form action={moderateReview}>
-                    <input type="hidden" name="review_id" value={item.id} />
-                    <input type="hidden" name="review_type" value={item.type} />
-                    <input type="hidden" name="moderation_status" value="published" />
-                    <button type="submit" className="rounded-md bg-emerald-700 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-800">Publish review</button>
-                  </form>
-                )}
-                {item.status !== 'hidden' && (
-                  <form action={moderateReview}>
-                    <input type="hidden" name="review_id" value={item.id} />
-                    <input type="hidden" name="review_type" value={item.type} />
-                    <input type="hidden" name="moderation_status" value="hidden" />
-                    <button type="submit" className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Hide review</button>
-                  </form>
-                )}
-              </div>
+              <ReviewModerationActions reviewId={item.id} reviewType={item.type} status={item.status} />
             </li>
           ))}
         </ul>

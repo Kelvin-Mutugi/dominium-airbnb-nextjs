@@ -13,7 +13,10 @@ export interface Listing {
   county: string;
   town: string;
   address: string | null;
+  property_type?: string;
   price_per_night: number;
+  platform_fee_per_night?: number | null;
+  additional_charges?: ListingAdditionalCharge[] | null;
   max_guests: number;
   bedrooms: number;
   bathrooms: number;
@@ -60,6 +63,12 @@ export interface ListingArrivalGuide {
   arrival_contact: string | null;
   local_tips: string | null;
   updated_at: string;
+}
+
+export interface ListingAdditionalCharge {
+  name: string;
+  amount: number;
+  frequency: "per_night" | "per_booking";
 }
 
 export interface AvailabilityBlock {
@@ -154,7 +163,10 @@ export interface ListingFormValues {
   county: string;
   town: string;
   address: string;
+  property_type: string;
   price_per_night: number;
+  platform_fee_per_night: number;
+  additional_charges: ListingAdditionalCharge[];
   max_guests: number;
   bedrooms: number;
   bathrooms: number;

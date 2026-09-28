@@ -5,7 +5,9 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 const STATUSES = [
+  { value: "all", label: "All listings" },
   { value: "pending_review", label: "Pending Review" },
+  { value: "draft", label: "Draft" },
   { value: "published", label: "Live" },
   { value: "archived", label: "Archived" },
   { value: "suspended", label: "Suspended" },

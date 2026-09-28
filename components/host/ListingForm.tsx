@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import type { ListingFormValues } from "@/app/lib/host/types";
+import type { ListingAdditionalCharge, ListingFormValues } from "@/app/lib/host/types";
 
 const AMENITY_OPTIONS = [
   "WiFi", "Kitchen", "Free parking", "Pool", "Air conditioning", "Washer",
@@ -15,7 +15,10 @@ const DEFAULTS: ListingFormValues = {
   county: "",
   town: "",
   address: "",
+  property_type: "",
   price_per_night: 0,
+  platform_fee_per_night: 0,
+  additional_charges: [],
   max_guests: 1,
   bedrooms: 1,
   bathrooms: 1,
@@ -47,6 +50,10 @@ export default function ListingForm({
 }) {
   const [values, setValues] = useState<ListingFormValues>({ ...DEFAULTS, ...initialValues });
   const [houseRuleInput, setHouseRuleInput] = useState("");
+  const [customAmenityInput, setCustomAmenityInput] = useState("");
+  const [chargeName, setChargeName] = useState("");
+  const [chargeAmount, setChargeAmount] = useState("");
+  const [chargeFrequency, setChargeFrequency] = useState<ListingAdditionalCharge["frequency"]>("per_booking");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,17 +65,40 @@ export default function ListingForm({
     set("amenities", values.amenities.includes(a) ? values.amenities.filter((x) => x !== a) : [...values.amenities, a]);
   }
 
+  function addCustomAmenity() {
+    const amenity = customAmenityInput.trim();
+    if (!amenity || amenity.length > 80) return;
+    if (!values.amenities.some((existing) => existing.toLocaleLowerCase() === amenity.toLocaleLowerCase())) {
+      set("amenities", [...values.amenities, amenity]);
+    }
+    setCustomAmenityInput("");
+  }
+
   function addHouseRule() {
     if (!houseRuleInput.trim()) return;
     set("house_rules", [...values.house_rules, houseRuleInput.trim()]);
     setHouseRuleInput("");
   }
 
+  function addAdditionalCharge() {
+    const name = chargeName.trim();
+    const amount = Number(chargeAmount);
+    if (!name || name.length > 80 || !Number.isFinite(amount) || amount <= 0 || values.additional_charges.length >= 20) return;
+
+    set("additional_charges", [...values.additional_charges, { name, amount, frequency: chargeFrequency }]);
+    setChargeName("");
+    setChargeAmount("");
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!values.title || !values.county || !values.town || values.price_per_night <= 0) {
-      setError("Title, county, town, and a price above 0 are required.");
+    if (!values.title || !values.county || !values.town || !values.property_type.trim() || values.price_per_night <= 0 || values.platform_fee_per_night < 0) {
+      setError("Title, property type, county, town, and a valid price and platform fee are required.");
+      return;
+    }
+    if (values.additional_charges.some((charge) => !charge.name.trim() || !Number.isFinite(charge.amount) || charge.amount <= 0 || !["per_night", "per_booking"].includes(charge.frequency))) {
+      setError("Each additional charge needs a name, positive amount, and valid frequency.");
       return;
     }
     setSaving(true);
@@ -96,6 +126,10 @@ export default function ListingForm({
       {/* Basics */}
       <section className="space-y-4 rounded-2xl bg-white p-5 shadow-sm">
         <h2 className="font-semibold text-[#12231d]">Basics</h2>
+        <div>
+          <label className={labelClass}>Property type</label>
+          <input maxLength={80} required className={inputClass} value={values.property_type} onChange={(e) => set("property_type", e.target.value)} placeholder="e.g. apartment, townhouse, villa" />
+        </div>
         <div>
           <label className={labelClass}>Listing title</label>
           <input className={inputClass} value={values.title} onChange={(e) => set("title", e.target.value)} placeholder="e.g. South B Apartment" />
@@ -129,10 +163,14 @@ export default function ListingForm({
       {/* Capacity & pricing */}
       <section className="space-y-4 rounded-2xl bg-white p-5 shadow-sm">
         <h2 className="font-semibold text-[#12231d]">Capacity & pricing</h2>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
           <div>
             <label className={labelClass}>Price / night (KES)</label>
             <input type="number" min={1} className={inputClass} value={values.price_per_night} onChange={(e) => set("price_per_night", Number(e.target.value))} />
+          </div>
+          <div>
+            <label className={labelClass}>Platform fee / night (KES)</label>
+            <input type="number" min={0} step="0.01" className={inputClass} value={values.platform_fee_per_night} onChange={(e) => set("platform_fee_per_night", Number(e.target.value))} />
           </div>
           <div>
             <label className={labelClass}>Max guests</label>
@@ -145,6 +183,52 @@ export default function ListingForm({
           <div>
             <label className={labelClass}>Bathrooms</label>
             <input type="number" min={0} className={inputClass} value={values.bathrooms} onChange={(e) => set("bathrooms", Number(e.target.value))} />
+          </div>
+        </div>
+        <div className="text-sm text-gray-600">
+          <p>
+            Guest nightly price before one-time charges: <strong className="text-[#12231d]">KES {(Number(values.price_per_night || 0) + Number(values.platform_fee_per_night || 0) + values.additional_charges.filter((charge) => charge.frequency === "per_night").reduce((sum, charge) => sum + charge.amount, 0)).toLocaleString("en-KE")}</strong>
+            <span className="ml-1">(host rate, platform fee, and per-night charges)</span>
+          </p>
+          {values.additional_charges.some((charge) => charge.frequency === "per_booking") && (
+            <p className="mt-1 text-xs">
+              Plus KES {values.additional_charges.filter((charge) => charge.frequency === "per_booking").reduce((sum, charge) => sum + charge.amount, 0).toLocaleString("en-KE")} in per-booking charges.
+            </p>
+          )}
+        </div>
+        <div className="border-t border-gray-100 pt-4">
+          <div className="mb-3">
+            <h3 className="text-sm font-semibold text-[#12231d]">Additional guest charges</h3>
+            <p className="mt-1 text-xs text-gray-500">These charges are paid to the host. Choose whether each is charged once or for every night.</p>
+          </div>
+          {values.additional_charges.length > 0 && (
+            <ul className="mb-3 divide-y divide-gray-100 rounded-md border border-gray-100">
+              {values.additional_charges.map((charge, index) => (
+                <li key={`${charge.name}-${charge.frequency}-${index}`} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
+                  <span className="font-medium text-[#12231d]">{charge.name}</span>
+                  <span className="ml-auto text-gray-600">
+                    KES {charge.amount.toLocaleString("en-KE")} {charge.frequency === "per_night" ? "/ night" : "/ booking"}
+                  </span>
+                  <button type="button" onClick={() => set("additional_charges", values.additional_charges.filter((_, chargeIndex) => chargeIndex !== index))} className="text-xs font-medium text-red-600 hover:underline">
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_10rem_9rem_auto]">
+            <label className="sr-only" htmlFor="additional-charge-name">Charge name</label>
+            <input id="additional-charge-name" maxLength={80} className={inputClass} value={chargeName} onChange={(event) => setChargeName(event.target.value)} placeholder="e.g. Cleaning fee" />
+            <label className="sr-only" htmlFor="additional-charge-amount">Charge amount in KES</label>
+            <input id="additional-charge-amount" type="number" min="0.01" step="0.01" className={inputClass} value={chargeAmount} onChange={(event) => setChargeAmount(event.target.value)} placeholder="Amount (KES)" />
+            <label className="sr-only" htmlFor="additional-charge-frequency">Charge frequency</label>
+            <select id="additional-charge-frequency" className={inputClass} value={chargeFrequency} onChange={(event) => setChargeFrequency(event.target.value as ListingAdditionalCharge["frequency"])}>
+              <option value="per_booking">Per booking</option>
+              <option value="per_night">Per night</option>
+            </select>
+            <button type="button" onClick={addAdditionalCharge} disabled={!chargeName.trim() || chargeName.trim().length > 80 || !Number.isFinite(Number(chargeAmount)) || Number(chargeAmount) <= 0 || values.additional_charges.length >= 20} className="rounded-lg border border-[#12231d] px-4 py-2 text-sm font-medium text-[#12231d] hover:bg-[#12231d] hover:text-white disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400 disabled:hover:bg-transparent disabled:hover:text-gray-400">
+              Add charge
+            </button>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
@@ -254,7 +338,7 @@ export default function ListingForm({
       <section className="space-y-3 rounded-2xl bg-white p-5 shadow-sm">
         <h2 className="font-semibold text-[#12231d]">Amenities</h2>
         <div className="flex flex-wrap gap-2">
-          {AMENITY_OPTIONS.map((a) => (
+          {[...new Set([...AMENITY_OPTIONS, ...values.amenities])].map((a) => (
             <button
               type="button"
               key={a}
@@ -266,6 +350,31 @@ export default function ListingForm({
               {a}
             </button>
           ))}
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <label htmlFor="custom-amenity" className="sr-only">Add a custom amenity</label>
+          <input
+            id="custom-amenity"
+            maxLength={80}
+            className={inputClass}
+            value={customAmenityInput}
+            onChange={(event) => setCustomAmenityInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                addCustomAmenity();
+              }
+            }}
+            placeholder="Add another amenity"
+          />
+          <button
+            type="button"
+            onClick={addCustomAmenity}
+            disabled={!customAmenityInput.trim() || customAmenityInput.trim().length > 80}
+            className="shrink-0 rounded-lg border border-[#12231d] px-4 py-2 text-sm font-medium text-[#12231d] hover:bg-[#12231d] hover:text-white disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400 disabled:hover:bg-transparent disabled:hover:text-gray-400"
+          >
+            Add amenity
+          </button>
         </div>
       </section>
 

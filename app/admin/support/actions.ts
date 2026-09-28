@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/app/lib/supabase/server';
+import { recordAdminAuditEvent } from '@/app/lib/admin-audit';
 import { getSupabaseAdmin } from '@/app/lib/supabase/admin';
 
 const STATUSES = ['new', 'in_review', 'waiting_on_user', 'resolved', 'closed'];
@@ -33,7 +34,14 @@ export async function updateSupportCase(formData: FormData) {
     .maybeSingle();
   if (!role?.privilege) throw new Error('You are not authorized to update support cases.');
 
-  const { error } = await admin
+  const { data: previousCase, error: lookupError } = await admin
+    .from('support_cases')
+    .select('status')
+    .eq('id', caseId)
+    .maybeSingle();
+  if (lookupError || !previousCase) throw new Error('Support case not found.');
+
+  const { data: updatedCase, error } = await admin
     .from('support_cases')
     .update({
       status,
@@ -41,8 +49,22 @@ export async function updateSupportCase(formData: FormData) {
       admin_notes: adminNotes || null,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', caseId);
+    .eq('id', caseId)
+    .eq('status', previousCase.status)
+    .select('id')
+    .maybeSingle();
   if (error) throw new Error('Unable to update this support case.');
+  if (!updatedCase) throw new Error('Support case changed. Refresh and try again.');
+
+  await recordAdminAuditEvent({
+    actorId: user.id,
+    action: 'support_case.updated',
+    entityType: 'support_case',
+    entityId: caseId,
+    summary: 'Updated support case status and response.',
+    before: { status: previousCase.status },
+    after: { status },
+  });
 
   revalidatePath('/admin/support');
   revalidatePath('/account/support');

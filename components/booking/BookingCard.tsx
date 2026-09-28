@@ -5,6 +5,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 import { supabase } from "@/app/lib/supabase/client";
+import {
+  calculateListingAdditionalCharges,
+  normalizeListingAdditionalCharges,
+} from "@/app/lib/listing-charges";
 
 interface BookingListing {
   id: string;
@@ -24,6 +28,10 @@ interface BookingListing {
   house_rules: string[] | null;
 
   service_fee_percent: number | string | null;
+
+  platform_fee_per_night: number | string | null;
+
+  additional_charges: unknown;
 
   min_nights: number | null;
 }
@@ -204,7 +212,7 @@ export default function BookingCard({
         .from("listings")
 
         .select(
-          "id, title, price_per_night, max_guests, host_id, cancellation_policy, booking_terms, house_rules, service_fee_percent, min_nights",
+          "id, title, price_per_night, max_guests, host_id, cancellation_policy, booking_terms, house_rules, service_fee_percent, platform_fee_per_night, additional_charges, min_nights",
         )
 
         .eq("id", listingId)
@@ -354,11 +362,18 @@ export default function BookingCard({
 
   const serviceFeeRate = Number(listing?.service_fee_percent ?? 0);
 
-  const serviceFee = Math.round(
-    totalPrice * (Number.isFinite(serviceFeeRate) ? serviceFeeRate : 0) * 100,
-  ) / 100;
+  const serviceFeePerNight = listing?.platform_fee_per_night == null
+    ? null
+    : Number(listing.platform_fee_per_night);
+  const serviceFee = serviceFeePerNight == null
+    ? Math.round(totalPrice * (Number.isFinite(serviceFeeRate) ? serviceFeeRate : 0) * 100) / 100
+    : Math.round(serviceFeePerNight * nights * 100) / 100;
+  const additionalCharges = calculateListingAdditionalCharges(
+    normalizeListingAdditionalCharges(listing?.additional_charges),
+    nights,
+  );
 
-  const grandTotal = totalPrice + serviceFee;
+  const grandTotal = totalPrice + serviceFee + additionalCharges.total;
 
   const priceSummary = (
     <dl className="space-y-2 border-t border-[#E9E6DD] pt-3 text-sm text-[#3A3856]">
@@ -369,9 +384,15 @@ export default function BookingCard({
             <dd>{formatCurrency(totalPrice)}</dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt>Service fee</dt>
+            <dt>Platform service fee</dt>
             <dd>{formatCurrency(serviceFee)}</dd>
           </div>
+          {additionalCharges.lines.map((charge, index) => (
+            <div key={`${charge.name}-${charge.frequency}-${index}`} className="flex justify-between gap-4">
+              <dt>{charge.name}{charge.frequency === "per_night" ? ` · ${nights} nights` : " · per booking"}</dt>
+              <dd>{formatCurrency(charge.total)}</dd>
+            </div>
+          ))}
           <div className="flex justify-between gap-4 text-xs text-[#6B6A78]">
             <dt>Taxes</dt>
             <dd>No separate tax configured</dd>

@@ -211,51 +211,23 @@ async function saveArrivalGuide(listingId: string, hostId: string, values: Parti
 }
 
 export async function createHostListing(values: ListingFormValues) {
-  const { user } = await requireHost();
-  const payload = listingPayload(values);
-  validateListing(payload);
-  const supabase = await createClient();
-  const slug = `${payload.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}-${crypto.randomUUID().slice(0, 6)}`;
-  const { data, error } = await supabase.from("listings").insert({ ...payload, slug, host_id: user.id, status: "draft" }).select().single();
-  if (error) throw new Error("Unable to create listing.");
-  await saveArrivalGuide(data.id, user.id, values);
-  revalidatePath("/host");
-  revalidatePath("/host/listings");
-  return data as Listing;
+  await requireHost();
+  throw new Error("Listing creation is managed by the admin team. Hosts can view listings only while the site is in its verification phase.");
 }
 
 export async function updateHostListing(id: string, values: Partial<ListingFormValues>) {
-  const { user } = await requireHost();
-  const payload = listingPayload(values);
-  validateListing(payload);
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("listings").update(payload).eq("id", id).eq("host_id", user.id).select().single();
-  if (error) throw new Error("Unable to update listing.");
-  await saveArrivalGuide(id, user.id, values);
-  revalidatePath(`/host/listings/${id}/edit`);
-  revalidatePath("/host/listings");
-  revalidatePath("/host");
-  return data as Listing;
+  await requireHost();
+  throw new Error("Listing edits are disabled for hosts. The admin team reviews and manages listings on your behalf.");
 }
 
 export async function setHostListingStatus(id: string, status: "draft" | "published") {
-  const { user } = await requireHost();
-  const supabase = await createClient();
-  const patch = status === "published" ? { status, last_published_at: new Date().toISOString() } : { status };
-  const { error } = await supabase.from("listings").update(patch).eq("id", id).eq("host_id", user.id);
-  if (error) throw new Error("Unable to update listing status.");
-  revalidatePath(`/host/listings/${id}/edit`);
-  revalidatePath("/host/listings");
-  revalidatePath("/host");
+  await requireHost();
+  throw new Error("Host publishing is disabled. Listings are reviewed and published by the admin team.");
 }
 
 export async function deleteHostListing(id: string) {
-  const { user } = await requireHost();
-  const supabase = await createClient();
-  const { error } = await supabase.from("listings").delete().eq("id", id).eq("host_id", user.id);
-  if (error) throw new Error("Unable to delete listing.");
-  revalidatePath("/host/listings");
-  revalidatePath("/host");
+  await requireHost();
+  throw new Error("Host deletion is disabled. Listing removal is handled by the admin team.");
 }
 
 export async function updateHostBookingStatus(id: string, status: BookingStatus) {

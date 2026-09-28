@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Plus } from "lucide-react";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 import { UserRowActions } from "@/components/admin/users/user-row-actions";
 
@@ -107,7 +108,16 @@ export default async function AdminUserDetailPage({
         <section className="mt-6 rounded-lg bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-lg font-semibold text-[#1B1A2E]">Host listings</h2>
-            <span className="text-sm text-gray-500">{listings.length} total</span>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-sm text-gray-500">{listings.length} total</span>
+              <Link
+                href={`/admin/listings/new?hostId=${encodeURIComponent(profile.id)}`}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#E23E85] px-3 py-2 text-sm font-semibold text-white hover:bg-[#c93075]"
+              >
+                <Plus size={16} aria-hidden="true" />
+                Add listing for this host
+              </Link>
+            </div>
           </div>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -120,8 +130,6 @@ export default async function AdminUserDetailPage({
                 <Link
                   key={listing.id}
                   href={`/admin/listings/${listing.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="overflow-hidden rounded-md border border-gray-200 transition hover:border-[#E23E85] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E23E85]"
                 >
                   <div className="aspect-[16/9] bg-gray-100">
