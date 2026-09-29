@@ -4,8 +4,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { getHostListingsData } from "@/app/lib/host/actions";
-import type { Listing } from "@/app/lib/host/types";
+import { Plus, X } from "lucide-react";
+import { getHostListingRequestsData, getHostListingsData, submitHostListingRequest } from "@/app/lib/host/actions";
+import type { HostListingRequest, Listing } from "@/app/lib/host/types";
 import StatusBadge from "@/components/host/StatusBadge";
 
 const FILTERS = [
@@ -17,12 +18,37 @@ const FILTERS = [
 
 type Filter = (typeof FILTERS)[number];
 
+const REQUEST_STATUS: Record<HostListingRequest["status"], { label: string; className: string }> = {
+  submitted: { label: "Submitted", className: "bg-sky-50 text-sky-800" },
+  reviewing: { label: "Under review", className: "bg-amber-50 text-amber-800" },
+  visit_scheduled: { label: "Visit scheduled", className: "bg-indigo-50 text-indigo-800" },
+  visited: { label: "Visit completed", className: "bg-cyan-50 text-cyan-800" },
+  details_collected: { label: "Details collected", className: "bg-emerald-50 text-emerald-800" },
+  listing_created: { label: "Listing created", className: "bg-green-50 text-green-800" },
+  declined: { label: "Unable to proceed", className: "bg-gray-100 text-gray-700" },
+};
+
+const EMPTY_REQUEST = {
+  proposedTitle: "",
+  propertyType: "",
+  county: "",
+  town: "",
+  address: "",
+  contactPhone: "",
+  propertyNotes: "",
+};
+
 export default function HostListingsPage() {
   const [listings, setListings] = useState<Listing[]>([]);
+  const [requests, setRequests] = useState<HostListingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
-
   const [error, setError] = useState<string | null>(null);
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [requestValues, setRequestValues] = useState(EMPTY_REQUEST);
+  const [submittingRequest, setSubmittingRequest] = useState(false);
+  const [requestError, setRequestError] = useState<string | null>(null);
+  const [requestSuccess, setRequestSuccess] = useState<string | null>(null);
 
   async function load(showLoader = false) {
     try {
@@ -32,8 +58,12 @@ export default function HostListingsPage() {
 
       setError(null);
 
-      const data = await getHostListingsData();
+      const [data, hostRequests] = await Promise.all([
+        getHostListingsData(),
+        getHostListingRequestsData(),
+      ]);
       setListings(data);
+      setRequests(hostRequests);
     } catch (err) {
       console.error("Failed to load listings:", err);
       setError(
@@ -41,6 +71,24 @@ export default function HostListingsPage() {
       );
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function submitListingRequest(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmittingRequest(true);
+    setRequestError(null);
+    setRequestSuccess(null);
+    try {
+      const request = await submitHostListingRequest(requestValues);
+      setRequests((current) => [request, ...current]);
+      setRequestValues(EMPTY_REQUEST);
+      setShowRequestForm(false);
+      setRequestSuccess("Your property visit request was sent to the admin team.");
+    } catch (submitError) {
+      setRequestError(submitError instanceof Error ? submitError.message : "Unable to submit your property request.");
+    } finally {
+      setSubmittingRequest(false);
     }
   }
 
@@ -116,6 +164,89 @@ export default function HostListingsPage() {
       <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
         Listings are currently reviewed and managed by the admin team. Hosts can view their property details, but cannot add, edit, publish, or delete listings during this verification phase.
       </div>
+
+      <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="font-semibold text-[#12231d]">Have another property?</h2>
+            <p className="mt-1 text-sm text-gray-500">Send the admin team its details to arrange due diligence and a property visit.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => { setShowRequestForm((visible) => !visible); setRequestError(null); }}
+            aria-expanded={showRequestForm}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#12231d] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#243c34]"
+          >
+            {showRequestForm ? <X size={16} aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}
+            {showRequestForm ? "Close request" : "Request a property visit"}
+          </button>
+        </div>
+
+        {requestSuccess && <p role="status" className="mt-4 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{requestSuccess}</p>}
+        {showRequestForm && (
+          <form onSubmit={submitListingRequest} className="mt-5 space-y-4 border-t border-gray-100 pt-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="request-property-name" className="mb-1 block text-sm font-medium text-[#12231d]">Property name</label>
+                <input id="request-property-name" required minLength={3} maxLength={120} value={requestValues.proposedTitle} onChange={(event) => setRequestValues({ ...requestValues, proposedTitle: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" placeholder="e.g. Greenview Apartment" />
+              </div>
+              <div>
+                <label htmlFor="request-property-type" className="mb-1 block text-sm font-medium text-[#12231d]">Property type</label>
+                <input id="request-property-type" required minLength={2} maxLength={80} value={requestValues.propertyType} onChange={(event) => setRequestValues({ ...requestValues, propertyType: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" placeholder="Apartment, villa, guesthouse…" />
+              </div>
+              <div>
+                <label htmlFor="request-county" className="mb-1 block text-sm font-medium text-[#12231d]">County</label>
+                <input id="request-county" required minLength={2} maxLength={80} value={requestValues.county} onChange={(event) => setRequestValues({ ...requestValues, county: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" />
+              </div>
+              <div>
+                <label htmlFor="request-town" className="mb-1 block text-sm font-medium text-[#12231d]">Town / area</label>
+                <input id="request-town" required minLength={2} maxLength={100} value={requestValues.town} onChange={(event) => setRequestValues({ ...requestValues, town: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" />
+              </div>
+              <div>
+                <label htmlFor="request-address" className="mb-1 block text-sm font-medium text-[#12231d]">Address or directions <span className="font-normal text-gray-500">(optional)</span></label>
+                <input id="request-address" maxLength={500} value={requestValues.address} onChange={(event) => setRequestValues({ ...requestValues, address: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" />
+              </div>
+              <div>
+                <label htmlFor="request-contact" className="mb-1 block text-sm font-medium text-[#12231d]">On-site contact <span className="font-normal text-gray-500">(optional)</span></label>
+                <input id="request-contact" maxLength={40} value={requestValues.contactPhone} onChange={(event) => setRequestValues({ ...requestValues, contactPhone: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" placeholder="Phone number for arranging a visit" />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="request-notes" className="mb-1 block text-sm font-medium text-[#12231d]">Additional details <span className="font-normal text-gray-500">(optional)</span></label>
+              <textarea id="request-notes" maxLength={3000} rows={3} value={requestValues.propertyNotes} onChange={(event) => setRequestValues({ ...requestValues, propertyNotes: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" placeholder="Best time to visit, number of units, or anything the team should know" />
+            </div>
+            {requestError && <p role="alert" className="text-sm text-red-700">{requestError}</p>}
+            <div className="flex justify-end">
+              <button type="submit" disabled={submittingRequest} className="rounded-lg bg-[#ec1561] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
+                {submittingRequest ? "Sending request…" : "Send to admin team"}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {requests.length > 0 && (
+          <div className="mt-5 border-t border-gray-100 pt-4">
+            <h3 className="text-sm font-semibold text-[#12231d]">Your property requests</h3>
+            <ul className="mt-2 divide-y divide-gray-100">
+              {requests.map((request) => {
+                const status = REQUEST_STATUS[request.status];
+                return (
+                  <li key={request.id} className="flex flex-wrap items-start justify-between gap-3 py-3">
+                    <div>
+                      <p className="text-sm font-medium text-[#12231d]">{request.proposed_title} · {request.town}, {request.county}</p>
+                      <p className="mt-1 text-xs text-gray-500">Submitted {new Date(request.created_at).toLocaleDateString("en-KE")}</p>
+                      {request.proposed_visit_at && <p className="mt-1 text-xs text-gray-600">Visit: {new Date(request.proposed_visit_at).toLocaleString("en-KE")}</p>}
+                      {request.host_message && <p className="mt-2 whitespace-pre-wrap text-sm text-gray-600">{request.host_message}</p>}
+                      {request.listing_id && <Link href={`/host/listings/${request.listing_id}`} className="mt-1 inline-block text-xs font-semibold text-[#b30f4b] hover:underline">View created listing</Link>}
+                    </div>
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${status.className}`}>{status.label}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+      </section>
 
       {/* Error message */}
       {error && (

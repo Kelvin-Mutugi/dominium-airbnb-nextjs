@@ -153,14 +153,14 @@ export default function PaymentCallback() {
                 <p className="mt-4 font-medium text-[#1B1A2E]">{receipt.listingTitle}</p>
                 <p className="mt-1 text-sm text-gray-600">{receipt.checkIn} to {receipt.checkOut}</p>
                 <dl className="mt-5 space-y-2 text-sm">
-                  <div className="flex justify-between gap-4"><dt className="text-gray-600">Stay subtotal</dt><dd>{formatMoney(receipt.subtotal, receipt.currency)}</dd></div>
-                  <div className="flex justify-between gap-4"><dt className="text-gray-600">Service fee</dt><dd>{formatMoney(receipt.serviceFee, receipt.currency)}</dd></div>
-                  <div className="flex justify-between gap-4"><dt className="text-gray-600">Tax</dt><dd>{receipt.tax > 0 ? formatMoney(receipt.tax, receipt.currency) : "No separate tax configured"}</dd></div>
-                  <div className="flex justify-between gap-4 border-t border-gray-200 pt-3 text-base font-semibold text-[#1B1A2E]"><dt>Total paid</dt><dd>{formatMoney(receipt.amountPaid, receipt.currency)}</dd></div>
-                  <div className="flex justify-between gap-4 pt-2"><dt className="text-gray-600">Payment method</dt><dd className="capitalize">{receipt.paymentMethod.replaceAll("_", " ")}</dd></div>
-                  <div className="flex justify-between gap-4"><dt className="text-gray-600">Booking reference</dt><dd className="break-all text-right font-medium">{receipt.bookingId}</dd></div>
-                  <div className="flex justify-between gap-4"><dt className="text-gray-600">Payment reference</dt><dd className="break-all text-right font-medium">{receipt.paymentReference ?? reference}</dd></div>
-                  {receipt.transactionId && <div className="flex justify-between gap-4"><dt className="text-gray-600">Paystack transaction</dt><dd>{receipt.transactionId}</dd></div>}
+                  <div className="flex justify-between gap-4"><dt className="text-gray-600">Stay subtotal</dt><dd className="text-black">{formatMoney(receipt.subtotal, receipt.currency)}</dd></div>
+                  <div className="flex justify-between gap-4"><dt className="text-gray-600">Service fee</dt><dd className="text-black">{formatMoney(receipt.serviceFee, receipt.currency)}</dd></div>
+                  <div className="flex justify-between gap-4"><dt className="text-gray-600">Tax</dt><dd className="text-black">{receipt.tax > 0 ? formatMoney(receipt.tax, receipt.currency) : "No separate tax configured"}</dd></div>
+                  <div className="flex justify-between gap-4 border-t border-gray-200 pt-3 text-base font-semibold text-[#1B1A2E]"><dt>Total paid</dt><dd className="text-black">{formatMoney(receipt.amountPaid, receipt.currency)}</dd></div>
+                  <div className="flex justify-between gap-4 pt-2"><dt className="text-gray-600">Payment method</dt><dd className="capitalize text-black">{receipt.paymentMethod.replaceAll("_", " ")}</dd></div>
+                  <div className="flex justify-between gap-4"><dt className="text-gray-600">Booking reference</dt><dd className="break-all text-right font-medium text-black">{receipt.bookingId}</dd></div>
+                  <div className="flex justify-between gap-4"><dt className="text-gray-600">Payment reference</dt><dd className="break-all text-right font-medium text-black">{receipt.paymentReference ?? reference}</dd></div>
+                  {receipt.transactionId && <div className="flex justify-between gap-4"><dt className="text-gray-600">Paystack transaction</dt><dd className="text-black">{receipt.transactionId}</dd></div>}
                 </dl>
               </section>
             ) : (

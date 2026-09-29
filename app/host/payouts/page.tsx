@@ -11,16 +11,52 @@ import StatusBadge from "@/components/host/StatusBadge";
 export default function HostPayoutsPage() {
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [expandedPayoutId, setExpandedPayoutId] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
-    (async () => {
-      setPayouts(await getHostPayoutsData());
-      setLoading(false);
-    })();
-  }, []);
+    let active = true;
+    getHostPayoutsData()
+      .then((data) => {
+        if (active) setPayouts(data);
+      })
+      .catch((loadError) => {
+        console.error("Failed to load payouts:", loadError);
+        if (active) setError("We couldn't load your payouts. Please try again.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [reloadToken]);
 
   if (loading) return <p className="text-gray-500">Loading payouts…</p>;
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold text-[#12231d]">Payouts</h1>
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => {
+              setLoading(true);
+              setError(null);
+              setReloadToken((token) => token + 1);
+            }}
+            className="font-semibold underline underline-offset-2 hover:no-underline"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const owed = payouts.filter((p) => p.status === "owed").reduce((sum, p) => sum + Number(p.amount), 0);
   const paid = payouts.filter((p) => p.status === "paid").reduce((sum, p) => sum + Number(p.amount), 0);
@@ -114,7 +150,7 @@ export default function HostPayoutsPage() {
                               <p className="text-xs font-medium uppercase text-gray-500">Listing</p>
                               {p.booking?.listing ? (
                                 <Link
-                                  href={`/host/listings/${p.booking.listing.id}/edit`}
+                                  href={`/host/listings/${p.booking.listing.id}`}
                                   className="mt-1 inline-block font-medium text-[#b30f4b] underline decoration-[#b30f4b]/40 underline-offset-2 hover:text-[#870b38]"
                                 >
                                   {p.booking.listing.title}
@@ -138,9 +174,27 @@ export default function HostPayoutsPage() {
                               </Link>
                             </div>
                             <div>
-                              <p className="text-xs font-medium uppercase text-gray-500">Payout</p>
-                              <p className="mt-1 text-gray-700">Host amount: KES {Number(p.booking?.host_payout_amount ?? p.amount).toLocaleString()}</p>
+                              <p className="text-xs font-medium uppercase text-gray-500">Payout reconciliation</p>
+                              {p.booking?.host_base_amount != null && p.booking.additional_charges_amount != null ? (
+                                <>
+                                  <p className="mt-1 text-gray-700">Host nightly earnings: KES {Number(p.booking.host_base_amount).toLocaleString()}</p>
+                                  <p className="text-gray-700">Additional host charges: KES {Number(p.booking.additional_charges_amount).toLocaleString()}</p>
+                                </>
+                              ) : (
+                                <p className="mt-1 text-xs text-gray-500">Detailed host-rate/charge split is unavailable for this older booking.</p>
+                              )}
+                              <p className="text-gray-700">Platform fee: KES {Number(p.booking?.commission_amount ?? 0).toLocaleString()}</p>
+                              <p className="text-gray-700">Guest total: KES {Number(p.booking?.total_amount ?? 0).toLocaleString()}</p>
+                              <p className="font-semibold text-[#12231d]">Payout ledger: KES {Number(p.amount).toLocaleString()}</p>
+                              <p className="text-gray-700">Booking payout: KES {Number(p.booking?.host_payout_amount ?? p.amount).toLocaleString()}</p>
+                              {p.booking?.host_payout_amount != null && Number(p.amount) !== Number(p.booking.host_payout_amount) && (
+                                <p role="alert" className="mt-1 text-xs font-medium text-red-700">
+                                  Payout ledger differs from booking payout by KES {Math.abs(Number(p.amount) - Number(p.booking.host_payout_amount)).toLocaleString()}.
+                                </p>
+                              )}
+                              <p className="mt-1 text-gray-700">Status: <StatusBadge status={p.status} /></p>
                               <p className="text-gray-700">Recorded: {new Date(p.created_at).toLocaleDateString()}</p>
+                              <p className="text-gray-700">Paid: {p.paid_at ? new Date(p.paid_at).toLocaleDateString() : "Not paid yet"}</p>
                             </div>
                           </div>
                         </td>

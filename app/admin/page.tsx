@@ -21,6 +21,7 @@ async function getDashboardStats() {
     { data: pendingHostQueue, count: pendingHostCount },
     { data: openSupportQueue, count: openSupportCount },
     { data: owedPayoutQueue },
+    { data: propertyRequestQueue, count: propertyRequestCount },
   ] = await Promise.all([
     admin.from("listings").select("*", { count: "exact", head: true }),
     admin
@@ -83,6 +84,12 @@ async function getDashboardStats() {
       .from("payouts")
       .select("id, amount, status, created_at", { count: "exact" })
       .eq("status", "owed")
+      .order("created_at", { ascending: true })
+      .limit(5),
+    admin
+      .from("host_listing_requests")
+      .select("id, host_id, proposed_title, property_type, town, county, created_at", { count: "exact" })
+      .in("status", ["submitted", "reviewing", "visit_scheduled", "visited", "details_collected"])
       .order("created_at", { ascending: true })
       .limit(5),
   ]);
@@ -176,6 +183,18 @@ async function getDashboardStats() {
           label: `KES ${Number(item.amount).toLocaleString()}`,
           meta: `Owed since ${new Date(item.created_at).toLocaleDateString("en-KE")}`,
           href: "/admin/payouts?view=payouts&status=owed",
+        })),
+      },
+      {
+        id: "property-requests",
+        title: "Property visit requests",
+        count: propertyRequestCount ?? 0,
+        href: "/admin/listing-requests?status=all",
+        items: (propertyRequestQueue ?? []).map((item) => ({
+          id: item.id,
+          label: item.proposed_title,
+          meta: `${item.property_type} · ${item.town}, ${item.county} · ${new Date(item.created_at).toLocaleDateString("en-KE")}`,
+          href: "/admin/listing-requests?status=all",
         })),
       },
     ],

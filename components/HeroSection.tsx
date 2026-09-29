@@ -87,7 +87,14 @@ export default function HeroSection({
             >
               {county}
             </Link>
+            
           ))}
+          <Link 
+            href="/allListings"
+            className="rounded-full border border-white/35 bg-white/10 px-4 py-1.5 text-[13px] font-medium text-white no-underline backdrop-blur-sm transition-colors hover:bg-white/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+           >
+            All Listings
+          </Link>
         </div>
       </div>
     </section>

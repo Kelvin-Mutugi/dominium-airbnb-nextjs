@@ -12,6 +12,7 @@ import type {
   BookingStatus,
   HostDashboardStats,
   HostBookingChangeRequest,
+  HostListingRequest,
   Listing,
   ListingFormValues,
   ListingImage,
@@ -230,12 +231,52 @@ export async function deleteHostListing(id: string) {
   throw new Error("Host deletion is disabled. Listing removal is handled by the admin team.");
 }
 
-export async function updateHostBookingStatus(id: string, status: BookingStatus) {
+export async function updateHostBookingStatus(id: string, status: BookingStatus, declineReason = "") {
   const { user } = await requireHost();
   if (!["confirmed", "cancelled", "completed"].includes(status)) throw new Error("Invalid booking status.");
+  const normalizedReason = declineReason.trim();
+  if (status === "cancelled" && normalizedReason.length > 500) {
+    throw new Error("Decline reason must be 500 characters or fewer.");
+  }
+
   const supabase = await createClient();
-  const { error } = await supabase.from("bookings").update({ status }).eq("id", id).eq("host_id", user.id);
+  const { data: booking, error: lookupError } = await supabase
+    .from("bookings")
+    .select("status, check_out")
+    .eq("id", id)
+    .eq("host_id", user.id)
+    .maybeSingle();
+  if (lookupError || !booking) throw new Error("Booking not found.");
+
+  const today = new Date().toISOString().slice(0, 10);
+  const isAllowedTransition =
+    (booking.status === "pending" && (status === "confirmed" || status === "cancelled")) ||
+    (booking.status === "confirmed" && status === "completed" && booking.check_out <= today);
+  if (!isAllowedTransition) throw new Error("This booking can no longer be changed to that status.");
+
+  const { data: updated, error } = await supabase
+    .from("bookings")
+    .update({ status })
+    .eq("id", id)
+    .eq("host_id", user.id)
+    .eq("status", booking.status)
+    .select("id")
+    .maybeSingle();
   if (error) throw new Error("Unable to update booking status.");
+  if (!updated) throw new Error("Booking status changed. Refresh and try again.");
+
+  if (status === "cancelled" && normalizedReason) {
+    const admin = getSupabaseAdmin();
+    const { error: updateLogError } = await admin.from("booking_updates").insert({
+      booking_id: id,
+      actor_id: user.id,
+      event_type: "booking_status_changed",
+      summary: `Host declined booking request: ${normalizedReason}`,
+      details: { old_status: booking.status, new_status: status, decline_reason: normalizedReason },
+    });
+    if (updateLogError) console.error("Failed to record host decline reason:", updateLogError);
+  }
+
   revalidatePath("/host/bookings");
   revalidatePath("/host/payouts");
   revalidatePath("/host");
@@ -245,14 +286,32 @@ export async function getHostDashboardData() {
   const { user } = await requireHost();
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
-  const [stats, pending, upcoming] = await Promise.all([
+  const [stats, pending, upcoming, payouts] = await Promise.all([
     supabase.from("host_dashboard_stats").select("*").eq("host_id", user.id).maybeSingle(),
     supabase.from("bookings").select("*, listing:listings(id, title, town, county)").eq("host_id", user.id).eq("status", "pending").order("check_in", { ascending: true }),
     supabase.from("bookings").select("*, listing:listings(id, title, town, county)").eq("host_id", user.id).eq("status", "confirmed").gte("check_in", today).order("check_in", { ascending: true }),
+    supabase.from("payouts").select("amount, status").eq("host_id", user.id),
   ]);
-  if (stats.error || pending.error || upcoming.error) throw new Error("Unable to load host dashboard.");
+  if (stats.error || pending.error || upcoming.error || payouts.error) throw new Error("Unable to load host dashboard.");
+
+  const payoutTotals = (payouts.data ?? []).reduce(
+    (totals, payout) => {
+      const amount = Number(payout.amount);
+      if (payout.status === "owed") totals.balanceOwed += amount;
+      if (payout.status === "paid") totals.lifetimePaidOut += amount;
+      return totals;
+    },
+    { balanceOwed: 0, lifetimePaidOut: 0 },
+  );
+
   return {
-    stats: stats.data as HostDashboardStats | null,
+    stats: stats.data
+      ? {
+          ...(stats.data as HostDashboardStats),
+          balance_owed: payoutTotals.balanceOwed,
+          lifetime_paid_out: payoutTotals.lifetimePaidOut,
+        }
+      : null,
     pending: pending.data as unknown as Booking[],
     upcoming: upcoming.data as unknown as Booking[],
   };
@@ -264,6 +323,60 @@ export async function getHostListingsData() {
   const { data, error } = await supabase.from("listings").select("*, listing_images(id, url, sort_order)").eq("host_id", user.id).order("created_at", { ascending: false });
   if (error) throw new Error("Unable to load listings.");
   return data as unknown as Listing[];
+}
+
+export async function getHostListingRequestsData() {
+  const { user } = await requireHost();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("host_listing_requests")
+    .select("id, host_id, proposed_title, property_type, county, town, address, contact_phone, property_notes, status, proposed_visit_at, host_message, listing_id, created_at, updated_at")
+    .eq("host_id", user.id)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error("Unable to load your listing requests.");
+  return (data ?? []) as HostListingRequest[];
+}
+
+export async function submitHostListingRequest(input: {
+  proposedTitle: string;
+  propertyType: string;
+  county: string;
+  town: string;
+  address: string;
+  contactPhone: string;
+  propertyNotes: string;
+}) {
+  const { user } = await requireHost();
+  const values = {
+    proposed_title: input.proposedTitle.trim(),
+    property_type: input.propertyType.trim(),
+    county: input.county.trim(),
+    town: input.town.trim(),
+    address: input.address.trim() || null,
+    contact_phone: input.contactPhone.trim() || null,
+    property_notes: input.propertyNotes.trim() || null,
+  };
+
+  if (values.proposed_title.length < 3 || values.proposed_title.length > 120) throw new Error("Property name must be 3 to 120 characters.");
+  if (values.property_type.length < 2 || values.property_type.length > 80) throw new Error("Enter a property type up to 80 characters.");
+  if (values.county.length < 2 || values.county.length > 80) throw new Error("Enter a valid county.");
+  if (values.town.length < 2 || values.town.length > 100) throw new Error("Enter a valid town or area.");
+  if ((values.address?.length ?? 0) > 500 || (values.contact_phone?.length ?? 0) > 40 || (values.property_notes?.length ?? 0) > 3000) {
+    throw new Error("One or more property details exceed the allowed length.");
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("host_listing_requests")
+    .insert({ ...values, host_id: user.id })
+    .select("*")
+    .single();
+  if (error) throw new Error("Unable to submit your property visit request.");
+
+  revalidatePath("/host/listings");
+  revalidatePath("/admin/listing-requests");
+  revalidatePath("/admin");
+  return data as HostListingRequest;
 }
 
 export async function getHostBookingsData() {
@@ -331,7 +444,7 @@ export async function getHostPayoutsData() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("payouts")
-    .select("*, booking:bookings(check_in, check_out, guests_count, total_amount, host_payout_amount, guest_name, guest_email, guest_phone, listing:listings(id, title, town, county))")
+    .select("*, booking:bookings(check_in, check_out, guests_count, total_amount, commission_amount, host_payout_amount, host_base_amount, additional_charges_amount, guest_name, guest_email, guest_phone, listing:listings(id, title, town, county))")
     .eq("host_id", user.id)
     .order("created_at", { ascending: false });
   if (error) throw new Error("Unable to load payouts.");
@@ -568,53 +681,28 @@ export async function addHostAvailabilityBlock(listingId: string, startDate: str
 export async function removeHostAvailabilityBlock(id: string) {
   const { user } = await requireHost();
   const supabase = await createClient();
-  const { data: block } = await supabase.from("listing_availability_blocks").select("listing_id").eq("id", id).maybeSingle();
+  const { data: block } = await supabase
+    .from("listing_availability_blocks")
+    .select("listing_id")
+    .eq("id", id)
+    .maybeSingle();
   if (!block) throw new Error("Availability block not found.");
-  const { data: listing } = await supabase.from("listings").select("id").eq("id", block.listing_id).eq("host_id", user.id).maybeSingle();
+
+  const { data: listing } = await supabase
+    .from("listings")
+    .select("id")
+    .eq("id", block.listing_id)
+    .eq("host_id", user.id)
+    .maybeSingle();
   if (!listing) throw new Error("You do not own this listing.");
-  const { error } = await supabase.from("listing_availability_blocks").delete().eq("id", id);
+
+  const { error } = await supabase
+    .from("listing_availability_blocks")
+    .delete()
+    .eq("id", id);
   if (error) throw new Error("Unable to remove blocked dates.");
+
   revalidatePath(`/host/listings/${block.listing_id}/edit`);
   revalidatePath("/host/calendar");
 }
 
-export async function uploadHostListingImage(listingId: string, file: File, sortOrder: number) {
-  const { user } = await requireHost();
-  const supabase = await createClient();
-  const { data: listing } = await supabase.from("listings").select("id").eq("id", listingId).eq("host_id", user.id).maybeSingle();
-  if (!listing || !file.type.startsWith("image/") || file.size > 10 * 1024 * 1024) throw new Error("Invalid image or listing.");
-  const path = `${user.id}/${listingId}/${crypto.randomUUID()}-${file.name}`;
-  const { error: uploadError } = await supabase.storage.from("listing-images").upload(path, file, { contentType: file.type, upsert: false });
-  if (uploadError) throw new Error("Unable to upload image.");
-  const { data: publicUrl } = supabase.storage.from("listing-images").getPublicUrl(path);
-  const { data, error } = await supabase.from("listing_images").insert({ listing_id: listingId, url: publicUrl.publicUrl, sort_order: Math.max(0, Math.trunc(sortOrder)) }).select().single();
-  if (error) throw new Error("Unable to save image.");
-  revalidatePath(`/host/listings/${listingId}/edit`);
-  return data as ListingImage;
-}
-
-export async function deleteHostListingImage(imageId: string) {
-  const { user } = await requireHost();
-  const supabase = await createClient();
-  const { data: image } = await supabase.from("listing_images").select("id, listing_id").eq("id", imageId).maybeSingle();
-  if (!image) throw new Error("Image not found.");
-  const { data: listing } = await supabase.from("listings").select("id").eq("id", image.listing_id).eq("host_id", user.id).maybeSingle();
-  if (!listing) throw new Error("You do not own this listing.");
-  const { error } = await supabase.from("listing_images").delete().eq("id", imageId);
-  if (error) throw new Error("Unable to delete image.");
-  revalidatePath(`/host/listings/${image.listing_id}/edit`);
-}
-
-export async function reorderHostListingImages(images: { id: string; sort_order: number }[]) {
-  const { user } = await requireHost();
-  const supabase = await createClient();
-  for (const image of images) {
-    const { data: row } = await supabase.from("listing_images").select("listing_id").eq("id", image.id).maybeSingle();
-    if (!row) throw new Error("Image not found.");
-    const { data: listing } = await supabase.from("listings").select("id").eq("id", row.listing_id).eq("host_id", user.id).maybeSingle();
-    if (!listing) throw new Error("You do not own this listing.");
-    const { error } = await supabase.from("listing_images").update({ sort_order: Math.max(0, Math.trunc(image.sort_order)) }).eq("id", image.id);
-    if (error) throw new Error("Unable to reorder images.");
-  }
-  revalidatePath("/host/listings");
-}

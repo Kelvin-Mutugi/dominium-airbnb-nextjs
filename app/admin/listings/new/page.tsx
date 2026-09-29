@@ -3,12 +3,13 @@ import { AdminNewListingForm } from "@/components/admin/listings/admin-new-listi
 export default async function AdminNewListingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ hostId?: string | string[] }>;
+  searchParams: Promise<{ hostId?: string | string[]; requestId?: string | string[] }>;
 }) {
-  const { hostId } = await searchParams;
+  const { hostId, requestId } = await searchParams;
   const initialHostId = typeof hostId === "string" ? hostId : "";
+  const intakeRequestId = typeof requestId === "string" ? requestId : null;
 
   return (
-    <AdminNewListingForm initialHostId={initialHostId} />
+    <AdminNewListingForm initialHostId={initialHostId} intakeRequestId={intakeRequestId} />
   );
 }

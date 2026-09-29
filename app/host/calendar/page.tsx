@@ -275,6 +275,10 @@ export default function HostCalendarPage() {
 
   async function handleRemoveConnection(id: string) {
     if (removingConnectionId) return;
+    const connection = connections.find((item) => item.id === id);
+    const sourceName = connection?.source_name ?? "this calendar";
+    if (!window.confirm(`Disconnect ${sourceName}? Its imported busy dates will be removed and may make those dates appear available.`)) return;
+
     setRemovingConnectionId(id);
     setError(null);
     setSuccess(null);
@@ -393,9 +397,9 @@ export default function HostCalendarPage() {
       {!loading && !error && listings.length === 0 ? (
         <section className="rounded-xl border border-gray-200 bg-white px-6 py-12 text-center">
           <CalendarDays className="mx-auto h-8 w-8 text-gray-400" aria-hidden="true" />
-          <h2 className="mt-3 font-semibold text-[#12231d]">No listings to schedule yet</h2>
-          <p className="mt-1 text-sm text-gray-500">Create a listing to manage bookings and availability here.</p>
-          <Link href="/host/listings/new" className="mt-5 inline-flex rounded-lg bg-[#12231d] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#243c34]">Create listing</Link>
+          <h2 className="mt-3 font-semibold text-[#12231d]">No listings assigned yet</h2>
+          <p className="mt-1 text-sm text-gray-500">Listings are added by the admin team. Once one is assigned to you, its bookings and availability will appear here.</p>
+          <Link href="/host/listings" className="mt-5 inline-flex rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-[#12231d] hover:bg-gray-50">View my listings</Link>
         </section>
       ) : (
         <>

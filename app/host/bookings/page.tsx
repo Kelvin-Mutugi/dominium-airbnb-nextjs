@@ -43,6 +43,8 @@ export default function HostBookingsPage() {
   const [updatingStatus, setUpdatingStatus] =
     useState<BookingStatus | null>(null);
   const [updatingRequestId, setUpdatingRequestId] = useState<string | null>(null);
+  const [decliningBookingId, setDecliningBookingId] = useState<string | null>(null);
+  const [declineReason, setDeclineReason] = useState("");
 
   // Error message shown to the host
   const [error, setError] = useState<string | null>(null);
@@ -93,8 +95,14 @@ export default function HostBookingsPage() {
 
   async function handleStatusChange(
     id: string,
-    status: BookingStatus
+    status: BookingStatus,
+    reason = "",
   ) {
+    if (
+      status === "cancelled" &&
+      !window.confirm("Decline this booking request? The booking will be cancelled and the guest will be notified.")
+    ) return;
+
     // Prevent accidental double clicks
     if (updatingId) return;
 
@@ -104,7 +112,7 @@ export default function HostBookingsPage() {
     setSuccess(null);
 
     try {
-      await updateHostBookingStatus(id, status);
+      await updateHostBookingStatus(id, status, reason);
 
       // Refresh bookings after successful update
       await load();
@@ -117,6 +125,10 @@ export default function HostBookingsPage() {
             : "Booking marked as completed.";
 
       setSuccess(message);
+      if (status === "cancelled") {
+        setDecliningBookingId(null);
+        setDeclineReason("");
+      }
 
       // Remove success message after a short delay
       setTimeout(() => {
@@ -133,7 +145,18 @@ export default function HostBookingsPage() {
     }
   }
 
-  async function handleRequestResponse(requestId: string, approve: boolean) {
+  async function handleRequestResponse(
+    requestId: string,
+    approve: boolean,
+    requestType: "cancellation" | "date_change",
+    estimatedRefundAmount: number,
+  ) {
+    if (
+      approve &&
+      requestType === "cancellation" &&
+      !window.confirm(`Approve this cancellation? The booking will be cancelled now. The estimated KES ${estimatedRefundAmount.toLocaleString("en-KE")} refund will still need manual processing.`)
+    ) return;
+
     if (updatingRequestId) return;
     setUpdatingRequestId(requestId);
     setError(null);
@@ -254,8 +277,8 @@ export default function HostBookingsPage() {
                     {request.reason && <p className="mt-2 whitespace-pre-wrap text-sm text-gray-500">Guest note: {request.reason}</p>}
                   </div>
                   <div className="flex shrink-0 gap-2">
-                    <button type="button" disabled={isUpdatingRequest} onClick={() => handleRequestResponse(request.id, false)} className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 disabled:opacity-50">Decline</button>
-                    <button type="button" disabled={isUpdatingRequest} onClick={() => handleRequestResponse(request.id, true)} className="rounded-md bg-[#12231d] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">{isUpdatingRequest ? "Saving…" : "Approve"}</button>
+                    <button type="button" disabled={isUpdatingRequest} onClick={() => handleRequestResponse(request.id, false, request.request_type, Number(request.estimated_refund_amount ?? 0))} className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 disabled:opacity-50">Decline</button>
+                    <button type="button" disabled={isUpdatingRequest} onClick={() => handleRequestResponse(request.id, true, request.request_type, Number(request.estimated_refund_amount ?? 0))} className="rounded-md bg-[#12231d] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">{isUpdatingRequest ? "Saving…" : request.request_type === "cancellation" ? "Approve cancellation" : "Approve date change"}</button>
                   </div>
                 </div>
               </article>
@@ -397,9 +420,10 @@ export default function HostBookingsPage() {
                     {/* Decline */}
                     <button
                       disabled={isUpdating}
-                      onClick={() =>
-                        handleStatusChange(b.id, "cancelled")
-                      }
+                      onClick={() => {
+                        setDecliningBookingId(b.id);
+                        setDeclineReason("");
+                      }}
                       className="flex items-center justify-center gap-2 rounded-lg border border-red-200 px-4 py-1.5 text-sm font-medium text-red-600 transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isUpdating &&
@@ -415,6 +439,29 @@ export default function HostBookingsPage() {
                         </>
                       )}
                     </button>
+                  </div>
+                )}
+
+                {decliningBookingId === b.id && b.status === "pending" && (
+                  <div role="dialog" aria-modal="true" aria-labelledby={`decline-heading-${b.id}`} className="mt-4 space-y-3 rounded-lg border border-red-200 bg-red-50 p-4">
+                    <div>
+                      <h3 id={`decline-heading-${b.id}`} className="text-sm font-semibold text-red-900">Decline this booking request?</h3>
+                      <p className="mt-1 text-xs text-red-800">The booking will be cancelled and the guest will be notified. You may include a short reason.</p>
+                    </div>
+                    <label htmlFor={`decline-reason-${b.id}`} className="block text-xs font-medium text-red-900">Reason (optional)</label>
+                    <textarea
+                      id={`decline-reason-${b.id}`}
+                      value={declineReason}
+                      onChange={(event) => setDeclineReason(event.target.value)}
+                      maxLength={500}
+                      rows={2}
+                      placeholder="Add a brief explanation for the guest"
+                      className="w-full rounded-md border border-red-200 bg-white px-3 py-2 text-sm text-[#1B1A2E] focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <button type="button" disabled={isUpdating} onClick={() => setDecliningBookingId(null)} className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 disabled:opacity-50">Keep booking</button>
+                      <button type="button" disabled={isUpdating} onClick={() => void handleStatusChange(b.id, "cancelled", declineReason)} className="rounded-md bg-red-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">{isUpdating && updatingStatus === "cancelled" ? "Declining…" : "Confirm decline"}</button>
+                    </div>
                   </div>
                 )}
 

@@ -9,7 +9,6 @@ import {
   ClipboardList,
   BookOpenText,
   Wallet,
-  Plus,
   ArrowLeft,
   LifeBuoy,
   Star,
@@ -68,20 +67,13 @@ export default function HostSidebar() {
           })}
         </nav>
 
-        <div className="mt-auto space-y-2">
+        <div className="mt-auto">
           <Link
             href="/"
             className="flex items-center justify-center gap-2 rounded-lg border border-white/20 px-3 py-2.5 text-sm font-medium text-white/80 transition hover:border-white/40 hover:bg-white/10 hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to site
-          </Link>
-          <Link
-            href="/host/listings/new"
-            className="flex items-center justify-center gap-2 rounded-lg bg-[#f2a71b] px-3 py-2.5 text-sm font-semibold text-[#12231d] transition hover:bg-[#ffc34d]"
-          >
-            <Plus className="h-4 w-4" />
-            New listing
           </Link>
         </div>
       </aside>
@@ -92,13 +84,6 @@ export default function HostSidebar() {
           Host <span className="text-[#ec1561]">Panel</span>
         </span>
 
-        <Link
-          href="/host/listings/new"
-          className="flex items-center gap-1.5 rounded-md bg-[#f2a71b] px-3 py-1.5 text-xs font-semibold text-[#12231d]"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          New
-        </Link>
       </div>
 
       {/* Mobile Bottom Navigation */}

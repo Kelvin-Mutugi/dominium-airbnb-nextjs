@@ -46,17 +46,17 @@ export default function HostGuidePage() {
               <li className="flex gap-3">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#12231d] text-xs font-semibold text-white">2</span>
                 <div>
-                  <h3 className="font-medium text-[#12231d]">Create a draft listing</h3>
-                  <p className="mt-1 text-sm leading-6 text-gray-600">Add the property details and nightly price. You can save first, then return to add photos and finish the listing.</p>
-                  <GuideLink href="/host/listings/new">Create a listing</GuideLink>
+                  <h3 className="font-medium text-[#12231d]">Wait for the admin team to add your listing</h3>
+                  <p className="mt-1 text-sm leading-6 text-gray-600">The admin team enters property details, photos, and pricing on your behalf during this launch phase.</p>
+                  <GuideLink href="/host/listings">View your listings</GuideLink>
                 </div>
               </li>
               <li className="flex gap-3">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#12231d] text-xs font-semibold text-white">3</span>
                 <div>
-                  <h3 className="font-medium text-[#12231d]">Publish when it is ready</h3>
-                  <p className="mt-1 text-sm leading-6 text-gray-600">Publishing requires a nightly price and a description of at least 40 characters. Check availability before accepting bookings.</p>
-                  <GuideLink href="/host/listings">Manage listings</GuideLink>
+                  <h3 className="font-medium text-[#12231d]">Review your listing details</h3>
+                  <p className="mt-1 text-sm leading-6 text-gray-600">You can view the listing and its status. Contact the admin team if details need to be corrected; hosts cannot edit, publish, or remove listings during this phase.</p>
+                  <GuideLink href="/host/listings">Open listing details</GuideLink>
                 </div>
               </li>
             </ol>
@@ -65,8 +65,8 @@ export default function HostGuidePage() {
           <section id="listings" className="scroll-mt-8 py-7">
             <h2 className="text-xl font-semibold text-[#12231d]">Listings</h2>
             <div className="mt-3 space-y-3 text-sm leading-6 text-gray-600">
-              <p>Use the listings page to filter drafts and published properties, edit details, and change publication status. A draft is not bookable until published.</p>
-              <p>Keep the nightly price, guest capacity, house rules, and availability accurate. Update a listing whenever those details change.</p>
+              <p>The admin team manages listing details, photos, pricing, and publication status. Use your listings page to review assigned properties and their current status.</p>
+              <p>If anything is inaccurate or needs to change, contact the admin team. You can manage bookings and calendar availability for listings assigned to you.</p>
             </div>
             <div className="mt-4"><GuideLink href="/host/listings">Open listings</GuideLink></div>
           </section>

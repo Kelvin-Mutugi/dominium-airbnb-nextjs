@@ -13,6 +13,7 @@ import {
   BadgeCheck,
   Star,
   History,
+  ClipboardList,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/verification", label: "Host Verification", icon: BadgeCheck },
   { href: "/admin/listings", label: "Listings", icon: Home },
+  { href: "/admin/listing-requests", label: "Property Visit Requests", icon: ClipboardList },
   { href: "/admin/bookings", label: "Bookings", icon: CalendarCheck },
   { href: "/admin/payouts", label: "Payments & Payouts", icon: Wallet },
   { href: "/admin/support", label: "Support & Disputes", icon: LifeBuoy },

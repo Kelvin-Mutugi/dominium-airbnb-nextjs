@@ -5,17 +5,25 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, type ChangeEvent } from "react";
 import { Images, Trash2, Upload } from "lucide-react";
 import { createAdminListing } from "@/app/admin/listings/actions";
+import { linkCreatedListingToHostRequest } from "@/app/admin/listing-requests/actions";
 import type { ListingFormValues } from "@/app/lib/host/types";
 import { uploadAdminListingImage } from "@/components/admin/listings/upload-admin-listing-image";
 import ListingForm from "@/components/host/ListingForm";
 
-export function AdminNewListingForm({ initialHostId }: { initialHostId: string }) {
+export function AdminNewListingForm({
+  initialHostId,
+  intakeRequestId,
+}: {
+  initialHostId: string;
+  intakeRequestId?: string | null;
+}) {
   const router = useRouter();
   const [hostId, setHostId] = useState(initialHostId);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [createdListingId, setCreatedListingId] = useState<string | null>(null);
+  const [createdListingNotice, setCreatedListingNotice] = useState<string | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   function selectImages(event: ChangeEvent<HTMLInputElement>) {
@@ -47,8 +55,21 @@ export function AdminNewListingForm({ initialHostId }: { initialHostId: string }
       } catch (uploadError) {
         console.error("Listing created, but image upload failed:", uploadError);
         setCreatedListingId(listing.id);
+        setCreatedListingNotice("The listing was created, but an image did not upload. Add the remaining images from the listing editor.");
         setError(uploadError instanceof Error ? uploadError.message : "Unable to upload listing images.");
         return;
+      }
+
+      if (intakeRequestId) {
+        try {
+          await linkCreatedListingToHostRequest(intakeRequestId, listing.id);
+        } catch (linkError) {
+          console.error("Listing created, but property request could not be linked:", linkError);
+          setCreatedListingId(listing.id);
+          setCreatedListingNotice("The listing was created, but the property request could not be linked. You can link it from the request queue.");
+          setError(linkError instanceof Error ? linkError.message : "Unable to update property request.");
+          return;
+        }
       }
 
       router.push(`/admin/listings/${listing.id}`);
@@ -64,7 +85,7 @@ export function AdminNewListingForm({ initialHostId }: { initialHostId: string }
     return (
       <div className="mx-auto max-w-4xl space-y-4">
         <div role="alert" className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          The listing was created, but an image did not upload. Add the remaining images from the listing editor.
+          {createdListingNotice}
           {error && <span className="mt-1 block text-red-700">{error}</span>}
         </div>
         <div className="flex flex-wrap gap-3">

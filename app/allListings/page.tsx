@@ -460,11 +460,11 @@ function AllListingsContent() {
                     </thead>
                     <tbody className="divide-y divide-neutral-200">
                       <tr><th className="py-3 pr-4 font-medium text-neutral-500">Price / night</th>{comparison.map((listing) => <td key={listing.id} className="px-3 py-3 font-semibold text-[#1B1A2E]">KES {listing.pricePerNight.toLocaleString()}</td>)}</tr>
-                      <tr><th className="py-3 pr-4 font-medium text-neutral-500">Bedrooms</th>{comparison.map((listing) => <td key={listing.id} className="px-3 py-3">{listing.bedrooms}</td>)}</tr>
-                      <tr><th className="py-3 pr-4 font-medium text-neutral-500">Guests</th>{comparison.map((listing) => <td key={listing.id} className="px-3 py-3">{listing.guests}</td>)}</tr>
-                      <tr><th className="py-3 pr-4 font-medium text-neutral-500">Rating</th>{comparison.map((listing) => <td key={listing.id} className="px-3 py-3">{listing.rating.toFixed(1)} ({listing.reviewCount})</td>)}</tr>
-                      <tr><th className="py-3 pr-4 align-top font-medium text-neutral-500">Amenities</th>{comparison.map((listing) => <td key={listing.id} className="px-3 py-3 align-top">{listing.amenities.slice(0, 6).join(", ") || "Not listed"}</td>)}</tr>
-                      <tr><th className="py-3 pr-4 font-medium text-neutral-500">Location</th>{comparison.map((listing) => <td key={listing.id} className="px-3 py-3">{listing.location || "Not listed"}</td>)}</tr>
+                      <tr><th className="py-3 pr-4 font-medium text-neutral-500">Bedrooms</th>{comparison.map((listing) => <td key={listing.id} className="px-3 py-3 text-[#1B1A2E]">{listing.bedrooms}</td>)}</tr>
+                      <tr><th className="py-3 pr-4 font-medium text-neutral-500">Guests</th>{comparison.map((listing) => <td key={listing.id} className="px-3 py-3 text-[#1B1A2E]">{listing.guests}</td>)}</tr>
+                      <tr><th className="py-3 pr-4 font-medium text-neutral-500">Rating</th>{comparison.map((listing) => <td key={listing.id} className="px-3 py-3 text-[#1B1A2E]">{listing.rating.toFixed(1)} ({listing.reviewCount})</td>)}</tr>
+                      <tr><th className="py-3 pr-4 align-top font-medium text-neutral-500">Amenities</th>{comparison.map((listing) => <td key={listing.id} className="px-3 py-3 align-top text-[#1B1A2E]">{listing.amenities.slice(0, 6).join(", ") || "Not listed"}</td>)}</tr>
+                      <tr><th className="py-3 pr-4 font-medium text-neutral-500">Location</th>{comparison.map((listing) => <td key={listing.id} className="px-3 py-3 text-[#1B1A2E]">{listing.location || "Not listed"}</td>)}</tr>
                       <tr><th className="py-3 pr-4" />{comparison.map((listing) => <td key={listing.id} className="px-3 py-4"><button type="button" onClick={() => router.push(`/apartments/${listing.id}`)} className="font-semibold text-rose-700 underline underline-offset-4">View stay</button></td>)}</tr>
                     </tbody>
                   </table>

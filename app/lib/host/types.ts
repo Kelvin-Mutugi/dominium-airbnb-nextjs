@@ -71,6 +71,33 @@ export interface ListingAdditionalCharge {
   frequency: "per_night" | "per_booking";
 }
 
+export type HostListingRequestStatus =
+  | "submitted"
+  | "reviewing"
+  | "visit_scheduled"
+  | "visited"
+  | "details_collected"
+  | "listing_created"
+  | "declined";
+
+export interface HostListingRequest {
+  id: string;
+  host_id: string;
+  proposed_title: string;
+  property_type: string;
+  county: string;
+  town: string;
+  address: string | null;
+  contact_phone: string | null;
+  property_notes: string | null;
+  status: HostListingRequestStatus;
+  proposed_visit_at: string | null;
+  host_message: string | null;
+  listing_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface AvailabilityBlock {
   id: string;
   listing_id: string;
@@ -93,6 +120,8 @@ export interface Booking {
   total_amount: number;
   commission_amount: number;
   host_payout_amount: number;
+  host_base_amount: number | null;
+  additional_charges_amount: number | null;
   guest_name: string | null;
   guest_email: string | null;
   guest_phone: string | null;
@@ -137,7 +166,10 @@ export interface Payout {
     | "check_out"
     | "guests_count"
     | "total_amount"
+    | "commission_amount"
     | "host_payout_amount"
+    | "host_base_amount"
+    | "additional_charges_amount"
     | "guest_name"
     | "guest_email"
     | "guest_phone"
