@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { activeBookingFilter } from "@/app/lib/booking/availability";
 import { syncStaleCalendarConnectionsForListing } from "@/app/lib/host/calendar-sync";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 
@@ -31,6 +32,15 @@ export async function POST(request: Request) {
   }
 
   const admin = getSupabaseAdmin();
+  const { error: holdExpiryError } = await admin.rpc("expire_pending_booking_holds");
+  if (holdExpiryError) {
+    console.error("Could not expire pending booking holds:", holdExpiryError);
+    return NextResponse.json(
+      { error: "Availability is temporarily unavailable." },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
   const { data: publishedListings, error: listingError } = await admin
     .from("listings")
     .select("id")
@@ -50,7 +60,7 @@ export async function POST(request: Request) {
   }
 
   const [{ data: bookings, error: bookingError }, { data: manualBlocks, error: manualError }, { data: externalBlocks, error: externalError }] = await Promise.all([
-    admin.from("bookings").select("listing_id").in("listing_id", publicListingIds).in("status", ["pending", "confirmed"]).lt("check_in", body.checkOut).gt("check_out", body.checkIn),
+    admin.from("bookings").select("listing_id, hold_expires_at").in("listing_id", publicListingIds).or(activeBookingFilter()).lt("check_in", body.checkOut).gt("check_out", body.checkIn),
     admin.from("listing_availability_blocks").select("listing_id").in("listing_id", publicListingIds).lt("start_date", body.checkOut).gt("end_date", body.checkIn),
     admin.from("host_external_calendar_events").select("listing_id").in("listing_id", publicListingIds).lt("start_date", body.checkOut).gt("end_date", body.checkIn),
   ]);
