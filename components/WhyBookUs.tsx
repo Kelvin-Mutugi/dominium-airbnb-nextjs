@@ -27,7 +27,7 @@ const BENEFITS = [
     icon: MessageCircle,
     title: "Simple booking",
     description:
-      "Confirm and pay for your stay on the platform, then message your host directly to sort out check-in.",
+      "Confirm and pay for your stay on the platform, then contact customer support for booking and check-in help.",
     accent: {
       chip: "bg-[#EAD9CE]",
       icon: "text-[#B85C38]",

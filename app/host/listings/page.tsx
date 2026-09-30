@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Plus, X } from "lucide-react";
+import { ArrowRight, CalendarDays, Plus, X } from "lucide-react";
 import { getHostListingRequestsData, getHostListingsData, submitHostListingRequest } from "@/app/lib/host/actions";
 import type { HostListingRequest, Listing } from "@/app/lib/host/types";
 import StatusBadge from "@/components/host/StatusBadge";
@@ -14,6 +14,7 @@ const FILTERS = [
   "published",
   "draft",
   "suspended",
+  "archived",
 ] as const;
 
 type Filter = (typeof FILTERS)[number];
@@ -306,6 +307,35 @@ export default function HostListingsPage() {
               ?.sort(
                 (a, b) => a.sort_order - b.sort_order,
               )?.[0]?.url;
+            const listingGuidance = listing.status === "published"
+              ? {
+                  detail: "Live and bookable. Keep your calendar availability up to date.",
+                  action: "Manage calendar",
+                  href: "/host/calendar",
+                }
+              : listing.status === "draft" && listing.is_publish_ready
+                ? {
+                    detail: "Details are ready for admin review. Publishing is managed by the admin team.",
+                    action: "Ask about review",
+                    href: "/account/support?category=listing_issue",
+                  }
+                : listing.status === "draft"
+                  ? {
+                      detail: "Not live yet. Listing details need attention from the admin team before publishing.",
+                      action: "Ask about listing",
+                      href: "/account/support?category=listing_issue",
+                    }
+                  : listing.status === "suspended"
+                    ? {
+                        detail: "Temporarily unavailable to guests. Contact support for the current status and next steps.",
+                        action: "Contact support",
+                        href: "/account/support?category=listing_issue",
+                      }
+                    : {
+                        detail: "Not bookable. Contact support if this listing should be reviewed for reactivation.",
+                        action: "Ask about reactivation",
+                        href: "/account/support?category=listing_issue",
+                      };
 
             return (
               <div
@@ -356,11 +386,14 @@ export default function HostListingsPage() {
                     ★ {listing.average_rating.toFixed(1)} (
                     {listing.review_count} reviews)
                   </p>
+                  <p className="mt-2 text-sm text-[#565c57]">{listingGuidance.detail}</p>
                 </Link>
 
-                <div className="flex shrink-0 items-center gap-2 rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-600">
-                  View details
-                </div>
+                <Link href={listingGuidance.href} className="inline-flex shrink-0 items-center gap-1.5 self-start text-sm font-semibold text-[#b30f4b] hover:underline sm:self-center">
+                  {listing.status === "published" ? <CalendarDays className="h-4 w-4" aria-hidden="true" /> : null}
+                  {listingGuidance.action}
+                  {listing.status !== "published" && <ArrowRight className="h-4 w-4" aria-hidden="true" />}
+                </Link>
               </div>
             );
           })}

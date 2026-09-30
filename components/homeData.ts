@@ -2,9 +2,12 @@ import { Wifi } from "lucide-react";
 import type { ListingAdditionalCharge } from "@/app/lib/host/types";
 
 export const HERO_IMAGES: string[] = [
-  "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2",
-  "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688",
-  "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
+  // Safari: zebra at sunrise, Maasai Mara (Nathalie Lays)
+  "https://unsplash.com/photos/DCamlq21qsQ/download?force=true&w=1920",
+  // City: Nairobi skyline with KICC (Kenny Murgor)
+  "https://unsplash.com/photos/vyagy6HJpVE/download?force=true&w=1920",
+  // Coast: sunrise over palm-lined Diani Beach (Flo P)
+  "https://unsplash.com/photos/Z-yATRnA0es/download?force=true&w=1920",
 ];
 
 export const ROUTES: string[] = [

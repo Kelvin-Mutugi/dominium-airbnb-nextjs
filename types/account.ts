@@ -49,6 +49,7 @@ export interface BookingListing {
 
 export interface BookingRow {
   id: string;
+  booking_reference: string;
   listing_id: string;
   check_in: string; // YYYY-MM-DD
   check_out: string; // YYYY-MM-DD
@@ -69,7 +70,7 @@ export interface BookingView extends BookingRow {
   reviewed: boolean;
   hostReviewed: boolean;
   changeRequest: BookingChangeRequest | null;
-  unreadMessageCount: number;
+  unreadSupportReplyCount: number;
 }
 
 export interface BookingChangeRequest {

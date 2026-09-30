@@ -37,6 +37,7 @@ async function fetchListingPage(
       foreignTable: "listing_images",
       ascending: true,
     })
+    .limit(1, { foreignTable: "listing_images" })
     .range(from, to);
 
   if (error) {

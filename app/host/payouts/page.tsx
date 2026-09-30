@@ -39,40 +39,54 @@ export default function HostPayoutsPage() {
   if (error) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold text-[#12231d]">Payouts</h1>
-        <div role="alert" className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          <span>{error}</span>
-          <button
-            type="button"
-            onClick={() => {
-              setLoading(true);
-              setError(null);
-              setReloadToken((token) => token + 1);
-            }}
-            className="font-semibold underline underline-offset-2 hover:no-underline"
-          >
-            Try again
-          </button>
-        </div>
+        <p className="text-red-700">{error}</p>
+        <button
+          type="button"
+          onClick={() => {
+            setError(null);
+            setLoading(true);
+            setReloadToken((token) => token + 1);
+          }}
+          className="font-semibold text-[#b30f4b] underline"
+        >
+          Try again
+        </button>
       </div>
     );
   }
 
   const owed = payouts.filter((p) => p.status === "owed").reduce((sum, p) => sum + Number(p.amount), 0);
+  const processing = payouts.filter((p) => p.status === "processing").reduce((sum, p) => sum + Number(p.amount), 0);
   const paid = payouts.filter((p) => p.status === "paid").reduce((sum, p) => sum + Number(p.amount), 0);
+  const owedCount = payouts.filter((p) => p.status === "owed").length;
+  const processingCount = payouts.filter((p) => p.status === "processing").length;
+  const paidCount = payouts.filter((p) => p.status === "paid").length;
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-[#12231d]">Payouts</h1>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Owed to you</p>
-          <p className="mt-1 text-2xl font-bold text-[#ec1561]">KES {owed.toLocaleString()}</p>
+      <div className="grid gap-px border border-[#12231d]/15 bg-[#12231d]/15 sm:grid-cols-3">
+        <div className="bg-white p-5">
+          <p className="text-sm font-medium text-[#565c57]">Owed to you</p>
+          <p className="mt-2 text-2xl font-semibold tabular-nums text-[#9a5b00]">KES {owed.toLocaleString("en-KE")}</p>
+          <p className="mt-2 text-xs leading-5 text-[#747873]">
+            {owedCount} {owedCount === 1 ? "payout" : "payouts"} recorded as owed and awaiting payment.
+          </p>
         </div>
-        <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Paid out so far</p>
-          <p className="mt-1 text-2xl font-bold text-[#12231d]">KES {paid.toLocaleString()}</p>
+        <div className="bg-white p-5">
+          <p className="text-sm font-medium text-[#565c57]">Processing</p>
+          <p className="mt-2 text-2xl font-semibold tabular-nums text-[#365d80]">KES {processing.toLocaleString("en-KE")}</p>
+          <p className="mt-2 text-xs leading-5 text-[#747873]">
+            {processingCount} {processingCount === 1 ? "payout" : "payouts"} is being handled and is not marked paid yet.
+          </p>
+        </div>
+        <div className="bg-white p-5">
+          <p className="text-sm font-medium text-[#565c57]">Paid out</p>
+          <p className="mt-2 text-2xl font-semibold tabular-nums text-[#315b47]">KES {paid.toLocaleString("en-KE")}</p>
+          <p className="mt-2 text-xs leading-5 text-[#747873]">
+            {paidCount} {paidCount === 1 ? "payout" : "payouts"} marked paid in your history.
+          </p>
         </div>
       </div>
 
@@ -134,7 +148,7 @@ export default function HostPayoutsPage() {
                     {expanded && (
                       <tr className="bg-white">
                         <td colSpan={4} className="px-4 pb-4">
-                          <div className="grid gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                          <div className="grid gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
                             <div>
                               <p className="text-xs font-medium uppercase text-gray-500">Guest</p>
                               <Link
@@ -143,8 +157,6 @@ export default function HostPayoutsPage() {
                               >
                                 {p.booking?.guest_name ?? "View booking details"}
                               </Link>
-                              {p.booking?.guest_email && <p className="break-all text-gray-600">{p.booking.guest_email}</p>}
-                              {p.booking?.guest_phone && <p className="text-gray-600">{p.booking.guest_phone}</p>}
                             </div>
                             <div>
                               <p className="text-xs font-medium uppercase text-gray-500">Listing</p>
@@ -164,36 +176,17 @@ export default function HostPayoutsPage() {
                             </div>
                             <div>
                               <p className="text-xs font-medium uppercase text-gray-500">Booking</p>
-                              <p className="mt-1 text-gray-700">{p.booking?.guests_count ?? "—"} guests</p>
-                              <p className="text-gray-700">Total: KES {Number(p.booking?.total_amount ?? 0).toLocaleString()}</p>
-                              <Link
-                                href={`/host/bookings?status=completed&booking=${encodeURIComponent(p.booking_id)}#host-booking-${p.booking_id}`}
-                                className="mt-1 inline-block font-medium text-[#b30f4b] underline decoration-[#b30f4b]/40 underline-offset-2 hover:text-[#870b38]"
-                              >
+                              <p className="mt-1 text-gray-700">Reference: {p.booking?.booking_reference ?? "Unavailable"}</p>
+                              <p className="text-gray-700">Booking status: <StatusBadge status={p.booking?.status ?? "unknown"} /></p>
+                              <p className="text-gray-700">{p.booking?.nights ?? "—"} nights · {p.booking?.adults_count ?? "—"} adults · {p.booking?.children_count ?? "—"} children · {p.booking?.rooms_count ?? "—"} rooms</p>
+                              <p className="text-gray-700">Guest: {p.booking?.guest_name ?? "Guest"}{p.booking?.guest_country ? ` · ${p.booking.guest_country}` : ""}</p>
+                              <p className="text-gray-700">Host payout: KES {Number(p.booking?.host_payout_amount ?? p.amount).toLocaleString()}</p>
+                              {p.booking?.special_requests && <p className="mt-1 whitespace-pre-wrap text-gray-600">Request: {p.booking.special_requests}</p>}
+                              <Link href={`/host/bookings?status=completed&booking=${encodeURIComponent(p.booking_id)}#host-booking-${p.booking_id}`} className="mt-1 inline-block font-medium text-[#b30f4b] underline decoration-[#b30f4b]/40 underline-offset-2 hover:text-[#870b38]">
                                 Open booking
                               </Link>
-                            </div>
-                            <div>
-                              <p className="text-xs font-medium uppercase text-gray-500">Payout reconciliation</p>
-                              {p.booking?.host_base_amount != null && p.booking.additional_charges_amount != null ? (
-                                <>
-                                  <p className="mt-1 text-gray-700">Host nightly earnings: KES {Number(p.booking.host_base_amount).toLocaleString()}</p>
-                                  <p className="text-gray-700">Additional host charges: KES {Number(p.booking.additional_charges_amount).toLocaleString()}</p>
-                                </>
-                              ) : (
-                                <p className="mt-1 text-xs text-gray-500">Detailed host-rate/charge split is unavailable for this older booking.</p>
-                              )}
-                              <p className="text-gray-700">Platform fee: KES {Number(p.booking?.commission_amount ?? 0).toLocaleString()}</p>
-                              <p className="text-gray-700">Guest total: KES {Number(p.booking?.total_amount ?? 0).toLocaleString()}</p>
-                              <p className="font-semibold text-[#12231d]">Payout ledger: KES {Number(p.amount).toLocaleString()}</p>
-                              <p className="text-gray-700">Booking payout: KES {Number(p.booking?.host_payout_amount ?? p.amount).toLocaleString()}</p>
-                              {p.booking?.host_payout_amount != null && Number(p.amount) !== Number(p.booking.host_payout_amount) && (
-                                <p role="alert" className="mt-1 text-xs font-medium text-red-700">
-                                  Payout ledger differs from booking payout by KES {Math.abs(Number(p.amount) - Number(p.booking.host_payout_amount)).toLocaleString()}.
-                                </p>
-                              )}
-                              <p className="mt-1 text-gray-700">Status: <StatusBadge status={p.status} /></p>
-                              <p className="text-gray-700">Recorded: {new Date(p.created_at).toLocaleDateString()}</p>
+                              <p className="mt-2 text-gray-700">Payout ledger: KES {Number(p.amount).toLocaleString()}</p>
+                              <p className="text-gray-700">Status: <StatusBadge status={p.status} /></p>
                               <p className="text-gray-700">Paid: {p.paid_at ? new Date(p.paid_at).toLocaleDateString() : "Not paid yet"}</p>
                             </div>
                           </div>

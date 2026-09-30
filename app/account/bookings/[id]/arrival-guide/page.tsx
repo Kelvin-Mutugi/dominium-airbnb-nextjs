@@ -20,7 +20,7 @@ export default async function ArrivalGuidePage({ params }: { params: Promise<{ i
   const { data: booking, error } = await supabase
     .from('bookings')
     .select(`
-      id, guest_id, status, check_in, check_out,
+      id, booking_reference, guest_id, status, check_in, check_out,
       listing:listings (
         id, title, town, county, check_in_time, check_out_time
       )
@@ -34,12 +34,11 @@ export default async function ArrivalGuidePage({ params }: { params: Promise<{ i
 
   const listing = Array.isArray(booking.listing) ? booking.listing[0] : booking.listing;
   if (!listing) notFound();
-  const { data: arrivalGuide, error: guideError } = await supabase
-    .from('listing_arrival_guides')
-    .select('arrival_address, arrival_directions, check_in_instructions, wifi_name, wifi_password, arrival_contact, local_tips')
-    .eq('listing_id', listing.id)
-    .maybeSingle();
+  const { data: arrivalGuides, error: guideError } = await supabase.rpc('get_guest_arrival_guide', {
+    p_booking_id: id,
+  });
   if (guideError) throw new Error('Unable to load the private arrival guide. Apply the listing arrival guide migration and try again.');
+  const arrivalGuide = arrivalGuides?.[0] ?? null;
   const address = [arrivalGuide?.arrival_address, listing.town, listing.county].filter(Boolean).join(', ');
   const guide: ArrivalGuideContent = {
     listingTitle: listing.title,
@@ -51,16 +50,15 @@ export default async function ArrivalGuidePage({ params }: { params: Promise<{ i
     checkInInstructions: arrivalGuide?.check_in_instructions ?? null,
     wifiName: arrivalGuide?.wifi_name ?? null,
     wifiPassword: arrivalGuide?.wifi_password ?? null,
-    arrivalContact: arrivalGuide?.arrival_contact ?? null,
     localTips: arrivalGuide?.local_tips ?? null,
   };
-  const hasGuideDetails = [guide.address, guide.directions, guide.checkInInstructions, guide.wifiName, guide.wifiPassword, guide.arrivalContact, guide.localTips].some(Boolean);
+  const hasGuideDetails = [guide.address, guide.directions, guide.checkInInstructions, guide.wifiName, guide.wifiPassword, guide.localTips].some(Boolean);
 
   return (
     <main className="mx-auto max-w-3xl px-5 py-8 text-neutral-900 sm:px-8 print:max-w-none print:px-0 print:py-0">
       <Link href="/account/bookings" className={`${btnSecondary} mb-6 print:hidden`}>Back to bookings</Link>
       <header className="mb-7 border-b border-neutral-200 pb-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#9C2454]">Arrival guide · Booking {booking.id.slice(0, 8)}</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#9C2454]">Arrival guide · Booking {booking.booking_reference}</p>
         <h1 className="mt-2 font-serif text-3xl">{listing.title}</h1>
         <p className="mt-2 text-sm text-neutral-600">{guide.dates}</p>
         <div className="mt-5"><ArrivalGuideActions guide={guide} /></div>
@@ -68,7 +66,7 @@ export default async function ArrivalGuidePage({ params }: { params: Promise<{ i
 
       <div className="divide-y divide-neutral-200">
         <GuideSection title="Check-in and check-out">
-          {`Check-in: ${guide.checkInTime || 'Contact your host for the check-in time'}\nCheck-out: ${guide.checkOutTime || 'Contact your host for the check-out time'}`}
+          {`Check-in: ${guide.checkInTime || 'Contact customer support for the check-in time'}\nCheck-out: ${guide.checkOutTime || 'Contact customer support for the check-out time'}`}
         </GuideSection>
         {guide.address && <GuideSection title="Address">{guide.address}</GuideSection>}
         {guide.directions && <GuideSection title="Directions">{guide.directions}</GuideSection>}
@@ -76,16 +74,15 @@ export default async function ArrivalGuidePage({ params }: { params: Promise<{ i
         {(guide.wifiName || guide.wifiPassword) && (
           <GuideSection title="Wi-Fi">{`Network: ${guide.wifiName || 'Not provided'}\nPassword: ${guide.wifiPassword || 'Not provided'}`}</GuideSection>
         )}
-        {guide.arrivalContact && <GuideSection title="Arrival contact">{guide.arrivalContact}</GuideSection>}
         {guide.localTips && <GuideSection title="Local tips">{guide.localTips}</GuideSection>}
         {!hasGuideDetails && (
-          <p className="py-6 text-sm leading-6 text-neutral-600">Your host hasn’t added detailed arrival instructions yet. Use the trip thread to ask for directions or check-in details.</p>
+          <p className="py-6 text-sm leading-6 text-neutral-600">Detailed arrival instructions haven’t been added yet. Contact customer support about this booking for help with arrival details.</p>
         )}
       </div>
 
       <footer className="mt-8 border-t border-neutral-200 pt-5 text-sm text-neutral-600 print:hidden">
         <p>Keep your offline copy private; it may contain access information.</p>
-        <Link href={`/account/bookings/${booking.id}`} className="mt-2 inline-block font-semibold text-[#9C2454] underline underline-offset-2">Message your host in the trip thread</Link>
+        <Link href={`/account/bookings/${booking.id}`} className="mt-2 inline-block font-semibold text-[#9C2454] underline underline-offset-2">Contact customer support about this booking</Link>
       </footer>
     </main>
   );

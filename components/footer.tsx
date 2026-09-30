@@ -67,7 +67,7 @@ const POPULAR_COUNTIES = [
 ];
 
 const COMPANY_LINKS = [
-  { label: "About us", href: "/about" },
+  { label: "About us", href: "/aboutPage" },
   { label: "How it works", href: "/how-it-works" },
   { label: "Careers", href: "/careers" },
   { label: "Blog", href: "/blog" },
@@ -88,9 +88,11 @@ const HOST_LINKS = [
 ];
 
 const LEGAL_LINKS = [
-  { label: "Terms of service", href: "/legal/terms" },
-  { label: "Privacy policy", href: "/legal/privacy" },
-  { label: "Refund policy", href: "/legal/refunds" },
+  { label: "Guest Terms of service", href: "/legal/guest-terms-of-service" },
+  { label: "Host Privacy policy", href: "/legal/host-privacy-policy" },
+  { label: "Guest Privacy policy", href: "/legal/guest-privacy-policy" },
+  { label: "Refund policy", href: "/legal/refund-cancellation-policy" },
+  { label: "Host Listing Agreement & Terms of Service", href: "/legal/host-listing-agreement-and-terms-of-service" },
 ];
 
 export default function Footer() {

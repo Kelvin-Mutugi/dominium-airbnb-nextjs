@@ -19,6 +19,17 @@ export function formatDate(value: string | Date | null | undefined, style: DateS
   return new Intl.DateTimeFormat(LOCALE, { ...DATE_STYLES[style], timeZone: TZ }).format(date);
 }
 
+export function formatDateTime(value: string | Date | null | undefined) {
+  if (!value) return '';
+  const date = typeof value === 'string' ? new Date(value) : value;
+  return new Intl.DateTimeFormat(LOCALE, {
+    ...DATE_STYLES.long,
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: TZ,
+  }).format(date);
+}
+
 export function dayOfMonth(value: string) {
   return new Intl.DateTimeFormat(LOCALE, { day: 'numeric', timeZone: TZ }).format(new Date(value));
 }

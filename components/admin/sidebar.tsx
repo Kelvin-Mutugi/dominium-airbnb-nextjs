@@ -14,6 +14,7 @@ import {
   Star,
   History,
   ClipboardList,
+  MessageSquareText,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -24,7 +25,8 @@ const NAV_ITEMS = [
   { href: "/admin/listing-requests", label: "Property Visit Requests", icon: ClipboardList },
   { href: "/admin/bookings", label: "Bookings", icon: CalendarCheck },
   { href: "/admin/payouts", label: "Payments & Payouts", icon: Wallet },
-  { href: "/admin/support", label: "Support & Disputes", icon: LifeBuoy },
+  { href: "/admin/support", label: "Support Cases & Disputes", icon: LifeBuoy },
+  { href: "/admin/customer-support", label: "Booking Messages", icon: MessageSquareText },
   { href: "/admin/reviews", label: "Reviews Moderation", icon: Star },
   { href: "/admin/audit-log", label: "Audit Log", icon: History },
 ];

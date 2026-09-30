@@ -90,6 +90,7 @@ async function fetchListingPage(from: number, to: number, searchQuery: SearchQue
       foreignTable: "listing_images",
       ascending: true,
     })
+    .limit(1, { foreignTable: "listing_images" })
     .range(from, to);
 
   if (filteredError) throw filteredError;

@@ -7,35 +7,25 @@ async function getDashboardStats() {
 
   const [
     { count: totalListings },
-    { count: pendingListings },
     { count: publishedListings },
-    { count: pendingBookings },
     { count: confirmedBookings },
     { count: totalUsers },
     { count: activeUsers },
     { count: suspendedUsers },
-    { data: payoutRows, count: owedPayoutCount },
+    { data: payoutRows },
     { data: recentBookingRows },
     { data: pendingListingQueue, count: pendingListingCount },
     { data: pendingBookingQueue, count: pendingBookingCount },
     { data: pendingHostQueue, count: pendingHostCount },
     { data: openSupportQueue, count: openSupportCount },
-    { data: owedPayoutQueue },
+    { data: owedPayoutQueue, count: owedPayoutCount },
     { data: propertyRequestQueue, count: propertyRequestCount },
   ] = await Promise.all([
     admin.from("listings").select("*", { count: "exact", head: true }),
     admin
       .from("listings")
       .select("*", { count: "exact", head: true })
-      .eq("status", "pending_review"),
-    admin
-      .from("listings")
-      .select("*", { count: "exact", head: true })
       .eq("status", "published"),
-    admin
-      .from("bookings")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "pending"),
     admin
       .from("bookings")
       .select("*", { count: "exact", head: true })
@@ -49,7 +39,7 @@ async function getDashboardStats() {
       .from("profiles")
       .select("*", { count: "exact", head: true })
       .eq("status", "suspended"),
-    admin.from("payouts").select("amount", { count: "exact" }).eq("status", "owed"),
+    admin.from("payouts").select("amount").eq("status", "owed"),
     admin
       .from("bookings")
       .select("id, listing_id, guest_id, check_in, check_out, status, total_amount, guest_name")
@@ -113,9 +103,9 @@ async function getDashboardStats() {
 
   return {
     totalListings: totalListings ?? 0,
-    pendingListings: pendingListings ?? 0,
+    pendingListings: pendingListingCount ?? 0,
     publishedListings: publishedListings ?? 0,
-    pendingBookings: pendingBookings ?? 0,
+    pendingBookings: pendingBookingCount ?? 0,
     confirmedBookings: confirmedBookings ?? 0,
     totalUsers: totalUsers ?? 0,
     activeUsers: activeUsers ?? 0,

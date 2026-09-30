@@ -44,11 +44,7 @@ const EXPLORE_LINKS = [
 const INFO_LINKS = [
   { label: "Booking Process", href: "/#booking_process" },
   { label: "Why Choose Us", href: "/#why_choose_us" },
-  { label: "Blog", href: "/blog" },
   { label: "Contact", href: "/contact" },
-  { label: "Privacy Policy", href: "/privacy" },
-  { label: "Refund & Cancellation Policy", href: "/refund-cancellation-policy" },
-  {label: "Host Listing Agreement & Terms of Service", href: "/host-listing-agreement-and-terms-of-service"}
 ];
 
 // Quick picks in the search panel

@@ -122,7 +122,7 @@ export default async function AdminAuditLogPage({
             maxLength={100}
             defaultValue={params.q ?? ""}
             placeholder="Search action, summary, or record ID"
-            className="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20"
+            className="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#1B1A2E] placeholder:text-gray-400 focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20"
           />
           <button type="submit" className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700">Search</button>
           {query && <Link href={hrefFor(entity, "")} className="self-center text-sm text-gray-500 hover:text-gray-900">Clear</Link>}

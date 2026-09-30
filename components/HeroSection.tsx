@@ -30,7 +30,7 @@ export default function HeroSection({
       // Below lg: the navbar sits in normal flow above the hero, so no extra top padding.
       // lg and up: the navbar overlaps the hero (lg:-mb-[72px]), so pt-[104px] keeps
       // the content clear of it (72px navbar + 32px breathing room).
-      className="relative flex flex-col items-center justify-center bg-[#1B1A2E] px-4 py-12 sm:px-[6%] sm:py-14 lg:min-h-[clamp(380px,48vh,520px)] lg:pb-14 lg:pt-[104px]"
+      className="relative flex flex-col items-center justify-center bg-[#000000] px-4 py-12 sm:px-[6%] sm:py-14 lg:min-h-[clamp(380px,48vh,520px)] lg:pb-14 lg:pt-[104px]"
     >
       {/* Sliding background images — clipped to the hero only */}
       <div className="absolute inset-0 z-0 overflow-hidden">

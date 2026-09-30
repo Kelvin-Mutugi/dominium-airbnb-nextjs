@@ -20,7 +20,7 @@ const HorizontalListingCarousel = forwardRef<
   useImperativeHandle(ref, () => ({
     scroll: (direction: "left" | "right") => {
       trackRef.current?.scrollBy({
-        left: direction === "left" ? -320 : 320,
+        left: direction === "left" ? -366 : 366,
         behavior: "smooth",
       });
     },
@@ -31,7 +31,7 @@ const HorizontalListingCarousel = forwardRef<
       <div
         ref={trackRef}
         aria-label={label}
-        className="flex snap-x snap-mandatory gap-1.5 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {children}
       </div>

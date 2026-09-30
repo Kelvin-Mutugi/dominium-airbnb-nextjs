@@ -65,6 +65,17 @@ export interface ListingArrivalGuide {
   updated_at: string;
 }
 
+export type HostArrivalGuideDetails = Pick<
+  ListingArrivalGuide,
+  | "arrival_address"
+  | "arrival_directions"
+  | "check_in_instructions"
+  | "wifi_name"
+  | "wifi_password"
+  | "arrival_contact"
+  | "local_tips"
+>;
+
 export interface ListingAdditionalCharge {
   name: string;
   amount: number;
@@ -108,11 +119,14 @@ export interface AvailabilityBlock {
 
 export interface Booking {
   id: string;
+  booking_reference: string;
   listing_id: string;
   guest_id: string | null;
   host_id: string;
   check_in: string;
   check_out: string;
+  nights: number;
+  adults_count: number;
   guests_count: number;
   children_count: number;
   rooms_count: number;
@@ -123,11 +137,10 @@ export interface Booking {
   host_base_amount: number | null;
   additional_charges_amount: number | null;
   guest_name: string | null;
-  guest_email: string | null;
-  guest_phone: string | null;
+  guest_country: string | null;
   special_requests: string | null;
   created_at: string;
-  unreadMessageCount?: number;
+  unreadSupportReplyCount?: number;
   // joined
   listing?: Pick<Listing, "id" | "title" | "town" | "county">;
 }
@@ -162,17 +175,19 @@ export interface Payout {
   created_at: string;
   booking?: Pick<
     Booking,
+    | "id"
+    | "booking_reference"
     | "check_in"
     | "check_out"
-    | "guests_count"
-    | "total_amount"
-    | "commission_amount"
+    | "nights"
+    | "adults_count"
+    | "children_count"
+    | "rooms_count"
+    | "status"
     | "host_payout_amount"
-    | "host_base_amount"
-    | "additional_charges_amount"
     | "guest_name"
-    | "guest_email"
-    | "guest_phone"
+    | "guest_country"
+    | "special_requests"
   > & {
     listing?: Pick<Listing, "id" | "title" | "town" | "county">;
   };

@@ -158,7 +158,7 @@ export default function HostCalendarPage() {
       start: booking.check_in,
       end: booking.check_out,
       listingTitle: booking.listing?.title ?? "Listing",
-      detail: `${booking.guest_name ?? "Guest"} · ${booking.guests_count} guests`,
+      detail: `${booking.guest_name ?? "Guest"} · ${booking.adults_count} adults · ${booking.children_count} children`,
       href: `/host/bookings?status=${booking.status}&booking=${encodeURIComponent(booking.id)}`,
       tone: booking.status === "pending" ? "border-amber-300" : "border-emerald-300",
     })),
@@ -565,6 +565,7 @@ export default function HostCalendarPage() {
               <div>
                 <h2 className="font-semibold text-[#12231d]">Block off dates</h2>
                 <p className="mt-1 text-sm text-gray-500">The end date is the checkout date and is available again that day.</p>
+                <p className="mt-1 text-xs text-gray-500">Connected calendars are refreshed before saving. If availability can&apos;t be verified, we&apos;ll stop and ask you to try again.</p>
               </div>
               <form onSubmit={handleAddBlock} className="grid gap-3 sm:grid-cols-2">
                 <label className="text-sm font-medium text-gray-700 sm:col-span-2">

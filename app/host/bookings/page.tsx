@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   Loader2,
   MessageCircle,
-  X,
 } from "lucide-react";
 import {
   getHostBookingChangeRequestsData,
@@ -19,9 +18,7 @@ import {
 import type { Booking, BookingStatus, HostBookingChangeRequest } from "@/app/lib/host/types";
 import StatusBadge from "@/components/host/StatusBadge";
 
-const FILTERS: { label: string; value: BookingStatus | "all" }[] = [
-  { label: "All", value: "all" },
-  { label: "Pending", value: "pending" },
+const FILTERS: { label: string; value: Exclude<BookingStatus, "pending"> }[] = [
   { label: "Confirmed", value: "confirmed" },
   { label: "Completed", value: "completed" },
   { label: "Cancelled", value: "cancelled" },
@@ -30,7 +27,7 @@ const FILTERS: { label: string; value: BookingStatus | "all" }[] = [
 export default function HostBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [changeRequests, setChangeRequests] = useState<HostBookingChangeRequest[]>([]);
-  const [filter, setFilter] = useState<BookingStatus | "all">("all");
+  const [filter, setFilter] = useState<Exclude<BookingStatus, "pending">>("confirmed");
   const [focusBookingId, setFocusBookingId] = useState<string | null>(null);
 
   // Initial page loading
@@ -42,9 +39,8 @@ export default function HostBookingsPage() {
   // Status being applied to the booking
   const [updatingStatus, setUpdatingStatus] =
     useState<BookingStatus | null>(null);
+  const [completingBookingId, setCompletingBookingId] = useState<string | null>(null);
   const [updatingRequestId, setUpdatingRequestId] = useState<string | null>(null);
-  const [decliningBookingId, setDecliningBookingId] = useState<string | null>(null);
-  const [declineReason, setDeclineReason] = useState("");
 
   // Error message shown to the host
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +48,11 @@ export default function HostBookingsPage() {
   // Success message shown briefly after an action
   const [success, setSuccess] = useState<string | null>(null);
 
-  async function load(showLoader = false) {
+  async function load(
+    showLoader = false,
+    status: Exclude<BookingStatus, "pending"> = filter,
+    refreshRequests = true,
+  ) {
     try {
       if (showLoader) {
         setLoading(true);
@@ -61,11 +61,11 @@ export default function HostBookingsPage() {
       setError(null);
 
       const [data, requests] = await Promise.all([
-        getHostBookingsData(),
-        getHostBookingChangeRequestsData(),
+        getHostBookingsData(status),
+        refreshRequests ? getHostBookingChangeRequestsData() : Promise.resolve(null),
       ]);
       setBookings(data);
-      setChangeRequests(requests);
+      if (requests) setChangeRequests(requests);
     } catch (err) {
       console.error("Failed to load bookings:", err);
       setError("We couldn't load your bookings. Please try again.");
@@ -75,15 +75,15 @@ export default function HostBookingsPage() {
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    load(true);
     const searchParams = new URLSearchParams(window.location.search);
     const requestedStatus = searchParams.get("status");
     const matchingFilter = FILTERS.find((item) => item.value === requestedStatus);
-    if (matchingFilter && matchingFilter.value !== "all") {
-      setFilter(matchingFilter.value);
-    }
+    const initialFilter = matchingFilter?.value ?? "confirmed";
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFilter(initialFilter);
+    void load(true, initialFilter);
     setFocusBookingId(searchParams.get("booking"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -93,42 +93,23 @@ export default function HostBookingsPage() {
       ?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [loading, focusBookingId]);
 
-  async function handleStatusChange(
-    id: string,
-    status: BookingStatus,
-    reason = "",
-  ) {
-    if (
-      status === "cancelled" &&
-      !window.confirm("Decline this booking request? The booking will be cancelled and the guest will be notified.")
-    ) return;
-
+  async function handleMarkCompleted(id: string) {
     // Prevent accidental double clicks
     if (updatingId) return;
 
     setUpdatingId(id);
-    setUpdatingStatus(status);
+    setUpdatingStatus("completed");
     setError(null);
     setSuccess(null);
 
     try {
-      await updateHostBookingStatus(id, status, reason);
+      await updateHostBookingStatus(id, "completed");
 
       // Refresh bookings after successful update
-      await load();
+      await load(false, filter, false);
 
-      const message =
-        status === "confirmed"
-          ? "Booking confirmed successfully."
-          : status === "cancelled"
-            ? "Booking declined."
-            : "Booking marked as completed.";
-
-      setSuccess(message);
-      if (status === "cancelled") {
-        setDecliningBookingId(null);
-        setDeclineReason("");
-      }
+      setSuccess("Booking marked as completed.");
+      setCompletingBookingId(null);
 
       // Remove success message after a short delay
       setTimeout(() => {
@@ -163,7 +144,7 @@ export default function HostBookingsPage() {
     setSuccess(null);
     try {
       await respondToBookingChangeRequest(requestId, approve);
-      await load();
+      await load(false, filter);
       setSuccess(approve ? "Guest request approved." : "Guest request declined.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "We couldn't update this request.");
@@ -172,9 +153,7 @@ export default function HostBookingsPage() {
     }
   }
 
-  const visible = bookings.filter(
-    (b) => filter === "all" || b.status === filter
-  );
+  const visible = bookings;
 
   /*
    * Initial loading state
@@ -295,7 +274,10 @@ export default function HostBookingsPage() {
           return (
             <button
               key={f.value}
-              onClick={() => setFilter(f.value)}
+              onClick={() => {
+                setFilter(f.value);
+                void load(true, f.value, false);
+              }}
               className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#ec1561]/30 ${
                 active
                   ? "bg-[#12231d] text-white shadow-sm"
@@ -341,18 +323,12 @@ export default function HostBookingsPage() {
                     </div>
 
                     <p className="text-sm text-gray-500">
-                      {b.check_in} → {b.check_out} ·{" "}
-                      {b.guests_count} guests
-                      {b.children_count > 0 &&
-                        ` + ${b.children_count} children`}{" "}
-                      · {b.rooms_count} room(s)
+                      Booking reference: {b.booking_reference}
                     </p>
 
-                    <p className="mt-1 text-sm text-gray-600">
-                      Guest: {b.guest_name}
-                      {b.guest_phone && ` · ${b.guest_phone}`}
-                      {b.guest_email && ` · ${b.guest_email}`}
-                    </p>
+                    <p className="mt-1 text-sm text-gray-600">{b.check_in} → {b.check_out} · {b.nights} {b.nights === 1 ? "night" : "nights"}</p>
+                    <p className="mt-1 text-sm text-gray-600">Guest: {b.guest_name ?? "Guest"}{b.guest_country ? ` · ${b.guest_country}` : ""}</p>
+                    <p className="mt-1 text-sm text-gray-600">{b.adults_count} {b.adults_count === 1 ? "adult" : "adults"} · {b.children_count} {b.children_count === 1 ? "child" : "children"} · {b.rooms_count} {b.rooms_count === 1 ? "room" : "rooms"}</p>
 
                     {b.special_requests && (
                       <p className="mt-1 text-sm italic text-gray-500">
@@ -364,134 +340,60 @@ export default function HostBookingsPage() {
                       className="mt-2 inline-flex items-center gap-1.5 py-1 text-sm font-medium text-gray-600 transition hover:text-[#12231d] focus:outline-none focus:underline focus:underline-offset-2"
                     >
                       <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                      Message guest
-                      {(b.unreadMessageCount ?? 0) > 0 && (
-                        <span className="ml-1 inline-flex items-center gap-1 text-xs font-semibold text-[#9C2454]" aria-label={`${b.unreadMessageCount} new ${b.unreadMessageCount === 1 ? 'message' : 'messages'}`}>
+                      Chat with customer support
+                      {(b.unreadSupportReplyCount ?? 0) > 0 && (
+                        <span className="ml-1 inline-flex items-center gap-1 text-xs font-semibold text-[#9C2454]" aria-label={`${b.unreadSupportReplyCount} new customer support ${b.unreadSupportReplyCount === 1 ? 'reply' : 'replies'}`}>
                           <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[#E23E85]" />
-                          {b.unreadMessageCount === 1 ? "New" : `${b.unreadMessageCount} new`}
+                          {b.unreadSupportReplyCount === 1 ? "New reply" : `${b.unreadSupportReplyCount} new replies`}
                         </span>
                       )}
                     </Link>
                   </div>
 
                   <div className="text-right text-sm">
-                    <p className="font-semibold text-[#12231d]">
-                      KES {b.total_amount.toLocaleString()}
-                    </p>
-
-                    <p className="text-xs text-gray-400">
-                      You get KES{" "}
-                      {b.host_payout_amount.toLocaleString()}
-                    </p>
+                    <p className="text-xs text-gray-500">Host payout</p>
+                    <p className="font-semibold text-[#12231d]">KES {b.host_payout_amount.toLocaleString()}</p>
                     <Link
                       href={`/account/support?booking=${b.id}&category=host_guest_concern`}
                       className="mt-2 inline-block text-xs font-medium text-[#ec1561] underline underline-offset-2"
                     >
-                      Report a stay issue
+                      Report a problem or dispute
                     </Link>
                   </div>
                 </div>
-
-                {/* Pending actions */}
-                {b.status === "pending" && (
-                  <div className="mt-3 flex gap-2">
-                    {/* Confirm */}
-                    <button
-                      disabled={isUpdating}
-                      onClick={() =>
-                        handleStatusChange(b.id, "confirmed")
-                      }
-                      className="flex items-center justify-center gap-2 rounded-lg bg-[#ec1561] px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-[#d91459] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/30 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isUpdating &&
-                      updatingStatus === "confirmed" ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Confirming...
-                        </>
-                      ) : (
-                        <>
-                          <Check className="h-4 w-4" />
-                          Confirm
-                        </>
-                      )}
-                    </button>
-
-                    {/* Decline */}
-                    <button
-                      disabled={isUpdating}
-                      onClick={() => {
-                        setDecliningBookingId(b.id);
-                        setDeclineReason("");
-                      }}
-                      className="flex items-center justify-center gap-2 rounded-lg border border-red-200 px-4 py-1.5 text-sm font-medium text-red-600 transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isUpdating &&
-                      updatingStatus === "cancelled" ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Declining...
-                        </>
-                      ) : (
-                        <>
-                          <X className="h-4 w-4" />
-                          Decline
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
-
-                {decliningBookingId === b.id && b.status === "pending" && (
-                  <div role="dialog" aria-modal="true" aria-labelledby={`decline-heading-${b.id}`} className="mt-4 space-y-3 rounded-lg border border-red-200 bg-red-50 p-4">
-                    <div>
-                      <h3 id={`decline-heading-${b.id}`} className="text-sm font-semibold text-red-900">Decline this booking request?</h3>
-                      <p className="mt-1 text-xs text-red-800">The booking will be cancelled and the guest will be notified. You may include a short reason.</p>
-                    </div>
-                    <label htmlFor={`decline-reason-${b.id}`} className="block text-xs font-medium text-red-900">Reason (optional)</label>
-                    <textarea
-                      id={`decline-reason-${b.id}`}
-                      value={declineReason}
-                      onChange={(event) => setDeclineReason(event.target.value)}
-                      maxLength={500}
-                      rows={2}
-                      placeholder="Add a brief explanation for the guest"
-                      className="w-full rounded-md border border-red-200 bg-white px-3 py-2 text-sm text-[#1B1A2E] focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200"
-                    />
-                    <div className="flex justify-end gap-2">
-                      <button type="button" disabled={isUpdating} onClick={() => setDecliningBookingId(null)} className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 disabled:opacity-50">Keep booking</button>
-                      <button type="button" disabled={isUpdating} onClick={() => void handleStatusChange(b.id, "cancelled", declineReason)} className="rounded-md bg-red-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">{isUpdating && updatingStatus === "cancelled" ? "Declining…" : "Confirm decline"}</button>
-                    </div>
-                  </div>
-                )}
 
                 {/* Complete action */}
                 {b.status === "confirmed" &&
                   new Date(b.check_out) < new Date() && (
                     <div className="mt-3">
-                      <button
-                        disabled={isUpdating}
-                        onClick={() =>
-                          handleStatusChange(
-                            b.id,
-                            "completed"
-                          )
-                        }
-                        className="flex items-center justify-center gap-2 rounded-lg border px-4 py-1.5 text-sm font-medium text-[#12231d] transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#12231d]/20 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {isUpdating &&
-                        updatingStatus === "completed" ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Updating...
-                          </>
-                        ) : (
-                          <>
-                            <Check className="h-4 w-4" />
-                            Mark completed
-                          </>
-                        )}
-                      </button>
+                      {completingBookingId !== b.id ? (
+                        <button
+                          type="button"
+                          disabled={Boolean(updatingId)}
+                          onClick={() => setCompletingBookingId(b.id)}
+                          className="flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#12231d]/25 px-4 py-2 text-sm font-medium text-[#12231d] transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#12231d]/20 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <Check className="h-4 w-4" aria-hidden="true" />
+                          Mark completed
+                        </button>
+                      ) : (
+                        <div role="group" aria-labelledby={`complete-heading-${b.id}`} className="max-w-xl space-y-3 border-l-4 border-amber-500 bg-amber-50 p-4">
+                          <div>
+                            <h4 id={`complete-heading-${b.id}`} className="text-sm font-semibold text-amber-950">Confirm stay completion</h4>
+                            <p className="mt-1 text-sm text-amber-900">
+                              Mark {b.guest_name ?? "The guest"}&apos;s stay at {b.listing?.title ?? "this listing"} as completed? Check-out was {new Date(`${b.check_out}T00:00:00`).toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" })}. Only continue if the guest has checked out and the stay has ended. This records the completed stay in your payout history.
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <button type="button" disabled={isUpdating} onClick={() => setCompletingBookingId(null)} className="min-h-10 rounded-md border border-amber-900/20 bg-white px-3.5 py-2 text-sm font-medium text-amber-950 hover:bg-amber-100 disabled:opacity-50">
+                              Keep confirmed
+                            </button>
+                            <button type="button" disabled={isUpdating} onClick={() => void handleMarkCompleted(b.id)} className="min-h-10 rounded-md bg-[#12231d] px-3.5 py-2 text-sm font-semibold text-white hover:bg-[#294238] disabled:cursor-wait disabled:opacity-60">
+                              {isUpdating && updatingStatus === "completed" ? <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />Updating…</span> : "Yes, mark completed"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
               </div>

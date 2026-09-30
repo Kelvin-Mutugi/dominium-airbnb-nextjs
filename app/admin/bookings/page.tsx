@@ -20,6 +20,7 @@ function isDate(value: string) {
 
 type AdminBooking = {
   id: string;
+  booking_reference: string;
   check_in: string;
   check_out: string;
   guests_count: number;
@@ -45,7 +46,7 @@ export default async function AdminBookingsPage({
   let bookingsQuery = admin
     .from("bookings")
     .select(
-      `id, check_in, check_out, guests_count, guest_name, status, total_amount,
+      `id, booking_reference, check_in, check_out, guests_count, guest_name, status, total_amount,
        commission_amount, host_payout_amount, created_at,
        listing:listing_id ( title, town, county ),
        guest:guest_id ( full_name, phone ),
@@ -71,6 +72,7 @@ export default async function AdminBookingsPage({
     ]);
 
     const searchFields = [
+      `booking_reference.ilike.${pattern}`,
       `guest_name.ilike.${pattern}`,
       `guest_email.ilike.${pattern}`,
       `guest_phone.ilike.${pattern}`,
@@ -119,6 +121,7 @@ export default async function AdminBookingsPage({
           <thead className="bg-gray-50 text-left text-gray-500">
             <tr>
               <th className="p-3">Listing</th>
+              <th className="p-3">Booking reference</th>
               <th className="p-3">Guest</th>
               <th className="p-3">Host</th>
               <th className="p-3">Dates</th>
@@ -149,6 +152,7 @@ export default async function AdminBookingsPage({
                     {listing?.town}, {listing?.county}
                   </div>
                 </td>
+                <td className="p-3 font-mono text-xs text-[#1B1A2E]">{b.booking_reference}</td>
                 <td className="p-3 text-[#1B1A2E]">
                   {b.guest_name ?? guest?.full_name ?? "Guest checkout"}
                 </td>
@@ -171,7 +175,7 @@ export default async function AdminBookingsPage({
             ))}
             {(bookings ?? []).length === 0 && (
               <tr>
-                <td colSpan={7} className="p-6 text-center text-gray-400">
+                <td colSpan={8} className="p-6 text-center text-gray-400">
                   No {activeStatus} bookings.
                 </td>
               </tr>

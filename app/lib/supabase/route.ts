@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/app/lib/supabase/server";
+import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 import { initiatePayment } from "@/app/lib/payments/placeholder";
 
 // The server-side client carries auth cookies into the authenticated RPC. Guest
@@ -14,6 +15,7 @@ interface CreateBookingBody {
   fullName?: string;
   email?: string;
   phone?: string;
+  country?: string;
   children?: number;
   rooms?: number;
   specialRequests?: string;
@@ -90,6 +92,7 @@ export async function POST(request: NextRequest) {
     fullName,
     email,
     phone,
+    country,
     children,
     rooms,
     specialRequests,
@@ -104,6 +107,7 @@ export async function POST(request: NextRequest) {
   if (!Number.isInteger(guests) || (guests as number) < 1) return badRequest("guests must be a positive integer.");
   if (!Number.isInteger(children) || (children as number) < 0) return badRequest("children must be zero or greater.");
   if (!Number.isInteger(rooms) || (rooms as number) < 1) return badRequest("rooms must be a positive integer.");
+  if (country != null && (typeof country !== "string" || country.length > 100)) return badRequest("country must be 100 characters or fewer.");
   if (paymentMethod !== "mpesa" && paymentMethod !== "card") return badRequest("paymentMethod must be 'mpesa' or 'card'.");
   if (!idempotencyKey || typeof idempotencyKey !== "string") return badRequest("idempotencyKey is required.");
   if (agreedToTerms !== true) return badRequest("You must agree to the booking terms and cancellation policy.");
@@ -171,6 +175,25 @@ export async function POST(request: NextRequest) {
   if (!booking) {
     return NextResponse.json(
       { error: "We couldn't complete your booking. Please try again." },
+      { status: 500 },
+    );
+  }
+
+  const admin = getSupabaseAdmin();
+  const { error: guestDetailsError } = await admin
+    .from("bookings")
+    .update({
+      guest_name: typeof fullName === "string" ? fullName.trim() || null : null,
+      guest_country: typeof country === "string" ? country.trim() || null : null,
+      children_count: children,
+      rooms_count: rooms,
+      special_requests: typeof specialRequests === "string" ? specialRequests.trim() || null : null,
+    })
+    .eq("id", booking.id);
+  if (guestDetailsError) {
+    console.error("Failed to save host-facing booking details:", guestDetailsError);
+    return NextResponse.json(
+      { error: "We couldn't save your stay details. Please try again." },
       { status: 500 },
     );
   }

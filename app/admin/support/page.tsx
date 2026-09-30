@@ -19,6 +19,7 @@ type CaseRow = {
 
 type RelatedBooking = {
   id: string;
+  booking_reference: string;
   listing_id: string;
   guest_name: string | null;
   guest_email: string | null;
@@ -75,7 +76,7 @@ export default async function AdminSupportPage({
       ? admin.from('profiles').select('id, full_name, business_name').in('id', userIds)
       : Promise.resolve({ data: [], error: null }),
     bookingIds.length
-      ? admin.from('bookings').select('id, listing_id, guest_name, guest_email').in('id', bookingIds)
+      ? admin.from('bookings').select('id, booking_reference, listing_id, guest_name, guest_email').in('id', bookingIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
   if (profileError || bookingError) throw new Error('Unable to load support case details.');
@@ -118,8 +119,8 @@ export default async function AdminSupportPage({
   return (
     <div className="max-w-6xl space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold text-[#E23E85]">Support &amp; disputes</h1>
-        <p className="mt-1 text-sm text-gray-600">Review guest and host requests, record internal notes, and track resolution.</p>
+        <h1 className="text-2xl font-semibold text-[#E23E85]">Support cases &amp; disputes</h1>
+        <p className="mt-1 text-sm text-gray-600">Formal guest and host cases for payments, refunds, complaints, safety concerns, and disputes. Quick booking conversations are in Booking Messages.</p>
       </header>
 
       <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-3">
@@ -139,7 +140,7 @@ export default async function AdminSupportPage({
           {status !== 'all' && <input type="hidden" name="status" value={status} />}
           {listingId && <input type="hidden" name="listingId" value={listingId} />}
           <label className="sr-only" htmlFor="support-search">Search cases</label>
-          <input id="support-search" name="q" type="search" defaultValue={params.q ?? ''} maxLength={100} placeholder="Search person, booking, or request" className="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" />
+          <input id="support-search" name="q" type="search" defaultValue={params.q ?? ''} maxLength={100} placeholder="Search person, booking, or request" className="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#1B1A2E] placeholder:text-gray-400 focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" />
           <button type="submit" className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700">Search</button>
           {(query || listingId) && <Link href={hrefFor(status, '', null)} className="self-center text-sm text-gray-500 hover:text-gray-900">Clear</Link>}
         </form>
@@ -179,7 +180,7 @@ export default async function AdminSupportPage({
                           {listingById.get(booking.listing_id) ?? 'Listing unavailable'}
                         </Link>
                       ) : 'Booking'} ·{' '}
-                      <Link href={`/admin/bookings/${item.booking_id}`} className="font-medium text-[#CF2F74] hover:underline">{item.booking_id.slice(0, 8)}</Link>
+                      <Link href={`/admin/bookings/${item.booking_id}`} className="font-medium text-[#CF2F74] hover:underline">{booking?.booking_reference ?? 'Booking'}</Link>
                       {booking?.guest_email ? ` · ${booking.guest_email}` : ''}
                     </p>
                   )}

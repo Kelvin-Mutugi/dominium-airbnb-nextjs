@@ -567,6 +567,7 @@ export default function BookingCard({
           guests: totalGuests,
           children,
           rooms,
+          country,
           specialRequests,
           fullName,
           phone,

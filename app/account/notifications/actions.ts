@@ -34,7 +34,7 @@ export async function openNotification(formData: FormData) {
     await supabase.from('user_notifications').update({ read_at: new Date().toISOString() }).eq('id', notificationId).eq('recipient_id', user.id).is('read_at', null);
     revalidatePath('/account/notifications');
     redirect(notification.category === 'message'
-      ? `/account/bookings/${notification.booking_id}#trip-messages-heading`
+      ? `/account/bookings/${notification.booking_id}#customer-support-conversation-heading`
       : `/account/bookings/${notification.booking_id}`);
   }
   redirect('/account/notifications');

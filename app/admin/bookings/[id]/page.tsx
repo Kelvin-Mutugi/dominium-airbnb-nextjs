@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 import { BookingRowActions } from "@/components/admin/bookings/booking-row-actions";
+import { openCustomerSupportThreadForBooking } from "@/app/customer-support/actions";
 
 type RelatedRecord = {
   id?: string;
@@ -15,6 +16,7 @@ type RelatedRecord = {
 
 type Booking = {
   id: string;
+  booking_reference: string;
   listing_id: string | null;
   guest_id: string | null;
   host_id: string | null;
@@ -102,7 +104,7 @@ export default async function AdminBookingDetailPage({
             ← Back to bookings
           </Link>
           <h1 className="mt-2 text-3xl font-semibold text-[#1B1A2E]">Booking details</h1>
-          <p className="mt-1 text-sm text-gray-500">Booking ID: {booking.id}</p>
+          <p className="mt-1 text-sm text-gray-500">Booking reference: {booking.booking_reference}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium capitalize text-gray-700">
@@ -160,13 +162,21 @@ export default async function AdminBookingDetailPage({
             <DetailField label="User ID" value={booking.guest_id} />
           </dl>
           {booking.guest_id && (
-            <Link
-              href={`/admin/users/${booking.guest_id}`}
-              className="mt-5 inline-block text-sm font-medium text-[#E23E85] hover:underline"
-            >
-              Open guest profile
-            </Link>
+            <div className="mt-5 flex flex-wrap gap-4">
+              <Link
+                href={`/admin/users/${booking.guest_id}`}
+                className="inline-flex min-h-10 items-center rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-[#1B1A2E] hover:border-[#E23E85] hover:text-[#CF2F74]"
+              >
+                Open guest profile
+              </Link>
+              <form action={openCustomerSupportThreadForBooking.bind(null, booking.id, "guest")}>
+                <button type="submit" className="inline-flex min-h-10 items-center rounded-md bg-[#1B1A2E] px-3 py-2 text-sm font-semibold text-white hover:bg-[#302F43]">
+                  Chat with guest
+                </button>
+              </form>
+            </div>
           )}
+          {!booking.guest_id && <p className="mt-4 text-sm text-gray-500">Guest checkout has no account for in-app chat.</p>}
         </div>
 
         <div className="rounded-lg bg-white p-6 shadow-sm">
@@ -178,12 +188,19 @@ export default async function AdminBookingDetailPage({
             <DetailField label="User ID" value={booking.host_id} />
           </dl>
           {booking.host_id && (
-            <Link
-              href={`/admin/users/${booking.host_id}`}
-              className="mt-5 inline-block text-sm font-medium text-[#E23E85] hover:underline"
-            >
-              Open host profile
-            </Link>
+            <div className="mt-5 flex flex-wrap gap-4">
+              <Link
+                href={`/admin/users/${booking.host_id}`}
+                className="inline-flex min-h-10 items-center rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-[#1B1A2E] hover:border-[#E23E85] hover:text-[#CF2F74]"
+              >
+                Open host profile
+              </Link>
+              <form action={openCustomerSupportThreadForBooking.bind(null, booking.id, "host")}>
+                <button type="submit" className="inline-flex min-h-10 items-center rounded-md bg-[#1B1A2E] px-3 py-2 text-sm font-semibold text-white hover:bg-[#302F43]">
+                  Chat with host
+                </button>
+              </form>
+            </div>
           )}
         </div>
       </section>

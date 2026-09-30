@@ -373,7 +373,7 @@ export default async function AdminPaymentsPayoutsPage({
             defaultValue={query}
             maxLength={100}
             placeholder={view === "payments" ? "Search reference, guest, listing…" : "Search host, booking, listing…"}
-            className="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#E23E85] focus:ring-2 focus:ring-[#E23E85]/20"
+            className="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#1B1A2E] placeholder:text-gray-400 outline-none focus:border-[#E23E85] focus:ring-2 focus:ring-[#E23E85]/20"
           />
           <button type="submit" className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700">
             Search

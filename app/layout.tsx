@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { anton, fraunces, plex } from "./fonts";
 import "./globals.css";
-import Footer from "@/components/footer";
+import SiteFooter from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
   title: "Dominium Airbnb",
@@ -19,7 +19,7 @@ export default function RootLayout({
     >
       <body className="flex min-h-screen flex-col font-sans">
         <div className="flex-1">{children}</div>
-        <Footer />
+        <SiteFooter />
       </body>
     </html>
   );
