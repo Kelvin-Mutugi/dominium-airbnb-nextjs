@@ -7,6 +7,8 @@ interface BookingRequestBody {
   checkIn?: unknown;
   checkOut?: unknown;
   guests?: unknown;
+  children?: unknown;
+  pets?: unknown;
   fullName?: unknown;
   email?: unknown;
   phone?: unknown;
@@ -43,6 +45,8 @@ export async function POST(request: NextRequest) {
     typeof body.fullName !== "string" ||
     typeof body.email !== "string" ||
     typeof body.phone !== "string" ||
+    !Number.isInteger(body.children) ||
+    !Number.isInteger(body.pets) ||
     typeof body.idempotencyKey !== "string" ||
     typeof body.confirmationToken !== "string" ||
     (body.paymentMethod !== "mpesa" && body.paymentMethod !== "card") ||
@@ -62,6 +66,8 @@ export async function POST(request: NextRequest) {
       checkIn: body.checkIn,
       checkOut: body.checkOut,
       guests: body.guests as number,
+      children: body.children as number,
+      pets: body.pets as number,
       fullName: body.fullName,
       email: body.email,
       phone: body.phone,

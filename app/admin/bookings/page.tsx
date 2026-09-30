@@ -24,6 +24,8 @@ type AdminBooking = {
   check_in: string;
   check_out: string;
   guests_count: number;
+  children_count: number;
+  pets_count: number;
   guest_name: string | null;
   status: string;
   total_amount: number | string;
@@ -46,7 +48,7 @@ export default async function AdminBookingsPage({
   let bookingsQuery = admin
     .from("bookings")
     .select(
-      `id, booking_reference, check_in, check_out, guests_count, guest_name, status, total_amount,
+      `id, booking_reference, check_in, check_out, guests_count, children_count, pets_count, guest_name, status, total_amount,
        commission_amount, host_payout_amount, created_at,
        listing:listing_id ( title, town, county ),
        guest:guest_id ( full_name, phone ),
@@ -162,7 +164,7 @@ export default async function AdminBookingsPage({
                 <td className="p-3 text-[#1B1A2E]">
                   {b.check_in} → {b.check_out}
                 </td>
-                <td className="p-3 text-[#1B1A2E]">{b.guests_count}</td>
+                <td className="p-3 text-[#1B1A2E]">{b.guests_count} guests · {b.children_count} kids · {b.pets_count} pets</td>
                 <td className="p-3 text-[#1B1A2E]">
                   KES {Number(b.total_amount).toLocaleString()}
                 </td>

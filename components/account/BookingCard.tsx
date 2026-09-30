@@ -21,6 +21,7 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
 
   const guests = `${b.guests_count} ${b.guests_count === 1 ? 'guest' : 'guests'}`;
   const children = b.children_count > 0 ? `, ${b.children_count} ${b.children_count === 1 ? 'child' : 'children'}` : '';
+  const pets = b.pets_count > 0 ? `, ${b.pets_count} ${b.pets_count === 1 ? 'pet' : 'pets'}` : '';
   const rooms = `, ${b.rooms_count} ${b.rooms_count === 1 ? 'room' : 'rooms'}`;
 
   return (
@@ -57,6 +58,7 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
         <p className="text-sm text-neutral-500">
           {nights} {nights === 1 ? 'night' : 'nights'}, {guests}
           {children}
+          {pets}
           {rooms}
         </p>
 

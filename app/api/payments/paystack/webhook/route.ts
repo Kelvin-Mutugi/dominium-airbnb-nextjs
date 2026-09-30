@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { verifyPaystackTransaction } from "@/app/lib/payments/paystack";
+import { sendBookingConfirmationEmail } from "@/app/lib/payments/booking-email";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 
 interface PaystackWebhookEvent {
@@ -50,6 +51,24 @@ export async function POST(request: Request) {
     }
 
     const admin = getSupabaseAdmin();
+    const { data: attempt, error: attemptError } = await admin
+      .from("paystack_payment_attempts")
+      .select("booking_id")
+      .eq("reference", reference)
+      .maybeSingle();
+    if (attemptError || !attempt) throw attemptError ?? new Error("Payment attempt not found");
+    let metadata = transaction.metadata as Record<string, unknown> | string | undefined;
+    if (typeof metadata === "string") {
+      try {
+        metadata = JSON.parse(metadata) as Record<string, unknown>;
+      } catch {
+        metadata = undefined;
+      }
+    }
+    if (String(metadata?.booking_id ?? "") !== attempt.booking_id) {
+      throw new Error("Paystack booking metadata does not match the payment attempt");
+    }
+
     const { data, error } = await admin.rpc("settle_paystack_attempt", {
       p_reference: reference,
       p_amount_minor: Number(transaction.amount),
@@ -67,6 +86,35 @@ export async function POST(request: Request) {
         reference,
         bookingId: settlement.booking_id,
       });
+    }
+
+    if (settlement?.booking_confirmed) {
+      const { data: booking, error: bookingError } = await admin
+        .from("bookings")
+        .select("id, booking_reference, guest_email, check_in, check_out, total_amount, status, listing_id, listing:listings(title)")
+        .eq("id", settlement.booking_id)
+        .maybeSingle();
+      if ((booking?.status === "confirmed" || booking?.status === "completed") && booking.guest_email) {
+        const { data: guide, error: guideError } = await admin
+          .from("listing_arrival_guides")
+          .select("arrival_contact")
+          .eq("listing_id", booking.listing_id)
+          .maybeSingle();
+        if (bookingError || guideError) throw bookingError ?? guideError;
+        const listing = Array.isArray(booking.listing) ? booking.listing[0] : booking.listing;
+        await sendBookingConfirmationEmail({
+          bookingId: booking.id,
+          bookingReference: booking.booking_reference,
+          recipient: booking.guest_email,
+          listingTitle: listing?.title ?? "Your stay",
+          checkIn: booking.check_in,
+          checkOut: booking.check_out,
+          totalPaid: Number(transaction.amount) / 100,
+          hostContact: guide?.arrival_contact ?? null,
+        });
+      } else if (bookingError) {
+        throw bookingError;
+      }
     }
     return NextResponse.json({ received: true });
   } catch (error) {

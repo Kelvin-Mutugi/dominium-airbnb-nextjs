@@ -1,5 +1,6 @@
 import type { Amenity, Listing } from "@/components/homeData";
 import { HOMEPAGE_DESTINATIONS } from "@/app/homepageSections";
+import { normalizeListingAdditionalCharges } from "@/app/lib/listing-charges";
 import { createClient } from "@/app/lib/supabase/server";
 
 const FEATURED_PAGE_SIZE = 8;
@@ -12,6 +13,9 @@ interface DatabaseListing {
   county: string;
   town: string;
   price_per_night: number | string;
+  platform_fee_per_night: number | string | null;
+  additional_charges: unknown;
+  min_nights: number | null;
   max_guests: number;
   bedrooms: number;
   bathrooms: number;
@@ -53,9 +57,11 @@ function normalizeListing(listing: DatabaseListing): Listing {
     maxGuests: listing.max_guests ?? 0,
     checkInTime: "2:00 PM",
     checkOutTime: "11:00 AM",
-    minNights: 1,
+    minNights: listing.min_nights ?? 1,
     pricePerNight: price,
-    serviceFeePercent: 0.1,
+    serviceFeePercent: 0,
+    serviceFeePerNight: Number(listing.platform_fee_per_night ?? 0),
+    additionalCharges: normalizeListingAdditionalCharges(listing.additional_charges),
     features: [
       ...(listing.bedrooms ? [`${listing.bedrooms} bedrooms`] : []),
       ...(listing.bathrooms ? [`${listing.bathrooms} bathrooms`] : []),
@@ -81,6 +87,7 @@ function uniqueListings(listings: Listing[]) {
 
 const LISTING_SELECT = `
   id, title, description, county, town, price_per_night,
+  platform_fee_per_night, additional_charges, min_nights,
   max_guests, bedrooms, bathrooms, amenities,
   listing_images ( url, sort_order )
 `;

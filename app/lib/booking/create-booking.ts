@@ -11,6 +11,8 @@ export interface CreateBookingInput {
   checkIn: string;
   checkOut: string;
   guests: number;
+  children: number;
+  pets: number;
   fullName: string;
   email: string;
   phone: string;
@@ -72,6 +74,12 @@ export async function createBooking(input: CreateBookingInput) {
   if (!Number.isInteger(input.guests) || input.guests < 1) {
     throw new BookingRequestError("Choose at least one guest.", 422, "INVALID_GUESTS");
   }
+  if (!Number.isInteger(input.children) || input.children < 0 || input.children >= input.guests) {
+    throw new BookingRequestError("Kids must be fewer than the total number of guests.", 422, "INVALID_GUEST_COUNTS");
+  }
+  if (!Number.isInteger(input.pets) || input.pets < 0 || input.pets > 10) {
+    throw new BookingRequestError("Choose between zero and ten pets.", 422, "INVALID_GUEST_COUNTS");
+  }
   if (!input.agreedToTerms) throw new BookingRequestError("Accept the booking terms to continue.", 422, "TERMS_REQUIRED");
   if (!EMAIL_RE.test(input.email) || !PHONE_RE.test(input.phone) || input.fullName.trim().length < 2) {
     throw new BookingRequestError("Check your name, phone, and email.", 422, "INVALID_GUEST_DETAILS");
@@ -123,6 +131,8 @@ export async function createBooking(input: CreateBookingInput) {
     p_check_in: input.checkIn,
     p_check_out: input.checkOut,
     p_guests: input.guests,
+    p_children: input.children,
+    p_pets: input.pets,
     p_guest_name: input.fullName.trim(),
     p_guest_email: email,
     p_guest_phone: input.phone.trim(),

@@ -1,6 +1,10 @@
 alter table public.bookings
   add column if not exists hold_expires_at timestamptz,
-  add column if not exists guest_confirmation_token_hash text;
+  add column if not exists guest_confirmation_token_hash text,
+  add column if not exists pets_count integer not null default 0
+    check (pets_count between 0 and 10);
+
+grant select (pets_count) on table public.bookings to authenticated;
 
 update public.bookings
    set hold_expires_at = now() + interval '10 minutes'
@@ -106,6 +110,8 @@ create or replace function public.create_booking_hold(
   p_check_in date,
   p_check_out date,
   p_guests integer,
+  p_children integer,
+  p_pets integer,
   p_guest_name text,
   p_guest_email text,
   p_guest_phone text,
@@ -142,6 +148,9 @@ begin
   if p_payment_method not in ('mpesa', 'card') then raise exception 'INVALID_PAYMENT_METHOD'; end if;
   if p_check_out <= p_check_in or p_check_in < current_date then raise exception 'INVALID_DATES'; end if;
   if p_guests < 1 then raise exception 'INVALID_GUESTS'; end if;
+  if p_children < 0 or p_children > p_guests or p_pets < 0 or p_pets > 10 then
+    raise exception 'INVALID_GUEST_COUNTS';
+  end if;
   if nullif(trim(p_guest_name), '') is null or nullif(trim(p_guest_email), '') is null or nullif(trim(p_guest_phone), '') is null then
     raise exception 'INVALID_GUEST_DETAILS';
   end if;
@@ -159,6 +168,9 @@ begin
     if existing_row.listing_id <> p_listing_id
        or existing_row.check_in <> p_check_in
        or existing_row.check_out <> p_check_out
+       or existing_row.guests_count <> p_guests
+       or existing_row.children_count <> p_children
+       or existing_row.pets_count <> p_pets
        or existing_row.guest_id is distinct from p_guest_id
        or existing_row.guest_email <> lower(trim(p_guest_email))
        or existing_row.guest_confirmation_token_hash is distinct from p_confirmation_token_hash then
@@ -185,6 +197,14 @@ begin
         and b.hold_expires_at <= now()
    ) and p.status = 'pending';
 
+  update public.paystack_payment_attempts a
+     set status = 'abandoned', updated_at = now()
+   where a.booking_id in (
+     select b.id from public.bookings b
+      where b.listing_id = p_listing_id and b.status = 'cancelled'
+        and b.hold_expires_at <= now()
+   ) and a.status in ('initializing', 'pending');
+
   select l.id, l.host_id, l.max_guests, l.min_nights, l.status
     into listing_row
     from public.listings l
@@ -204,14 +224,14 @@ begin
   insert into public.bookings (
     listing_id, guest_id, host_id, check_in, check_out, guests_count, status,
     total_amount, commission_amount, host_payout_amount, idempotency_key,
-    guest_name, guest_email, guest_phone, guest_country, children_count,
+    guest_name, guest_email, guest_phone, guest_country, children_count, pets_count,
     rooms_count, special_requests, terms_agreed_at, hold_expires_at,
     guest_confirmation_token_hash
   ) values (
     p_listing_id, p_guest_id, listing_row.host_id, p_check_in, p_check_out,
     p_guests, 'pending', p_total, p_service_fee, p_subtotal + p_additional_fees,
     p_idempotency_key, trim(p_guest_name), lower(trim(p_guest_email)),
-    trim(p_guest_phone), nullif(trim(p_guest_country), ''), 0, 1,
+    trim(p_guest_phone), nullif(trim(p_guest_country), ''), p_children, p_pets, 1,
     nullif(trim(p_special_requests), ''), now(), hold_deadline,
     p_confirmation_token_hash
   ) returning bookings.id into booking_id;
@@ -226,8 +246,8 @@ begin
 end;
 $$;
 
-revoke all on function public.create_booking_hold(uuid, uuid, date, date, integer, text, text, text, text, text, text, text, text, numeric, numeric, numeric, numeric) from public, anon, authenticated;
-grant execute on function public.create_booking_hold(uuid, uuid, date, date, integer, text, text, text, text, text, text, text, text, numeric, numeric, numeric, numeric) to service_role;
+revoke all on function public.create_booking_hold(uuid, uuid, date, date, integer, integer, integer, text, text, text, text, text, text, text, text, numeric, numeric, numeric, numeric) from public, anon, authenticated;
+grant execute on function public.create_booking_hold(uuid, uuid, date, date, integer, integer, integer, text, text, text, text, text, text, text, text, numeric, numeric, numeric, numeric) to service_role;
 
 create or replace function public.settle_paystack_attempt(
   p_reference text,
@@ -267,7 +287,24 @@ begin
 
   if attempt_row.status in ('paid', 'late_success') then
     return query select attempt_row.booking_id, attempt_row.payment_id,
-      booking_row.status = 'confirmed', true;
+      booking_row.status in ('confirmed', 'completed'), true;
+    return;
+  end if;
+
+  if exists (
+    select 1
+      from public.payments p
+     where p.id = attempt_row.payment_id
+       and p.status = 'paid'
+       and p.provider_reference is distinct from p_reference
+  ) then
+    update public.paystack_payment_attempts
+       set status = 'late_success', payment_channel = p_channel,
+           paystack_transaction_id = p_transaction_id,
+           paid_at = coalesce(p_paid_at, now()), raw_response = p_raw_response,
+           updated_at = now()
+     where id = attempt_row.id;
+    return query select booking_row.id, attempt_row.payment_id, false, false;
     return;
   end if;
 

@@ -33,7 +33,7 @@ export const getAccountContext = cache(async () => {
 });
 
 const BOOKING_SELECT = `
-  id, booking_reference, listing_id, check_in, check_out, guests_count, children_count, rooms_count,
+  id, booking_reference, listing_id, check_in, check_out, guests_count, children_count, pets_count, rooms_count,
   status, total_amount, special_requests, created_at,
   listing:listings ( id, title, slug, town, county, check_in_time, listing_images ( url, sort_order ) )
 `;

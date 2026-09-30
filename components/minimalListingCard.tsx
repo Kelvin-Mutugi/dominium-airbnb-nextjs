@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { unsplashCardImageLoader } from "./unsplash-image-loader";
 import { useEffect, useState } from "react";
-import type { KeyboardEvent } from "react";
 import { BedDouble, Star, Gem, Users } from "lucide-react";
 import { supabase } from "@/app/lib/supabase/client";
 import SaveListingButton from "@/components/listings/SaveListingButton";
@@ -198,13 +197,6 @@ export default function MinimalListingCard({
     };
   }, [id, item]);
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLAnchorElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      event.currentTarget.click();
-    }
-  };
-
   if (loading) {
     return (
       <div className="w-full max-w-[180px] overflow-hidden rounded-[24px] border border-[#E9E6DD] bg-white shadow-sm">
@@ -252,9 +244,9 @@ export default function MinimalListingCard({
   return (
     <Link
       href={`/apartments/${listing.id}`}
-      onKeyDown={handleKeyDown}
+      target="_blank"
       aria-label={`View details for ${listing.name}`}
-      className="block w-full max-w-[180px] overflow-hidden rounded-2xl bg-white text-left focus:outline-none focus:ring-2 focus:ring-[#E89A1C]"
+      className="block w-full max-w-[180px] overflow-hidden rounded-2xl bg-white text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E89A1C] active:transform-none active:transition-none [-webkit-tap-highlight-color:transparent]"
     >
       <article>
         <div className="relative size-[180px] overflow-hidden rounded-2xl">

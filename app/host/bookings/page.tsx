@@ -328,7 +328,7 @@ export default function HostBookingsPage() {
 
                     <p className="mt-1 text-sm text-gray-600">{b.check_in} → {b.check_out} · {b.nights} {b.nights === 1 ? "night" : "nights"}</p>
                     <p className="mt-1 text-sm text-gray-600">Guest: {b.guest_name ?? "Guest"}{b.guest_country ? ` · ${b.guest_country}` : ""}</p>
-                    <p className="mt-1 text-sm text-gray-600">{b.adults_count} {b.adults_count === 1 ? "adult" : "adults"} · {b.children_count} {b.children_count === 1 ? "child" : "children"} · {b.rooms_count} {b.rooms_count === 1 ? "room" : "rooms"}</p>
+                    <p className="mt-1 text-sm text-gray-600">{b.adults_count} {b.adults_count === 1 ? "adult" : "adults"} · {b.children_count} {b.children_count === 1 ? "child" : "children"} · {b.pets_count} {b.pets_count === 1 ? "pet" : "pets"} · {b.rooms_count} {b.rooms_count === 1 ? "room" : "rooms"}</p>
 
                     {b.special_requests && (
                       <p className="mt-1 text-sm italic text-gray-500">

@@ -190,8 +190,9 @@ export default function FeaturedListingCard({
     >
       <Link
         href={`/apartments/${listing.id}`}
+        target="_blank"
         aria-label={`${listing.name}, ${listing.loc}, ${listing.price} per night`}
-        className={`block rounded-2xl text-left no-underline ${focusRing}`}
+        className={`block rounded-2xl text-left no-underline active:transform-none active:transition-none [-webkit-tap-highlight-color:transparent] ${focusRing}`}
       >
         {/* Image */}
         <div className="relative aspect-square w-full overflow-hidden rounded-2xl">

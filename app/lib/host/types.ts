@@ -129,6 +129,7 @@ export interface Booking {
   adults_count: number;
   guests_count: number;
   children_count: number;
+  pets_count: number;
   rooms_count: number;
   status: BookingStatus;
   total_amount: number;
@@ -182,6 +183,7 @@ export interface Payout {
     | "nights"
     | "adults_count"
     | "children_count"
+    | "pets_count"
     | "rooms_count"
     | "status"
     | "host_payout_amount"

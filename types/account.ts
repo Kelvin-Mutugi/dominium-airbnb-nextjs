@@ -55,6 +55,7 @@ export interface BookingRow {
   check_out: string; // YYYY-MM-DD
   guests_count: number;
   children_count: number;
+  pets_count: number;
   rooms_count: number;
   status: BookingStatus;
   total_amount: number;
@@ -101,11 +102,14 @@ export interface PaymentRow {
   provider_reference: string | null;
   paid_at: string | null;
   created_at: string;
-  authorization_url: string | null;
   booking: {
     id: string;
+    listing_id: string;
     check_in: string;
     check_out: string;
+    guests_count: number;
+    children_count: number;
+    pets_count: number;
     listing: { title: string; slug: string } | null;
   } | null;
 }

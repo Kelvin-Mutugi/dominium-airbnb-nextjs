@@ -24,6 +24,7 @@ type Booking = {
   check_out: string | null;
   guests_count: number | null;
   children_count: number | null;
+  pets_count: number | null;
   rooms_count: number | null;
   status: string | null;
   total_amount: number | string | null;
@@ -123,6 +124,7 @@ export default async function AdminBookingDetailPage({
           <DetailField label="Check-out" value={booking.check_out} />
           <DetailField label="Guests" value={booking.guests_count} />
           <DetailField label="Children" value={booking.children_count} />
+          <DetailField label="Pets" value={booking.pets_count} />
           <DetailField label="Rooms" value={booking.rooms_count} />
           <DetailField label="Guest name" value={booking.guest_name ?? guest?.full_name} />
           <DetailField label="Guest email" value={booking.guest_email} />

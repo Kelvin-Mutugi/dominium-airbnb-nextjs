@@ -32,23 +32,23 @@ export function ListingPolicies({ listing }: ListingPoliciesProps) {
   const [openKey, setOpenKey] = useState<string | null>(null);
 
   const sections: PolicySection[] = [
-    listing.houserules?.length && {
+    {
       key: "houserules",
       icon: ListChecks,
       title: "House rules",
-      content: listing.houserules,
+      content: listing.houserules?.length ? listing.houserules : "No additional house rules were provided.",
     },
-    listing.bookingTerms && {
+    {
       key: "bookingTerms",
       icon: FileText,
       title: "Booking terms",
-      content: listing.bookingTerms,
+      content: listing.bookingTerms || "No additional booking terms were provided.",
     },
-    listing.cancelationPolicy && {
+    {
       key: "cancelationPolicy",
       icon: XCircle,
       title: "Cancellation policy",
-      content: listing.cancelationPolicy,
+      content: listing.cancelationPolicy || "See the platform cancellation policy.",
     },
     listing.refundPolicy && {
       key: "refundPolicy",
@@ -70,9 +70,16 @@ export function ListingPolicies({ listing }: ListingPoliciesProps) {
     <div className="mt-6 divide-y divide-[#EDEBE4] overflow-hidden rounded-xl bg-[#FAFAFA]">
       {sections.map(({ key, icon: Icon, title, content }) => {
         const isOpen = openKey === key;
+        const anchorId = key === "houserules"
+          ? "house-rules"
+          : key === "bookingTerms"
+            ? "booking-terms"
+            : key === "cancelationPolicy"
+              ? "cancellation-policy"
+              : undefined;
 
         return (
-          <div key={key}>
+          <div key={key} id={anchorId}>
             <button
               type="button"
               onClick={() => setOpenKey(isOpen ? null : key)}

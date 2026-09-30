@@ -44,17 +44,17 @@ export default function DestinationListings({
             type="button"
             aria-label={`Scroll ${carouselLabel} left`}
             onClick={() => carouselRef.current?.scroll("left")}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[#E9E6DD] bg-white text-[#36454F] transition-colors hover:border-[#E23E85] hover:text-[#E23E85]"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-[#E9E6DD] bg-white text-[#36454F] transition-colors hover:border-[#E23E85] hover:text-[#E23E85]"
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={14} />
           </button>
           <button
             type="button"
             aria-label={`Scroll ${carouselLabel} right`}
             onClick={() => carouselRef.current?.scroll("right")}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[#E9E6DD] bg-white text-[#36454F] transition-colors hover:border-[#E23E85] hover:text-[#E23E85]"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-[#E9E6DD] bg-white text-[#36454F] transition-colors hover:border-[#E23E85] hover:text-[#E23E85]"
           >
-            <ChevronRight size={18} />
+            <ChevronRight size={14} />
           </button>
         </div>
       </div>

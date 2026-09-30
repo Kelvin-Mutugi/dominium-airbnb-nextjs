@@ -23,7 +23,7 @@ import type {
 } from "./types";
 
 const MPESA_REGEX = /^0\d{9}$/;
-const HOST_BOOKING_FIELDS = "id, booking_reference, listing_id, host_id, check_in, check_out, nights, adults_count, children_count, rooms_count, status, host_payout_amount, guest_name, guest_country, special_requests";
+const HOST_BOOKING_FIELDS = "id, booking_reference, listing_id, host_id, check_in, check_out, nights, adults_count, children_count, pets_count, rooms_count, status, host_payout_amount, guest_name, guest_country, special_requests";
 const HOST_BOOKING_WITH_LISTING = `${HOST_BOOKING_FIELDS}, listing:listings(id, title, town, county)`;
 
 function isAdult(dob: string) {
@@ -546,7 +546,7 @@ export async function getHostPayoutsData() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("payouts")
-    .select("*, booking:bookings(id, booking_reference, check_in, check_out, nights, adults_count, children_count, rooms_count, status, host_payout_amount, guest_name, guest_country, special_requests, listing:listings(id, title, town, county))")
+    .select("*, booking:bookings(id, booking_reference, check_in, check_out, nights, adults_count, children_count, pets_count, rooms_count, status, host_payout_amount, guest_name, guest_country, special_requests, listing:listings(id, title, town, county))")
     .eq("host_id", user.id)
     .order("created_at", { ascending: false });
   if (error) throw new Error("Unable to load payouts.");
