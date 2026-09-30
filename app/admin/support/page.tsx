@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { formatDate, humanize } from '@/app/lib/format';
 import { getSupabaseAdmin } from '@/app/lib/supabase/admin';
-import { updateSupportCase } from './actions';
+import { SupportCaseUpdateForm } from '@/components/admin/support/support-case-update-form';
 
 type CaseRow = {
   id: string;
@@ -19,6 +19,7 @@ type CaseRow = {
 
 type RelatedBooking = {
   id: string;
+  booking_reference: string;
   listing_id: string;
   guest_name: string | null;
   guest_email: string | null;
@@ -39,10 +40,11 @@ const CASE_STATUS_STYLES: Record<string, string> = {
   closed: 'bg-gray-100 text-gray-700',
 };
 
-function hrefFor(status: string, query: string) {
+function hrefFor(status: string, query: string, listingId: string | null) {
   const params = new URLSearchParams();
   if (status !== 'all') params.set('status', status);
   if (query) params.set('q', query);
+  if (listingId) params.set('listingId', listingId);
   const suffix = params.toString();
   return suffix ? `/admin/support?${suffix}` : '/admin/support';
 }
@@ -50,11 +52,14 @@ function hrefFor(status: string, query: string) {
 export default async function AdminSupportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; listingId?: string }>;
 }) {
   const params = await searchParams;
   const status = STATUSES.includes(params.status ?? 'all') ? params.status ?? 'all' : 'all';
   const query = (params.q ?? '').trim().slice(0, 100).toLowerCase();
+  const listingId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(params.listingId ?? '')
+    ? params.listingId!
+    : null;
   const admin = getSupabaseAdmin();
   const { data, error } = await admin
     .from('support_cases')
@@ -71,7 +76,7 @@ export default async function AdminSupportPage({
       ? admin.from('profiles').select('id, full_name, business_name').in('id', userIds)
       : Promise.resolve({ data: [], error: null }),
     bookingIds.length
-      ? admin.from('bookings').select('id, listing_id, guest_name, guest_email').in('id', bookingIds)
+      ? admin.from('bookings').select('id, booking_reference, listing_id, guest_name, guest_email').in('id', bookingIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
   if (profileError || bookingError) throw new Error('Unable to load support case details.');
@@ -88,6 +93,8 @@ export default async function AdminSupportPage({
   const listingById = new Map((listings ?? []).map((listing) => [listing.id, listing.title]));
   const visibleCases = cases.filter((item) => {
     if (status !== 'all' && item.status !== status) return false;
+    const associatedListingId = item.booking_id ? bookingById.get(item.booking_id)?.listing_id : null;
+    if (listingId && associatedListingId !== listingId) return false;
     if (!query) return true;
     const profile = profileById.get(item.user_id);
     const booking = item.booking_id ? bookingById.get(item.booking_id) : null;
@@ -112,8 +119,8 @@ export default async function AdminSupportPage({
   return (
     <div className="max-w-6xl space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold text-[#E23E85]">Support &amp; disputes</h1>
-        <p className="mt-1 text-sm text-gray-600">Review guest and host requests, record internal notes, and track resolution.</p>
+        <h1 className="text-2xl font-semibold text-[#E23E85]">Support cases &amp; disputes</h1>
+        <p className="mt-1 text-sm text-gray-600">Formal guest and host cases for payments, refunds, complaints, safety concerns, and disputes. Quick booking conversations are in Booking Messages.</p>
       </header>
 
       <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-3">
@@ -121,7 +128,7 @@ export default async function AdminSupportPage({
           {STATUSES.map((item) => (
             <Link
               key={item}
-              href={hrefFor(item, query)}
+              href={hrefFor(item, query, listingId)}
               aria-current={status === item ? 'page' : undefined}
               className={`rounded-md px-3 py-2 text-sm ${status === item ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
             >
@@ -131,12 +138,15 @@ export default async function AdminSupportPage({
         </nav>
         <form action="/admin/support" className="flex w-full max-w-md gap-2">
           {status !== 'all' && <input type="hidden" name="status" value={status} />}
+          {listingId && <input type="hidden" name="listingId" value={listingId} />}
           <label className="sr-only" htmlFor="support-search">Search cases</label>
-          <input id="support-search" name="q" type="search" defaultValue={params.q ?? ''} maxLength={100} placeholder="Search person, booking, or request" className="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" />
+          <input id="support-search" name="q" type="search" defaultValue={params.q ?? ''} maxLength={100} placeholder="Search person, booking, or request" className="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#1B1A2E] placeholder:text-gray-400 focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" />
           <button type="submit" className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700">Search</button>
-          {query && <Link href={hrefFor(status, '')} className="self-center text-sm text-gray-500 hover:text-gray-900">Clear</Link>}
+          {(query || listingId) && <Link href={hrefFor(status, '', null)} className="self-center text-sm text-gray-500 hover:text-gray-900">Clear</Link>}
         </form>
       </div>
+
+      {listingId && <p className="text-sm text-gray-600">Filtered to cases related to listing <span className="font-mono">{listingId.slice(0, 8)}</span>. <Link href={hrefFor(status, query, null)} className="font-medium text-[#CF2F74] hover:underline">Clear listing filter</Link></p>}
 
       <p className="text-xs text-gray-500">{visibleCases.length} {visibleCases.length === 1 ? 'case' : 'cases'} shown · latest 200</p>
 
@@ -159,11 +169,18 @@ export default async function AdminSupportPage({
                     <h2 className="text-base font-semibold text-[#1B1A2E]">{item.subject}</h2>
                     <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${CASE_STATUS_STYLES[item.status] ?? 'bg-gray-100 text-gray-700'}`}>{humanize(item.status)}</span>
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">{humanize(item.category)} · {formatDate(item.created_at, 'long')} · from {requester}</p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {humanize(item.category)} · {formatDate(item.created_at, 'long')} · from{" "}
+                    <Link href={`/admin/users/${item.user_id}`} className="font-medium text-[#CF2F74] hover:underline">{requester}</Link>
+                  </p>
                   {item.booking_id && (
                     <p className="mt-1 text-xs text-gray-500">
-                      {booking ? listingById.get(booking.listing_id) ?? 'Listing unavailable' : 'Booking'} ·{' '}
-                      <Link href={`/admin/bookings/${item.booking_id}`} className="font-medium text-[#CF2F74] hover:underline">{item.booking_id.slice(0, 8)}</Link>
+                      {booking ? (
+                        <Link href={`/admin/listings/${booking.listing_id}`} className="font-medium text-[#CF2F74] hover:underline">
+                          {listingById.get(booking.listing_id) ?? 'Listing unavailable'}
+                        </Link>
+                      ) : 'Booking'} ·{' '}
+                      <Link href={`/admin/bookings/${item.booking_id}`} className="font-medium text-[#CF2F74] hover:underline">{booking?.booking_reference ?? 'Booking'}</Link>
                       {booking?.guest_email ? ` · ${booking.guest_email}` : ''}
                     </p>
                   )}
@@ -177,24 +194,12 @@ export default async function AdminSupportPage({
                   <p className="mt-4 text-[11px] text-gray-400">Case {item.id} · updated {formatDate(item.updated_at, 'long')}</p>
                 </div>
 
-                <form action={updateSupportCase} className="space-y-3 border-t pt-4 xl:border-l xl:border-t-0 xl:pl-5 xl:pt-0">
-                  <input type="hidden" name="case_id" value={item.id} />
-                  <div>
-                    <label htmlFor={`status-${item.id}`} className="block text-xs font-medium text-gray-600">Case status</label>
-                    <select id={`status-${item.id}`} name="status" defaultValue={item.status} className="mt-1 w-full rounded-md border border-[#D9D5CF] bg-[#F7F5F2] px-2.5 py-2 text-sm text-[#1B1A2E] focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20">
-                      {STATUSES.filter((candidate) => candidate !== 'all').map((candidate) => <option key={candidate} value={candidate}>{humanize(candidate)}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor={`reply-${item.id}`} className="block text-xs font-medium text-gray-600">Reply to requester</label>
-                    <textarea id={`reply-${item.id}`} name="public_reply" rows={3} maxLength={5000} defaultValue={item.public_reply ?? ''} placeholder="Visible in their support history" className="mt-1 w-full resize-y rounded-md border border-[#D9D5CF] bg-[#F7F5F2] px-2.5 py-2 text-sm text-[#1B1A2E] placeholder:text-[#8A8797] focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" />
-                  </div>
-                  <div>
-                    <label htmlFor={`notes-${item.id}`} className="block text-xs font-medium text-gray-600">Internal notes</label>
-                    <textarea id={`notes-${item.id}`} name="admin_notes" rows={3} maxLength={5000} defaultValue={item.admin_notes ?? ''} placeholder="Staff-only notes" className="mt-1 w-full resize-y rounded-md border border-[#D9D5CF] bg-[#F7F5F2] px-2.5 py-2 text-sm text-[#1B1A2E] placeholder:text-[#8A8797] focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" />
-                  </div>
-                  <button type="submit" className="rounded-md bg-[#1B1A2E] px-3 py-2 text-sm font-medium text-white hover:bg-[#302F43]">Save update</button>
-                </form>
+                <SupportCaseUpdateForm
+                  caseId={item.id}
+                  status={item.status}
+                  publicReply={item.public_reply}
+                  adminNotes={item.admin_notes}
+                />
               </article>
             );
           })}

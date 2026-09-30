@@ -1,23 +1,12 @@
 // app/host/listings/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import {
-  Check,
-  Edit3,
-  Loader2,
-  Plus,
-  Trash2,
-  X,
-} from "lucide-react";
-import {
-  getHostListingsData,
-  setHostListingStatus,
-  deleteHostListing,
-} from "@/app/lib/host/actions";
-import type { Listing } from "@/app/lib/host/types";
+import { ArrowRight, CalendarDays, Plus, X } from "lucide-react";
+import { getHostListingRequestsData, getHostListingsData, submitHostListingRequest } from "@/app/lib/host/actions";
+import type { HostListingRequest, Listing } from "@/app/lib/host/types";
 import StatusBadge from "@/components/host/StatusBadge";
 
 const FILTERS = [
@@ -25,30 +14,42 @@ const FILTERS = [
   "published",
   "draft",
   "suspended",
+  "archived",
 ] as const;
 
 type Filter = (typeof FILTERS)[number];
 
+const REQUEST_STATUS: Record<HostListingRequest["status"], { label: string; className: string }> = {
+  submitted: { label: "Submitted", className: "bg-sky-50 text-sky-800" },
+  reviewing: { label: "Under review", className: "bg-amber-50 text-amber-800" },
+  visit_scheduled: { label: "Visit scheduled", className: "bg-indigo-50 text-indigo-800" },
+  visited: { label: "Visit completed", className: "bg-cyan-50 text-cyan-800" },
+  details_collected: { label: "Details collected", className: "bg-emerald-50 text-emerald-800" },
+  listing_created: { label: "Listing created", className: "bg-green-50 text-green-800" },
+  declined: { label: "Unable to proceed", className: "bg-gray-100 text-gray-700" },
+};
+
+const EMPTY_REQUEST = {
+  proposedTitle: "",
+  propertyType: "",
+  county: "",
+  town: "",
+  address: "",
+  contactPhone: "",
+  propertyNotes: "",
+};
+
 export default function HostListingsPage() {
   const [listings, setListings] = useState<Listing[]>([]);
+  const [requests, setRequests] = useState<HostListingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
-
-  // ID of the listing currently being updated/deleted
-  const [actionId, setActionId] = useState<string | null>(null);
-
-  // Which action is currently happening
-  const [actionType, setActionType] = useState<
-    "publish" | "delete" | null
-  >(null);
-
-  // Listing waiting for delete confirmation
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(
-    null,
-  );
-
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [requestValues, setRequestValues] = useState(EMPTY_REQUEST);
+  const [submittingRequest, setSubmittingRequest] = useState(false);
+  const [requestError, setRequestError] = useState<string | null>(null);
+  const [requestSuccess, setRequestSuccess] = useState<string | null>(null);
 
   async function load(showLoader = false) {
     try {
@@ -58,8 +59,12 @@ export default function HostListingsPage() {
 
       setError(null);
 
-      const data = await getHostListingsData();
+      const [data, hostRequests] = await Promise.all([
+        getHostListingsData(),
+        getHostListingRequestsData(),
+      ]);
       setListings(data);
+      setRequests(hostRequests);
     } catch (err) {
       console.error("Failed to load listings:", err);
       setError(
@@ -70,86 +75,28 @@ export default function HostListingsPage() {
     }
   }
 
+  async function submitListingRequest(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmittingRequest(true);
+    setRequestError(null);
+    setRequestSuccess(null);
+    try {
+      const request = await submitHostListingRequest(requestValues);
+      setRequests((current) => [request, ...current]);
+      setRequestValues(EMPTY_REQUEST);
+      setShowRequestForm(false);
+      setRequestSuccess("Your property visit request was sent to the admin team.");
+    } catch (submitError) {
+      setRequestError(submitError instanceof Error ? submitError.message : "Unable to submit your property request.");
+    } finally {
+      setSubmittingRequest(false);
+    }
+  }
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load(true);
   }, []);
-
-  async function toggleStatus(listing: Listing) {
-    // Prevent duplicate actions
-    if (actionId) return;
-
-    const next =
-      listing.status === "published" ? "draft" : "published";
-
-    if (next === "published" && !listing.is_publish_ready) {
-      setError(
-        "Add a description (40+ characters) and a price before publishing.",
-      );
-      return;
-    }
-
-    setActionId(listing.id);
-    setActionType("publish");
-    setError(null);
-    setSuccess(null);
-
-    try {
-      await setHostListingStatus(listing.id, next);
-
-      await load();
-
-      setSuccess(
-        next === "published"
-          ? "Listing published successfully."
-          : "Listing unpublished successfully.",
-      );
-
-      setTimeout(() => {
-        setSuccess(null);
-      }, 3000);
-    } catch (err) {
-      console.error("Failed to update listing status:", err);
-      setError(
-        "We couldn't update this listing. Please try again.",
-      );
-    } finally {
-      setActionId(null);
-      setActionType(null);
-    }
-  }
-
-  async function handleDelete(id: string) {
-    // Prevent duplicate actions
-    if (actionId) return;
-
-    setActionId(id);
-    setActionType("delete");
-    setError(null);
-    setSuccess(null);
-
-    try {
-      await deleteHostListing(id);
-
-      setConfirmDelete(null);
-
-      await load();
-
-      setSuccess("Listing deleted successfully.");
-
-      setTimeout(() => {
-        setSuccess(null);
-      }, 3000);
-    } catch (err) {
-      console.error("Failed to delete listing:", err);
-      setError(
-        "We couldn't delete this listing. Please try again.",
-      );
-    } finally {
-      setActionId(null);
-      setActionType(null);
-    }
-  }
 
   const visible = listings.filter(
     (l) => filter === "all" || l.status === filter,
@@ -213,23 +160,94 @@ export default function HostListingsPage() {
         <h1 className="text-2xl font-bold text-[#12231d]">
           Your listings
         </h1>
-
-        <Link
-          href="/host/listings/new"
-          className="flex items-center gap-1.5 rounded-lg bg-[#ec1561] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#d91459] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/30"
-        >
-          <Plus className="h-4 w-4" />
-          New listing
-        </Link>
       </div>
 
-      {/* Success message */}
-      {success && (
-        <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-          <Check className="h-4 w-4 shrink-0" />
-          {success}
+      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        Listings are currently reviewed and managed by the admin team. Hosts can view their property details, but cannot add, edit, publish, or delete listings during this verification phase.
+      </div>
+
+      <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="font-semibold text-[#12231d]">Have another property?</h2>
+            <p className="mt-1 text-sm text-gray-500">Send the admin team its details to arrange due diligence and a property visit.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => { setShowRequestForm((visible) => !visible); setRequestError(null); }}
+            aria-expanded={showRequestForm}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#12231d] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#243c34]"
+          >
+            {showRequestForm ? <X size={16} aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}
+            {showRequestForm ? "Close request" : "Request a property visit"}
+          </button>
         </div>
-      )}
+
+        {requestSuccess && <p role="status" className="mt-4 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{requestSuccess}</p>}
+        {showRequestForm && (
+          <form onSubmit={submitListingRequest} className="mt-5 space-y-4 border-t border-gray-100 pt-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="request-property-name" className="mb-1 block text-sm font-medium text-[#12231d]">Property name</label>
+                <input id="request-property-name" required minLength={3} maxLength={120} value={requestValues.proposedTitle} onChange={(event) => setRequestValues({ ...requestValues, proposedTitle: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" placeholder="e.g. Greenview Apartment" />
+              </div>
+              <div>
+                <label htmlFor="request-property-type" className="mb-1 block text-sm font-medium text-[#12231d]">Property type</label>
+                <input id="request-property-type" required minLength={2} maxLength={80} value={requestValues.propertyType} onChange={(event) => setRequestValues({ ...requestValues, propertyType: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" placeholder="Apartment, villa, guesthouse…" />
+              </div>
+              <div>
+                <label htmlFor="request-county" className="mb-1 block text-sm font-medium text-[#12231d]">County</label>
+                <input id="request-county" required minLength={2} maxLength={80} value={requestValues.county} onChange={(event) => setRequestValues({ ...requestValues, county: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" />
+              </div>
+              <div>
+                <label htmlFor="request-town" className="mb-1 block text-sm font-medium text-[#12231d]">Town / area</label>
+                <input id="request-town" required minLength={2} maxLength={100} value={requestValues.town} onChange={(event) => setRequestValues({ ...requestValues, town: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" />
+              </div>
+              <div>
+                <label htmlFor="request-address" className="mb-1 block text-sm font-medium text-[#12231d]">Address or directions <span className="font-normal text-gray-500">(optional)</span></label>
+                <input id="request-address" maxLength={500} value={requestValues.address} onChange={(event) => setRequestValues({ ...requestValues, address: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" />
+              </div>
+              <div>
+                <label htmlFor="request-contact" className="mb-1 block text-sm font-medium text-[#12231d]">On-site contact <span className="font-normal text-gray-500">(optional)</span></label>
+                <input id="request-contact" maxLength={40} value={requestValues.contactPhone} onChange={(event) => setRequestValues({ ...requestValues, contactPhone: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" placeholder="Phone number for arranging a visit" />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="request-notes" className="mb-1 block text-sm font-medium text-[#12231d]">Additional details <span className="font-normal text-gray-500">(optional)</span></label>
+              <textarea id="request-notes" maxLength={3000} rows={3} value={requestValues.propertyNotes} onChange={(event) => setRequestValues({ ...requestValues, propertyNotes: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" placeholder="Best time to visit, number of units, or anything the team should know" />
+            </div>
+            {requestError && <p role="alert" className="text-sm text-red-700">{requestError}</p>}
+            <div className="flex justify-end">
+              <button type="submit" disabled={submittingRequest} className="rounded-lg bg-[#ec1561] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
+                {submittingRequest ? "Sending request…" : "Send to admin team"}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {requests.length > 0 && (
+          <div className="mt-5 border-t border-gray-100 pt-4">
+            <h3 className="text-sm font-semibold text-[#12231d]">Your property requests</h3>
+            <ul className="mt-2 divide-y divide-gray-100">
+              {requests.map((request) => {
+                const status = REQUEST_STATUS[request.status];
+                return (
+                  <li key={request.id} className="flex flex-wrap items-start justify-between gap-3 py-3">
+                    <div>
+                      <p className="text-sm font-medium text-[#12231d]">{request.proposed_title} · {request.town}, {request.county}</p>
+                      <p className="mt-1 text-xs text-gray-500">Submitted {new Date(request.created_at).toLocaleDateString("en-KE")}</p>
+                      {request.proposed_visit_at && <p className="mt-1 text-xs text-gray-600">Visit: {new Date(request.proposed_visit_at).toLocaleString("en-KE")}</p>}
+                      {request.host_message && <p className="mt-2 whitespace-pre-wrap text-sm text-gray-600">{request.host_message}</p>}
+                      {request.listing_id && <Link href={`/host/listings/${request.listing_id}`} className="mt-1 inline-block text-xs font-semibold text-[#b30f4b] hover:underline">View created listing</Link>}
+                    </div>
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${status.className}`}>{status.label}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+      </section>
 
       {/* Error message */}
       {error && (
@@ -289,21 +307,40 @@ export default function HostListingsPage() {
               ?.sort(
                 (a, b) => a.sort_order - b.sort_order,
               )?.[0]?.url;
-
-            const isUpdating =
-              actionId === listing.id && actionType === "publish";
-
-            const isDeleting =
-              actionId === listing.id && actionType === "delete";
-
-            const isBusy = actionId === listing.id;
+            const listingGuidance = listing.status === "published"
+              ? {
+                  detail: "Live and bookable. Keep your calendar availability up to date.",
+                  action: "Manage calendar",
+                  href: "/host/calendar",
+                }
+              : listing.status === "draft" && listing.is_publish_ready
+                ? {
+                    detail: "Details are ready for admin review. Publishing is managed by the admin team.",
+                    action: "Ask about review",
+                    href: "/account/support?category=listing_issue",
+                  }
+                : listing.status === "draft"
+                  ? {
+                      detail: "Not live yet. Listing details need attention from the admin team before publishing.",
+                      action: "Ask about listing",
+                      href: "/account/support?category=listing_issue",
+                    }
+                  : listing.status === "suspended"
+                    ? {
+                        detail: "Temporarily unavailable to guests. Contact support for the current status and next steps.",
+                        action: "Contact support",
+                        href: "/account/support?category=listing_issue",
+                      }
+                    : {
+                        detail: "Not bookable. Contact support if this listing should be reviewed for reactivation.",
+                        action: "Ask about reactivation",
+                        href: "/account/support?category=listing_issue",
+                      };
 
             return (
               <div
                 key={listing.id}
-                className={`flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm transition-opacity sm:flex-row sm:items-center ${
-                  isBusy ? "opacity-70" : ""
-                }`}
+                className="flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm sm:flex-row sm:items-center"
               >
                 {/* Cover image */}
                 <div className="relative h-24 w-full shrink-0 overflow-hidden rounded-xl bg-gray-100 sm:w-36">
@@ -322,7 +359,7 @@ export default function HostListingsPage() {
                 </div>
 
                 {/* Listing information */}
-                <div className="flex-1">
+                <Link href={`/host/listings/${listing.id}`} className="flex-1">
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold text-[#12231d]">
                       {listing.title}
@@ -349,88 +386,14 @@ export default function HostListingsPage() {
                     ★ {listing.average_rating.toFixed(1)} (
                     {listing.review_count} reviews)
                   </p>
-                </div>
+                  <p className="mt-2 text-sm text-[#565c57]">{listingGuidance.detail}</p>
+                </Link>
 
-                {/* Actions */}
-                <div className="flex shrink-0 flex-wrap gap-2">
-                  {/* Edit */}
-                  <Link
-                    href={`/host/listings/${listing.id}/edit`}
-                    className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-[#12231d] transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#12231d]/20"
-                    aria-disabled={isBusy}
-                  >
-                    <Edit3 className="h-3.5 w-3.5" />
-                    Edit
-                  </Link>
-
-                  {/* Publish / Unpublish */}
-                  {listing.status !== "suspended" && (
-                    <button
-                      disabled={isBusy}
-                      onClick={() => toggleStatus(listing)}
-                      className="flex items-center justify-center gap-1.5 rounded-lg bg-[#f2a71b]/20 px-3 py-1.5 text-sm font-medium text-[#b9770e] transition hover:bg-[#f2a71b]/30 focus:outline-none focus:ring-2 focus:ring-[#f2a71b]/30 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isUpdating ? (
-                        <>
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-
-                          {listing.status === "published"
-                            ? "Unpublishing..."
-                            : "Publishing..."}
-                        </>
-                      ) : listing.status === "published" ? (
-                        "Unpublish"
-                      ) : (
-                        "Publish"
-                      )}
-                    </button>
-                  )}
-
-                  {/* Delete */}
-                  {confirmDelete === listing.id ? (
-                    <div className="flex gap-1">
-                      <button
-                        disabled={isDeleting}
-                        onClick={() =>
-                          handleDelete(listing.id)
-                        }
-                        className="flex items-center justify-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {isDeleting ? (
-                          <>
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            Deleting...
-                          </>
-                        ) : (
-                          <>
-                            <Check className="h-3.5 w-3.5" />
-                            Confirm
-                          </>
-                        )}
-                      </button>
-
-                      <button
-                        disabled={isDeleting}
-                        onClick={() => setConfirmDelete(null)}
-                        className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm text-gray-600 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      disabled={isBusy}
-                      onClick={() =>
-                        setConfirmDelete(listing.id)
-                      }
-                      className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Delete
-                    </button>
-                  )}
-                </div>
+                <Link href={listingGuidance.href} className="inline-flex shrink-0 items-center gap-1.5 self-start text-sm font-semibold text-[#b30f4b] hover:underline sm:self-center">
+                  {listing.status === "published" ? <CalendarDays className="h-4 w-4" aria-hidden="true" /> : null}
+                  {listingGuidance.action}
+                  {listing.status !== "published" && <ArrowRight className="h-4 w-4" aria-hidden="true" />}
+                </Link>
               </div>
             );
           })}

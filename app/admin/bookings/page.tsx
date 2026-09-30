@@ -20,9 +20,12 @@ function isDate(value: string) {
 
 type AdminBooking = {
   id: string;
+  booking_reference: string;
   check_in: string;
   check_out: string;
   guests_count: number;
+  children_count: number;
+  pets_count: number;
   guest_name: string | null;
   status: string;
   total_amount: number | string;
@@ -34,23 +37,26 @@ type AdminBooking = {
 export default async function AdminBookingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; listingId?: string }>;
 }) {
-  const { status, q } = await searchParams;
-  const activeStatus = status ?? "pending";
+  const { status, q, listingId: requestedListingId } = await searchParams;
+  const listingId = isUuid(requestedListingId ?? "") ? requestedListingId : undefined;
+  const activeStatus = status ?? (listingId ? "all" : "pending");
   const searchTerm = escapeSearchTerm(q ?? "");
 
   const admin = getSupabaseAdmin();
   let bookingsQuery = admin
     .from("bookings")
     .select(
-      `id, check_in, check_out, guests_count, guest_name, status, total_amount,
+      `id, booking_reference, check_in, check_out, guests_count, children_count, pets_count, guest_name, status, total_amount,
        commission_amount, host_payout_amount, created_at,
        listing:listing_id ( title, town, county ),
        guest:guest_id ( full_name, phone ),
        host:host_id ( full_name, business_name )`
-    )
-    .eq("status", activeStatus);
+    );
+
+  if (activeStatus !== "all") bookingsQuery = bookingsQuery.eq("status", activeStatus);
+  if (listingId) bookingsQuery = bookingsQuery.eq("listing_id", listingId);
 
   if (searchTerm) {
     const pattern = `%${searchTerm}%`;
@@ -68,6 +74,7 @@ export default async function AdminBookingsPage({
     ]);
 
     const searchFields = [
+      `booking_reference.ilike.${pattern}`,
       `guest_name.ilike.${pattern}`,
       `guest_email.ilike.${pattern}`,
       `guest_phone.ilike.${pattern}`,
@@ -102,6 +109,12 @@ export default async function AdminBookingsPage({
         Review bookings, confirm pending ones, and cancel when needed.
       </p>
 
+      {listingId && (
+        <p className="mb-3 text-sm text-gray-600">
+          Showing bookings for listing <span className="font-mono">{listingId.slice(0, 8)}</span>{" "}
+          <Link href="/admin/bookings?status=all" className="ml-2 font-medium text-[#CF2F74] hover:underline">Clear listing filter</Link>
+        </p>
+      )}
       <AdminSearchInput placeholder="Search by guest, host, listing, email, date, or booking ID" />
       <BookingTabs />
 
@@ -110,6 +123,7 @@ export default async function AdminBookingsPage({
           <thead className="bg-gray-50 text-left text-gray-500">
             <tr>
               <th className="p-3">Listing</th>
+              <th className="p-3">Booking reference</th>
               <th className="p-3">Guest</th>
               <th className="p-3">Host</th>
               <th className="p-3">Dates</th>
@@ -140,6 +154,7 @@ export default async function AdminBookingsPage({
                     {listing?.town}, {listing?.county}
                   </div>
                 </td>
+                <td className="p-3 font-mono text-xs text-[#1B1A2E]">{b.booking_reference}</td>
                 <td className="p-3 text-[#1B1A2E]">
                   {b.guest_name ?? guest?.full_name ?? "Guest checkout"}
                 </td>
@@ -149,7 +164,7 @@ export default async function AdminBookingsPage({
                 <td className="p-3 text-[#1B1A2E]">
                   {b.check_in} → {b.check_out}
                 </td>
-                <td className="p-3 text-[#1B1A2E]">{b.guests_count}</td>
+                <td className="p-3 text-[#1B1A2E]">{b.guests_count} guests · {b.children_count} kids · {b.pets_count} pets</td>
                 <td className="p-3 text-[#1B1A2E]">
                   KES {Number(b.total_amount).toLocaleString()}
                 </td>
@@ -162,7 +177,7 @@ export default async function AdminBookingsPage({
             ))}
             {(bookings ?? []).length === 0 && (
               <tr>
-                <td colSpan={7} className="p-6 text-center text-gray-400">
+                <td colSpan={8} className="p-6 text-center text-gray-400">
                   No {activeStatus} bookings.
                 </td>
               </tr>

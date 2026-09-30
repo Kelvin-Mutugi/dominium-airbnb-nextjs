@@ -9,6 +9,7 @@ import DestinationListings from "@/components/listings/DestinationListings";
 import BookingProcess from "@/components/BookingProcess";
 import PopularDestinations, { type Home } from "@/components/Populardestinations";
 import WhyBookUs from "@/components/WhyBookUs";
+import MagicalKenya from "@/components/MagicalKenya";
 import { HOMEPAGE_DESTINATIONS } from "@/app/homepageSections";
 import { ROUTES, type Listing } from "@/components/homeData";
 
@@ -77,7 +78,9 @@ export default function HomePageClient({
         onCheckInChange={setCheckIn}
         onSearch={scrollToListings}
       />
+      <MagicalKenya />
       <FeaturedListings listings={featuredListings} isLoading={isLoading} />
+     
       {destinationSections.map((destination) => (
         <DestinationListings
           key={destination.slug}
@@ -87,6 +90,7 @@ export default function HomePageClient({
           isLoading={isLoading}
         />
       ))}
+       <MagicalKenya />
       <PopularDestinations
         homes={homes}
         onView={(home) => router.push(`/apartments/${home.id}`)}

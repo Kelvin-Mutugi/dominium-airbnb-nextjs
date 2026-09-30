@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
+import { activeBookingFilter } from "@/app/lib/booking/availability";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -59,7 +60,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
   const today = new Date().toISOString().slice(0, 10);
   const [listingResult, bookingsResult, manualBlocksResult, importedBlocksResult] = await Promise.all([
     admin.from("listings").select("id, title").eq("id", feed.listing_id).maybeSingle(),
-    admin.from("bookings").select("id, check_in, check_out, status").eq("listing_id", feed.listing_id).in("status", ["pending", "confirmed"]).gt("check_out", today),
+    admin.from("bookings").select("id, check_in, check_out, status").eq("listing_id", feed.listing_id).or(activeBookingFilter()).gt("check_out", today),
     admin.from("listing_availability_blocks").select("id, start_date, end_date, reason").eq("listing_id", feed.listing_id).gt("end_date", today),
     admin.from("host_external_calendar_events").select("id, start_date, end_date").eq("listing_id", feed.listing_id).gt("end_date", today),
   ]);

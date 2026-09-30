@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { suspendUser, reactivateUser } from "@/app/admin/users/actions";
 
 export function UserRowActions({
@@ -11,24 +12,41 @@ export function UserRowActions({
   userId: string;
   status: string;
 }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showSuspendModal, setShowSuspendModal] = useState(false);
   const [reason, setReason] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  function reactivate() {
+    if (!window.confirm("Reactivate this user account?")) return;
+    setError(null);
+    startTransition(async () => {
+      try {
+        await reactivateUser(userId);
+        router.refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unable to reactivate account.");
+      }
+    });
+  }
 
   return (
     <div className="flex gap-2 items-center">
       {status === "suspended" ? (
         <button
+          type="button"
           disabled={isPending}
-          onClick={() => startTransition(() => reactivateUser(userId))}
+          onClick={reactivate}
           className="text-xs px-3 py-1.5 rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
         >
           Reactivate
         </button>
       ) : (
         <button
+          type="button"
           disabled={isPending}
-          onClick={() => setShowSuspendModal(true)}
+          onClick={() => { setError(null); setShowSuspendModal(true); }}
           className="text-xs px-3 py-1.5 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
         >
           Suspend
@@ -48,6 +66,7 @@ export function UserRowActions({
             />
             <div className="flex justify-end gap-2">
               <button
+                type="button"
                 onClick={() => setShowSuspendModal(false)}
                 className="text-xs px-3 py-1.5 rounded border"
               >
@@ -57,9 +76,15 @@ export function UserRowActions({
                 disabled={!reason.trim() || isPending}
                 onClick={() =>
                   startTransition(async () => {
-                    await suspendUser(userId, reason);
-                    setShowSuspendModal(false);
-                    setReason("");
+                    try {
+                      setError(null);
+                      await suspendUser(userId, reason);
+                      setShowSuspendModal(false);
+                      setReason("");
+                      router.refresh();
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : "Unable to suspend account.");
+                    }
                   })
                 }
                 className="text-xs px-3 py-1.5 rounded bg-red-600 text-white disabled:opacity-50"
@@ -70,6 +95,7 @@ export function UserRowActions({
           </div>
         </div>
       )}
+      {error && !showSuspendModal && <p role="alert" className="max-w-52 text-xs text-red-600">{error}</p>}
     </div>
   );
 }

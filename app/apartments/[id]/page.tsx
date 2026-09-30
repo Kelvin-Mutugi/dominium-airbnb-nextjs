@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import ApartmentDetails from "@/components/ApartmentDetails";
 import Navbar from "@/components/navigationBar";
 import type { Listing, RelatedListingSummary } from "@/components/homeData";
 import { supabase } from "@/app/lib/supabase/client";
+import { normalizeListingAdditionalCharges } from "@/app/lib/listing-charges";
 
 function normalizeAmenities(value: unknown): string[] {
   return Array.isArray(value)
@@ -16,6 +17,14 @@ function normalizeAmenities(value: unknown): string[] {
 export default function ApartmentPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialCheckIn = searchParams.get("checkIn") ?? "";
+  const initialCheckOut = searchParams.get("checkOut") ?? "";
+  const requestedGuests = Math.max(1, Number(searchParams.get("guests") ?? 1) || 1);
+  const initialChildren = Math.max(0, Math.min(requestedGuests - 1, Number(searchParams.get("children") ?? 0) || 0));
+  const initialGuests = requestedGuests;
+  const initialPets = Math.max(0, Math.min(10, Number(searchParams.get("pets") ?? 0) || 0));
+  const initialBookingId = searchParams.get("bookingId") ?? undefined;
   const [listing, setListing] = useState<Listing | null>(null);
   const [relatedListings, setRelatedListings] = useState<RelatedListingSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,6 +40,7 @@ export default function ApartmentPage() {
             description,
             county,
             town,
+            property_type,
             price_per_night,
             max_guests,
             bedrooms,
@@ -47,6 +57,8 @@ export default function ApartmentPage() {
             check_out_time,
             min_nights,
             service_fee_percent,
+            platform_fee_per_night,
+            additional_charges,
             is_rare_find,
             rare_find_note,
             average_rating,
@@ -139,6 +151,8 @@ export default function ApartmentPage() {
         id: String(data.id),
         name: data.title,
         loc: [data.town, data.county].filter(Boolean).join(", "),
+        propertyType: data.property_type ?? undefined,
+        additionalCharges: normalizeListingAdditionalCharges(data.additional_charges),
         price: new Intl.NumberFormat("en-KE", {
           style: "currency",
           currency: "KES",
@@ -162,7 +176,8 @@ export default function ApartmentPage() {
         checkOutTime: data.check_out_time,
         minNights: data.min_nights,
         pricePerNight: price,
-        serviceFeePercent: Number(data.service_fee_percent),
+        serviceFeePercent: 0,
+        serviceFeePerNight: data.platform_fee_per_night == null ? undefined : Number(data.platform_fee_per_night),
         latitude: data.latitude == null ? undefined : Number(data.latitude),
         longitude: data.longitude == null ? undefined : Number(data.longitude),
         rating: Number(data.average_rating ?? 0),
@@ -188,7 +203,7 @@ export default function ApartmentPage() {
     return (
       <>
         <Navbar />
-        <ApartmentDetails listing={null} isLoading onBack={() => router.push("/")} />
+        <ApartmentDetails key={`loading:${params.id}`} listing={null} isLoading onBack={() => router.push("/")} />
       </>
     );
   }
@@ -211,7 +226,7 @@ export default function ApartmentPage() {
     );
   }
 
-  const handleReserve = ({ checkIn, checkOut }: { checkIn: Date; checkOut: Date }) => {
+  const handleReserve = ({ checkIn, checkOut, guests, children, pets, bookingId }: { checkIn: Date; checkOut: Date; guests: number; children: number; pets: number; bookingId?: string }) => {
     const formatDate = (date: Date) => {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -220,7 +235,7 @@ export default function ApartmentPage() {
     };
 
     router.push(
-      `/booking/${listing.id}?checkIn=${formatDate(checkIn)}&checkOut=${formatDate(checkOut)}`,
+      `/booking/${listing.id}?${new URLSearchParams({ checkIn: formatDate(checkIn), checkOut: formatDate(checkOut), guests: String(guests), children: String(children), pets: String(pets), ...(bookingId ? { bookingId } : {}) }).toString()}`,
     );
   };
 
@@ -228,7 +243,14 @@ export default function ApartmentPage() {
     <>
       <Navbar />
       <ApartmentDetails
+        key={`${listing.id}:${initialCheckIn}:${initialCheckOut}:${initialGuests}:${initialChildren}:${initialPets}:${initialBookingId ?? ""}`}
         listing={listing}
+        initialCheckIn={initialCheckIn}
+        initialCheckOut={initialCheckOut}
+        initialGuests={initialGuests}
+        initialChildren={initialChildren}
+        initialPets={initialPets}
+        initialBookingId={initialBookingId}
         onReserve={handleReserve}
         relatedListings={relatedListings}
         onBack={() => router.push("/")}

@@ -28,8 +28,6 @@ export default function FeaturedListingCard({
   showSave = false,
 }: FeaturedListingCardProps) {
   const [dbListing, setDbListing] = useState<Listing | null>(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [imageIndex, setImageIndex] = useState(0);
   // Track which image URLs failed, so one bad photo doesn't replace the whole gallery
   const [failedSrcs, setFailedSrcs] = useState<string[]>([]);
 
@@ -145,26 +143,6 @@ export default function FeaturedListingCard({
     };
   }, [id, item]);
 
-  // Cycle through listing images while hovering
-  const galleryLength = listing?.gallery?.length ?? 0;
-
-  useEffect(() => {
-    if (!isHovered || galleryLength <= 1) return;
-
-    const interval = setInterval(() => {
-      setImageIndex((current) => (current + 1) % galleryLength);
-    }, 1800);
-
-    return () => clearInterval(interval);
-  }, [isHovered, galleryLength]);
-
-  const handleMouseEnter = () => setIsHovered(true);
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    setImageIndex(0); // go back to the cover photo
-  };
-
   // Loading state
   if (loading) {
     return (
@@ -189,7 +167,7 @@ export default function FeaturedListingCard({
       ? listing.gallery
       : [listing.img || "/placeholder.svg"];
 
-  const currentSrc = galleryImages[imageIndex] ?? "/placeholder.svg";
+  const currentSrc = galleryImages[0] ?? "/placeholder.svg";
   const activeImage = failedSrcs.includes(currentSrc)
     ? "/placeholder.svg"
     : currentSrc;
@@ -208,14 +186,13 @@ export default function FeaturedListingCard({
 
   return (
     <article
-      className="group relative w-full max-w-[180px]"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      className="relative w-full max-w-[180px]"
     >
       <Link
         href={`/apartments/${listing.id}`}
+        target="_blank"
         aria-label={`${listing.name}, ${listing.loc}, ${listing.price} per night`}
-        className={`block rounded-2xl text-left no-underline ${focusRing}`}
+        className={`block rounded-2xl text-left no-underline active:transform-none active:transition-none [-webkit-tap-highlight-color:transparent] ${focusRing}`}
       >
         {/* Image */}
         <div className="relative aspect-square w-full overflow-hidden rounded-2xl">
@@ -232,7 +209,7 @@ export default function FeaturedListingCard({
                 prev.includes(currentSrc) ? prev : [...prev, currentSrc],
               )
             }
-            className="listing-image object-cover transition-transform duration-700 group-hover:scale-105"
+            className="listing-image object-cover"
           />
 
           {/* Subtle bottom gradient (pointer-events-none so hover still reaches the photo) */}
@@ -251,7 +228,7 @@ export default function FeaturedListingCard({
         <div className="pt-3">
           {/* Location + Rating */}
           <div className="flex items-center justify-between gap-3">
-            <p className="truncate text-[11px] text-[#36454F]/65">
+            <p className="truncate text-[11px] text-[#36454F]/90">
               {listing.loc}
             </p>
 
@@ -275,13 +252,13 @@ export default function FeaturedListingCard({
           </div>
 
           {/* Name */}
-          <h3 className="mt-1 truncate text-[15px] font-semibold leading-5 text-[#1B1A2E]">
+          <h3 className="mt-1 truncate text-[15px] font-medium leading-5 text-[#1B1A2E]">
             {listing.name}
           </h3>
 
           {/* Beds + guests */}
           {(hasBeds || hasGuests) && (
-            <p className="mt-1 flex items-center gap-3 text-[11px] text-[#36454F]/70">
+            <p className="mt-1 flex items-center gap-3 text-[11px] text-[#36454F]/90">
               {hasBeds && (
                 <span className="inline-flex items-center gap-1">
                   <BedDouble size={12} aria-hidden="true" />
@@ -305,7 +282,7 @@ export default function FeaturedListingCard({
 
           {/* Description: w-full (was w-64, wider than the 240px card, which clipped the text) */}
           {listing.description ? (
-            <p className="mt-1 line-clamp-2 w-full text-[11px] leading-4 text-[#36454F]/65">
+            <p className="mt-1 line-clamp-2 w-full text-[11px] leading-4 text-[#36454F]/90">
               {listing.description}
             </p>
           ) : null}

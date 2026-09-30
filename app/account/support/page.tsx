@@ -39,7 +39,7 @@ export default async function AccountSupportPage({
       .limit(50),
     supabase
       .from('bookings')
-      .select('id, check_in, check_out, listing:listings ( title )')
+      .select('id, booking_reference, check_in, check_out, listing:listings ( title )')
       .or(`guest_id.eq.${user.id},host_id.eq.${user.id}`)
       .order('created_at', { ascending: false })
       .limit(100),
@@ -50,10 +50,12 @@ export default async function AccountSupportPage({
 
   const bookingOptions = (bookings ?? []) as unknown as Array<{
     id: string;
+    booking_reference: string;
     check_in: string;
     check_out: string;
     listing: { title: string } | Array<{ title: string }> | null;
   }>;
+  const bookingReferenceById = new Map(bookingOptions.map((booking) => [booking.id, booking.booking_reference]));
   const requestedBookingExists = bookingOptions.some((booking) => booking.id === params.booking);
   const categories = [
     ['booking_issue', 'Booking problem'],
@@ -68,9 +70,9 @@ export default async function AccountSupportPage({
     <div className="max-w-4xl">
       <header className="mb-8 border-b border-[#E9E6DD] pb-6">
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#E23E85]">Help centre</p>
-        <h1 className="font-serif text-3xl text-[#1B1A2E]">Support &amp; disputes</h1>
+        <h1 className="font-serif text-3xl text-[#1B1A2E]">Support cases &amp; disputes</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6B6A78]">
-          Tell us what happened. Include the booking when it relates to a stay, charge, refund, or host-guest issue.
+          Submit a tracked case for payment or refund problems, complaints, safety concerns, or disputes. For a quick booking question, use Message support from the booking instead.
         </p>
       </header>
 
@@ -86,7 +88,7 @@ export default async function AccountSupportPage({
       )}
 
       <section aria-labelledby="new-request-heading" className="border-b border-[#E9E6DD] pb-8">
-        <h2 id="new-request-heading" className="text-lg font-semibold text-[#1B1A2E]">Send a request</h2>
+        <h2 id="new-request-heading" className="text-lg font-semibold text-[#1B1A2E]">Submit a support case</h2>
         <form action={submitSupportCase} className="mt-5 grid gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor="support-category" className="block text-sm font-medium text-[#1B1A2E]">What do you need help with?</label>
@@ -101,7 +103,7 @@ export default async function AccountSupportPage({
               <option value="">Not related to a booking</option>
               {bookingOptions.map((booking) => {
                 const listing = Array.isArray(booking.listing) ? booking.listing[0] : booking.listing;
-                return <option key={booking.id} value={booking.id}>{listing?.title ?? 'Stay'} · {booking.check_in} · {booking.id.slice(0, 8)}</option>;
+                return <option key={booking.id} value={booking.id}>{listing?.title ?? 'Stay'} · {booking.check_in} · {booking.booking_reference}</option>;
               })}
             </select>
           </div>
@@ -147,7 +149,7 @@ export default async function AccountSupportPage({
                     <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-[#4B2637]">{supportCase.public_reply}</p>
                   </div>
                 )}
-                {supportCase.booking_id && <Link href={`/account/bookings`} className="mt-2 inline-block text-xs font-medium text-[#CF2F74] hover:underline">Booking {supportCase.booking_id.slice(0, 8)}</Link>}
+                {supportCase.booking_id && <Link href={`/account/bookings`} className="mt-2 inline-block text-xs font-medium text-[#CF2F74] hover:underline">Booking {bookingReferenceById.get(supportCase.booking_id) ?? "details"}</Link>}
               </li>
             ))}
           </ul>

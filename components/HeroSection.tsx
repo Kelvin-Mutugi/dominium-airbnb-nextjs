@@ -30,7 +30,7 @@ export default function HeroSection({
       // Below lg: the navbar sits in normal flow above the hero, so no extra top padding.
       // lg and up: the navbar overlaps the hero (lg:-mb-[72px]), so pt-[104px] keeps
       // the content clear of it (72px navbar + 32px breathing room).
-      className="relative flex flex-col items-center justify-center bg-[#1B1A2E] px-4 py-12 sm:px-[6%] sm:py-14 lg:min-h-[clamp(380px,48vh,520px)] lg:pb-14 lg:pt-[104px]"
+      className="relative flex flex-col items-center justify-center bg-[#000000] px-4 py-12 sm:px-[6%] sm:py-14 lg:min-h-[clamp(380px,48vh,520px)] lg:pb-14 lg:pt-[104px]"
     >
       {/* Sliding background images — clipped to the hero only */}
       <div className="absolute inset-0 z-0 overflow-hidden">
@@ -87,7 +87,14 @@ export default function HeroSection({
             >
               {county}
             </Link>
+            
           ))}
+          <Link 
+            href="/allListings"
+            className="rounded-full border border-white/35 bg-white/10 px-4 py-1.5 text-[13px] font-medium text-white no-underline backdrop-blur-sm transition-colors hover:bg-white/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+           >
+            All Listings
+          </Link>
         </div>
       </div>
     </section>

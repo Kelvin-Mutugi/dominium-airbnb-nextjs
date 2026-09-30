@@ -77,3 +77,40 @@ body {
 .listing-image {
   filter: saturate(1.08) contrast(1.04) brightness(1.02);
 }
+
+.host-panel [class~="text-[#12231d]"] {
+  color: #1b1a2e;
+}
+
+.host-panel [class~="text-[#ec1561]"] {
+  color: #e23e85;
+}
+
+.host-panel [class~="text-[#b30f4b]"] {
+  color: #9c2454;
+}
+
+.host-panel [class~="bg-[#12231d]"] {
+  background-color: #1b1a2e;
+}
+
+.host-panel [class~="bg-[#ec1561]"] {
+  background-color: #e23e85;
+}
+
+.host-panel [class~="hover:bg-[#243c34]"]:hover {
+  background-color: #302f43;
+}
+
+.host-panel aside {
+  box-shadow: 2px 0 12px rgb(27 26 46 / 0.045);
+}
+
+.host-panel > main :is(section, article)[class~="bg-white"],
+.host-panel > main [class~="bg-white"][class*="rounded"] {
+  box-shadow: 0 2px 12px rgb(27 26 46 / 0.045);
+}
+
+.host-panel > nav[class*="fixed"] {
+  box-shadow: 0 -2px 12px rgb(27 26 46 / 0.055);
+}

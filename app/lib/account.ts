@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/app/lib/supabase/server';
 import { todayISO } from '@/app/lib/format';
 import { routes } from '@/app/lib/routes';
+import { getRequesterSupportUnreadCounts } from '@/app/customer-support/actions';
 import type { BookingRow, BookingView, Profile } from '@/types/account';
 
 /** Auth + profile for the current request. Cached, so the layout and page share one lookup. */
@@ -32,7 +33,7 @@ export const getAccountContext = cache(async () => {
 });
 
 const BOOKING_SELECT = `
-  id, listing_id, check_in, check_out, guests_count, children_count, rooms_count,
+  id, booking_reference, listing_id, check_in, check_out, guests_count, children_count, pets_count, rooms_count,
   status, total_amount, special_requests, created_at,
   listing:listings ( id, title, slug, town, county, check_in_time, listing_images ( url, sort_order ) )
 `;
@@ -62,29 +63,7 @@ export const getGuestBookings = cache(async (userId: string) => {
   const reviewed = new Set((reviewsRes.data ?? []).map((r) => r.booking_id as string));
   const hostReviewed = new Set((hostReviewsRes.data ?? []).map((r) => r.booking_id as string));
   const bookingIds = (bookingsRes.data ?? []).map((booking) => booking.id);
-  const unreadByBooking = new Map<string, number>();
-  if (bookingIds.length > 0) {
-    const [messagesRes, readsRes] = await Promise.all([
-      supabase
-        .from('booking_messages')
-        .select('booking_id, created_at')
-        .in('booking_id', bookingIds)
-        .neq('sender_id', userId),
-      supabase
-        .from('booking_thread_reads')
-        .select('booking_id, last_read_at')
-        .eq('user_id', userId)
-        .in('booking_id', bookingIds),
-    ]);
-    if (messagesRes.error || readsRes.error) throw new Error('Unable to load unread trip messages. Apply the booking thread reads migration and try again.');
-    const lastReadByBooking = new Map((readsRes.data ?? []).map((receipt) => [receipt.booking_id, Date.parse(receipt.last_read_at)]));
-    for (const message of messagesRes.data ?? []) {
-      const lastReadAt = lastReadByBooking.get(message.booking_id) ?? 0;
-      if (Date.parse(message.created_at) > lastReadAt) {
-        unreadByBooking.set(message.booking_id, (unreadByBooking.get(message.booking_id) ?? 0) + 1);
-      }
-    }
-  }
+  const unreadByBooking = await getRequesterSupportUnreadCounts(userId, bookingIds);
   const requestByBooking = new Map<string, (typeof requestsRes.data)[number]>();
   for (const request of requestsRes.data ?? []) {
     if (!requestByBooking.has(request.booking_id)) requestByBooking.set(request.booking_id, request);
@@ -108,7 +87,7 @@ export const getGuestBookings = cache(async (userId: string) => {
       reviewed: reviewed.has(b.id),
       hostReviewed: hostReviewed.has(b.id),
       changeRequest: requestByBooking.get(b.id) ?? null,
-      unreadMessageCount: unreadByBooking.get(b.id) ?? 0,
+      unreadSupportReplyCount: unreadByBooking[b.id] ?? 0,
     };
   });
 

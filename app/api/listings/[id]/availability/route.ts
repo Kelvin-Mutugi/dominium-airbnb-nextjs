@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { activeBookingFilter } from "@/app/lib/booking/availability";
 import { syncStaleCalendarConnectionsForListing } from "@/app/lib/host/calendar-sync";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 
@@ -15,6 +16,15 @@ export async function GET(
   if (!UUID_RE.test(id)) return NextResponse.json({ error: "Listing not found." }, { status: 404 });
 
   const admin = getSupabaseAdmin();
+  const { error: holdExpiryError } = await admin.rpc("expire_pending_booking_holds");
+  if (holdExpiryError) {
+    console.error("Could not expire pending booking holds:", holdExpiryError);
+    return NextResponse.json(
+      { error: "Availability is temporarily unavailable." },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
   const { data: listing, error: listingError } = await admin
     .from("listings")
     .select("id")
@@ -38,9 +48,9 @@ export async function GET(
   const [bookingsResult, manualBlocksResult, externalBlocksResult] = await Promise.all([
     admin
       .from("bookings")
-      .select("check_in, check_out")
+      .select("check_in, check_out, hold_expires_at")
       .eq("listing_id", id)
-      .in("status", ["pending", "confirmed"])
+      .or(activeBookingFilter())
       .gt("check_out", today),
     admin
       .from("listing_availability_blocks")

@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { unsplashCardImageLoader } from "./unsplash-image-loader";
 import { useEffect, useState } from "react";
-import type { KeyboardEvent } from "react";
 import { BedDouble, Star, Gem, Users } from "lucide-react";
 import { supabase } from "@/app/lib/supabase/client";
 import SaveListingButton from "@/components/listings/SaveListingButton";
@@ -71,8 +70,6 @@ export default function MinimalListingCard({
   loading = false,
 }: ListingCardProps) {
   const [dbListing, setDbListing] = useState<Listing | null>(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [imageIndex, setImageIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
 
   const listing = item ?? dbListing;
@@ -200,26 +197,11 @@ export default function MinimalListingCard({
     };
   }, [id, item]);
 
-  useEffect(() => {
-    if (!isHovered || !listing || (listing.gallery?.length ?? 0) <= 1) return;
-    const interval = setInterval(() => {
-      setImageIndex((current) => (current + 1) % listing.gallery.length);
-    }, 1200);
-    return () => clearInterval(interval);
-  }, [isHovered, listing]);
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLAnchorElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      event.currentTarget.click();
-    }
-  };
-
   if (loading) {
     return (
-      <div className="w-full max-w-[160px] overflow-hidden rounded-[24px] border border-[#E9E6DD] bg-white shadow-sm">
+      <div className="w-full max-w-[180px] overflow-hidden rounded-[24px] border border-[#E9E6DD] bg-white shadow-sm">
         <div aria-hidden="true">
-          <div className="shimmer size-[160px] rounded-2xl" />
+          <div className="shimmer size-[180px] rounded-2xl" />
           <div className="space-y-3 p-4">
             <div className="shimmer h-4 w-24 rounded" />
             <div className="shimmer h-5 w-3/4 rounded" />
@@ -245,7 +227,7 @@ export default function MinimalListingCard({
 
   const activeImage = imageError
     ? "/placeholder.svg"
-    : galleryImages[imageIndex] ?? "/placeholder.svg";
+    : galleryImages[0] ?? "/placeholder.svg";
 
   const ratingValue = formatRating(listing.rating);
   const hasBeds = typeof listing.beds === "number";
@@ -262,26 +244,22 @@ export default function MinimalListingCard({
   return (
     <Link
       href={`/apartments/${listing.id}`}
-      onKeyDown={handleKeyDown}
+      target="_blank"
       aria-label={`View details for ${listing.name}`}
-      className="group block w-full max-w-[160px] overflow-hidden rounded-2xl bg-white text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#E89A1C]"
+      className="block w-full max-w-[180px] overflow-hidden rounded-2xl bg-white text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E89A1C] active:transform-none active:transition-none [-webkit-tap-highlight-color:transparent]"
     >
       <article>
-        <div className="relative size-[160px] overflow-hidden rounded-2xl">
+        <div className="relative size-[180px] overflow-hidden rounded-2xl">
           <Image
             src={activeImage}
             alt={listing.name}
             loader={activeImage.includes("images.unsplash.com") ? unsplashCardImageLoader : undefined}
             fill
-            sizes="160px"
+            sizes="180px"
             quality={85}
             unoptimized={activeImage.includes("placehold.co") || activeImage === "/placeholder.svg"}
             onError={() => setImageError(true)}
-            className={`listing-image object-cover transition-transform duration-500 ${
-              isHovered ? "scale-105" : "scale-100"
-            }`}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+            className="listing-image object-cover"
           />
 
           <span className="absolute left-2.5 top-2.5 z-10 rounded-full bg-[#040720]/75 px-2 py-1 text-[10px] font-semibold text-[#FFFFFF] shadow-sm backdrop-blur-sm">
@@ -305,7 +283,7 @@ export default function MinimalListingCard({
 
         <div className="px-1.5 pt-3 pb-2">
           <div className="flex items-center justify-between gap-2">
-            <p className="truncate text-[11px] text-[#36454F]/65">{listing.loc}</p>
+            <p className="truncate text-[11px] text-[#36454F]/90">{listing.loc}</p>
             {ratingValue && (
               <span className="flex shrink-0 items-center gap-0.5 text-[11px] font-medium">
                 <Star size={11} fill="currentColor" className="text-[#F7B500]" />
@@ -317,12 +295,12 @@ export default function MinimalListingCard({
             )}
           </div>
 
-          <h3 className="mt-1 truncate text-[14px] font-semibold text-[#1B1A2E]">
+          <h3 className="mt-1 truncate text-[15px] font-medium text-[#1B1A2E]">
             {listing.name}
           </h3>
 
           {(hasBeds || hasGuests) && (
-            <p className="mt-1 flex items-center gap-3 text-[11px] text-[#36454F]/70">
+            <p className="mt-1 flex items-center gap-3 text-[11px] text-[#36454F]/90">
               {hasBeds && (
                 <span className="inline-flex items-center gap-1">
                   <BedDouble size={12} aria-hidden="true" />

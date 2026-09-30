@@ -1,43 +1,43 @@
 // appartmentDetails/PriceBreakdown.tsx
+import type { BookingPrice } from "@/app/lib/booking/pricing";
+
 interface PriceBreakdownProps {
-  pricePerNight: number;
-  nights: number;
-  serviceFeePercent: number;
+  price: BookingPrice;
   currency?: string;
 }
 
 export function PriceBreakdown({
-  pricePerNight,
-  nights,
-  serviceFeePercent,
+  price,
   currency = "KES",
 }: PriceBreakdownProps) {
-  const subtotal = pricePerNight * nights;
-  const serviceFee = Math.round(subtotal * serviceFeePercent);
-  const total = subtotal + serviceFee;
-
   const fmt = (n: number) => `${currency} ${n.toLocaleString()}`;
 
-  if (nights <= 0) return null;
+  if (price.nights <= 0) return null;
 
   return (
     <div className="mt-4 space-y-2 border-t border-[#EDEBE4] pt-4 text-[14px] text-[#3A3856]">
       <div className="flex justify-between">
         <span>
-          {fmt(pricePerNight)} × {nights} night{nights > 1 ? "s" : ""}
+          {fmt(price.nightlyRate)} × {price.nights} night{price.nights > 1 ? "s" : ""}
         </span>
-        <span>{fmt(subtotal)}</span>
+        <span>{fmt(price.subtotal)}</span>
       </div>
       <div className="flex justify-between">
-        <span>Service fee</span>
-        <span>{fmt(serviceFee)}</span>
+        <span>Platform service fee</span>
+        <span>{fmt(price.serviceFee)}</span>
       </div>
+      {price.additionalChargeLines.map((charge, index) => (
+        <div key={`${charge.name}-${charge.frequency}-${index}`} className="flex justify-between gap-4">
+          <span>{charge.name}{charge.frequency === "per_night" ? ` · ${fmt(charge.amount)} × ${price.nights} nights` : " · per booking"}</span>
+          <span className="shrink-0">{fmt(charge.total)}</span>
+        </div>
+      ))}
       <div className="flex justify-between border-t border-[#EDEBE4] pt-2 text-[15px] font-semibold text-[#1B1A2E]">
         <span>Total</span>
-        <span>{fmt(total)}</span>
+        <span>{fmt(price.total)}</span>
       </div>
       <p className="pt-1 text-[12px] text-[#3A3856]/60">
-        You won't be charged yet
+        You will not be charged yet
       </p>
     </div>
   );

@@ -106,12 +106,17 @@ function statusStyle(status: string) {
   }
 }
 
-function makeHref(view: View, status: string, query: string) {
+function makeHref(view: View, status: string, query: string, bookingId: string | null) {
   const params = new URLSearchParams();
   params.set("view", view);
   if (status !== "all") params.set("status", status);
   if (query) params.set("q", query);
+  if (bookingId) params.set("bookingId", bookingId);
   return `/admin/payouts?${params.toString()}`;
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
 function matchesQuery(record: LedgerRecord, query: string) {
@@ -154,22 +159,25 @@ function StatusBadge({ status }: { status: string }) {
 export default async function AdminPaymentsPayoutsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; status?: string; q?: string }>;
+  searchParams: Promise<{ view?: string; status?: string; q?: string; bookingId?: string }>;
 }) {
   const params = await searchParams;
   const view: View = params.view === "payouts" ? "payouts" : "payments";
   const allowedStatuses = view === "payments" ? PAYMENT_STATUSES : PAYOUT_STATUSES;
   const status = allowedStatuses.includes(params.status ?? "all") ? params.status ?? "all" : "all";
   const query = (params.q ?? "").trim().slice(0, 100);
+  const bookingId = isUuid(params.bookingId ?? "") ? params.bookingId! : null;
   const admin = getSupabaseAdmin();
 
   let records: LedgerRecord[];
   if (view === "payments") {
-    const { data, error } = await admin
+    let paymentQuery = admin
       .from("payments")
-      .select("id, booking_id, amount, currency, status, method, payment_channel, provider, provider_reference, paid_at, created_at")
-      .order("created_at", { ascending: false })
-      .limit(100);
+      .select("id, booking_id, amount, currency, status, method, payment_channel, provider, provider_reference, paid_at, created_at");
+    paymentQuery = bookingId
+      ? paymentQuery.eq("booking_id", bookingId)
+      : paymentQuery.order("created_at", { ascending: false }).limit(100);
+    const { data, error } = await paymentQuery;
     if (error) throw new Error("Unable to load payment records.");
 
     const payments = (data ?? []) as unknown as PaymentRecord[];
@@ -219,11 +227,13 @@ export default async function AdminPaymentsPayoutsPage({
       };
     });
   } else {
-    const { data, error } = await admin
+    let payoutQuery = admin
       .from("payouts")
-      .select("id, host_id, booking_id, amount, status, paid_at, created_at")
-      .order("created_at", { ascending: false })
-      .limit(100);
+      .select("id, host_id, booking_id, amount, status, paid_at, created_at");
+    payoutQuery = bookingId
+      ? payoutQuery.eq("booking_id", bookingId)
+      : payoutQuery.order("created_at", { ascending: false }).limit(100);
+    const { data, error } = await payoutQuery;
     if (error) throw new Error("Unable to load payout records.");
 
     const payouts = (data ?? []) as unknown as PayoutRecord[];
@@ -320,7 +330,7 @@ export default async function AdminPaymentsPayoutsPage({
         {viewTabs.map((tab) => (
           <Link
             key={tab.value}
-            href={makeHref(tab.value, "all", "")}
+            href={makeHref(tab.value, "all", "", bookingId)}
             aria-current={view === tab.value ? "page" : undefined}
             className={`border-b-2 px-1 py-3 text-sm font-medium ${
               view === tab.value
@@ -338,7 +348,7 @@ export default async function AdminPaymentsPayoutsPage({
           {statuses.map((item) => (
             <Link
               key={item}
-              href={makeHref(view, item, query)}
+              href={makeHref(view, item, query, bookingId)}
               aria-current={status === item ? "page" : undefined}
               className={`rounded-md px-3 py-2 text-sm ${
                 status === item
@@ -354,6 +364,7 @@ export default async function AdminPaymentsPayoutsPage({
         <form action="/admin/payouts" className="flex w-full max-w-md gap-2">
           <input type="hidden" name="view" value={view} />
           {status !== "all" && <input type="hidden" name="status" value={status} />}
+          {bookingId && <input type="hidden" name="bookingId" value={bookingId} />}
           <label className="sr-only" htmlFor="ledger-search">Search ledger</label>
           <input
             id="ledger-search"
@@ -362,13 +373,13 @@ export default async function AdminPaymentsPayoutsPage({
             defaultValue={query}
             maxLength={100}
             placeholder={view === "payments" ? "Search reference, guest, listing…" : "Search host, booking, listing…"}
-            className="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#E23E85] focus:ring-2 focus:ring-[#E23E85]/20"
+            className="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#1B1A2E] placeholder:text-gray-400 outline-none focus:border-[#E23E85] focus:ring-2 focus:ring-[#E23E85]/20"
           />
           <button type="submit" className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700">
             Search
           </button>
-          {query && (
-            <Link href={makeHref(view, status, "")} className="self-center text-sm text-gray-500 hover:text-gray-900">
+          {(query || bookingId) && (
+            <Link href={makeHref(view, status, "", null)} className="self-center text-sm text-gray-500 hover:text-gray-900">
               Clear
             </Link>
           )}
@@ -377,8 +388,9 @@ export default async function AdminPaymentsPayoutsPage({
 
       <p className="text-xs text-gray-500">
         {filteredRecords.length} {filteredRecords.length === 1 ? "record" : "records"}
-        {query ? " match your search" : " shown"} from the latest 100.
+        {bookingId ? ` for booking ${bookingId.slice(0, 8)}` : query ? " match your search" : " shown from the latest 100"}.
       </p>
+      {bookingId && <p className="-mt-4 text-sm text-gray-600">Filtered to booking <span className="font-mono">{bookingId.slice(0, 8)}</span>. <Link href={makeHref(view, status, query, null)} className="font-medium text-[#CF2F74] hover:underline">Clear booking filter</Link></p>}
 
       <div className="overflow-x-auto border-y bg-white">
         {view === "payments" ? (

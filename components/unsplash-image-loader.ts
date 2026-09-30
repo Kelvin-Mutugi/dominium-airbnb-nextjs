@@ -6,7 +6,7 @@ function createUnsplashLoader(widthScale: number) {
     imageUrl.searchParams.set("auto", "format");
     imageUrl.searchParams.set("fit", "crop");
     imageUrl.searchParams.set("w", String(Math.round(width * widthScale)));
-    imageUrl.searchParams.set("q", String(quality ?? 85));
+    imageUrl.searchParams.set("q", String(quality ?? 90));
     return imageUrl.toString();
   };
 }

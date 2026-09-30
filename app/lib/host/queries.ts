@@ -7,26 +7,12 @@
 import { supabase } from "@/app/lib/supabase/client";
 import type {
   Listing,
-  ListingImage,
-  ListingFormValues,
   Booking,
   Payout,
   HostDashboardStats,
   AvailabilityBlock,
   BookingStatus,
 } from "./types";
-
-function slugify(title: string) {
-  return (
-    title
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "") +
-    "-" +
-    Math.random().toString(36).slice(2, 7)
-  );
-}
 
 // ---------------------------------------------------------------------
 // Dashboard
@@ -64,76 +50,6 @@ export async function getListingById(id: string) {
   return data;
 }
 
-export async function createListing(hostId: string, values: ListingFormValues) {
-  const { data, error } = await supabase
-    .from("listings")
-    .insert({
-      host_id: hostId,
-      slug: slugify(values.title),
-      status: "draft",
-      ...values,
-    })
-    .select()
-    .single();
-  if (error) throw error;
-  return data as Listing;
-}
-
-export async function updateListing(id: string, values: Partial<ListingFormValues>) {
-  const { data, error } = await supabase
-    .from("listings")
-    .update(values)
-    .eq("id", id)
-    .select()
-    .single();
-  if (error) throw error;
-  return data as Listing;
-}
-
-export async function setListingStatus(id: string, status: Listing["status"]) {
-  const patch: Record<string, unknown> = { status };
-  if (status === "published") patch.last_published_at = new Date().toISOString();
-  const { error } = await supabase.from("listings").update(patch).eq("id", id);
-  if (error) throw error;
-}
-
-export async function deleteListing(id: string) {
-  const { error } = await supabase.from("listings").delete().eq("id", id);
-  if (error) throw error;
-}
-
-// ---------------------------------------------------------------------
-// Listing images (storage bucket: "listing-images", folder = host id)
-// ---------------------------------------------------------------------
-export async function uploadListingImage(hostId: string, listingId: string, file: File, sortOrder: number) {
-  const path = `${hostId}/${listingId}/${Date.now()}-${file.name}`;
-  const { error: uploadError } = await supabase.storage.from("listing-images").upload(path, file);
-  if (uploadError) throw uploadError;
-
-  const { data: publicUrl } = supabase.storage.from("listing-images").getPublicUrl(path);
-
-  const { data, error } = await supabase
-    .from("listing_images")
-    .insert({ listing_id: listingId, url: publicUrl.publicUrl, sort_order: sortOrder })
-    .select()
-    .single();
-  if (error) throw error;
-  return data as ListingImage;
-}
-
-export async function deleteListingImage(imageId: string) {
-  const { error } = await supabase.from("listing_images").delete().eq("id", imageId);
-  if (error) throw error;
-}
-
-export async function reorderListingImages(images: { id: string; sort_order: number }[]) {
-  await Promise.all(
-    images.map((img) =>
-      supabase.from("listing_images").update({ sort_order: img.sort_order }).eq("id", img.id)
-    )
-  );
-}
-
 // ---------------------------------------------------------------------
 // Availability blocks
 // ---------------------------------------------------------------------
@@ -165,7 +81,7 @@ export async function removeAvailabilityBlock(id: string) {
 export async function getHostBookings(hostId: string, status?: BookingStatus): Promise<Booking[]> {
   let query = supabase
     .from("bookings")
-    .select("*, listing:listings(id, title, town, county)")
+    .select("id, booking_reference, listing_id, host_id, check_in, check_out, nights, adults_count, children_count, pets_count, rooms_count, status, host_payout_amount, guest_name, guest_country, special_requests, listing:listings(id, title, town, county)")
     .eq("host_id", hostId)
     .order("check_in", { ascending: true });
   if (status) query = query.eq("status", status);

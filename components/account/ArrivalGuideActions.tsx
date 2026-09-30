@@ -13,7 +13,6 @@ export type ArrivalGuideContent = {
   checkInInstructions: string | null;
   wifiName: string | null;
   wifiPassword: string | null;
-  arrivalContact: string | null;
   localTips: string | null;
 };
 
@@ -26,7 +25,6 @@ export function ArrivalGuideActions({ guide }: { guide: ArrivalGuideContent }) {
       ['Directions', guide.directions],
       ['Check-in steps', guide.checkInInstructions],
       ['Wi-Fi', `Network: ${guide.wifiName || 'Not provided'}\nPassword: ${guide.wifiPassword || 'Not provided'}`],
-      ['Arrival contact', guide.arrivalContact],
       ['Local tips', guide.localTips],
     ] as const;
     const text = [

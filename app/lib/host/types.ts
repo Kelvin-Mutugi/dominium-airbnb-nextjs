@@ -13,7 +13,10 @@ export interface Listing {
   county: string;
   town: string;
   address: string | null;
+  property_type?: string;
   price_per_night: number;
+  platform_fee_per_night?: number | null;
+  additional_charges?: ListingAdditionalCharge[] | null;
   max_guests: number;
   bedrooms: number;
   bathrooms: number;
@@ -62,6 +65,50 @@ export interface ListingArrivalGuide {
   updated_at: string;
 }
 
+export type HostArrivalGuideDetails = Pick<
+  ListingArrivalGuide,
+  | "arrival_address"
+  | "arrival_directions"
+  | "check_in_instructions"
+  | "wifi_name"
+  | "wifi_password"
+  | "arrival_contact"
+  | "local_tips"
+>;
+
+export interface ListingAdditionalCharge {
+  name: string;
+  amount: number;
+  frequency: "per_night" | "per_booking";
+}
+
+export type HostListingRequestStatus =
+  | "submitted"
+  | "reviewing"
+  | "visit_scheduled"
+  | "visited"
+  | "details_collected"
+  | "listing_created"
+  | "declined";
+
+export interface HostListingRequest {
+  id: string;
+  host_id: string;
+  proposed_title: string;
+  property_type: string;
+  county: string;
+  town: string;
+  address: string | null;
+  contact_phone: string | null;
+  property_notes: string | null;
+  status: HostListingRequestStatus;
+  proposed_visit_at: string | null;
+  host_message: string | null;
+  listing_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface AvailabilityBlock {
   id: string;
   listing_id: string;
@@ -72,24 +119,29 @@ export interface AvailabilityBlock {
 
 export interface Booking {
   id: string;
+  booking_reference: string;
   listing_id: string;
   guest_id: string | null;
   host_id: string;
   check_in: string;
   check_out: string;
+  nights: number;
+  adults_count: number;
   guests_count: number;
   children_count: number;
+  pets_count: number;
   rooms_count: number;
   status: BookingStatus;
   total_amount: number;
   commission_amount: number;
   host_payout_amount: number;
+  host_base_amount: number | null;
+  additional_charges_amount: number | null;
   guest_name: string | null;
-  guest_email: string | null;
-  guest_phone: string | null;
+  guest_country: string | null;
   special_requests: string | null;
   created_at: string;
-  unreadMessageCount?: number;
+  unreadSupportReplyCount?: number;
   // joined
   listing?: Pick<Listing, "id" | "title" | "town" | "county">;
 }
@@ -124,14 +176,20 @@ export interface Payout {
   created_at: string;
   booking?: Pick<
     Booking,
+    | "id"
+    | "booking_reference"
     | "check_in"
     | "check_out"
-    | "guests_count"
-    | "total_amount"
+    | "nights"
+    | "adults_count"
+    | "children_count"
+    | "pets_count"
+    | "rooms_count"
+    | "status"
     | "host_payout_amount"
     | "guest_name"
-    | "guest_email"
-    | "guest_phone"
+    | "guest_country"
+    | "special_requests"
   > & {
     listing?: Pick<Listing, "id" | "title" | "town" | "county">;
   };
@@ -154,7 +212,10 @@ export interface ListingFormValues {
   county: string;
   town: string;
   address: string;
+  property_type: string;
   price_per_night: number;
+  platform_fee_per_night: number;
+  additional_charges: ListingAdditionalCharge[];
   max_guests: number;
   bedrooms: number;
   bathrooms: number;

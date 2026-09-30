@@ -30,7 +30,7 @@ export function AdminSearchInput({
         defaultValue={currentQuery}
         placeholder={placeholder}
         maxLength={100}
-        className="min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-[#1B1A2E] outline-none focus:border-[#E23E85] focus:ring-2 focus:ring-[#E23E85]/20"
+        className="min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-[#1B1A2E] placeholder:text-gray-400 outline-none focus:border-[#E23E85] focus:ring-2 focus:ring-[#E23E85]/20"
       />
       <button
         type="submit"

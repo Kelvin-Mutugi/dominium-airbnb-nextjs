@@ -15,8 +15,8 @@ export default async function PaymentsPage() {
     .from('payments')
     .select(
       `id, amount, currency, status, method, payment_channel, provider, provider_reference,
-       paid_at, created_at, authorization_url,
-       booking:bookings!inner ( id, check_in, check_out, guest_id, listing:listings ( title, slug ) )`,
+       paid_at, created_at,
+      booking:bookings!inner ( id, listing_id, check_in, check_out, guests_count, children_count, pets_count, guest_id, listing:listings ( title, slug ) )`,
     )
     .eq('booking.guest_id', user.id)
     .order('created_at', { ascending: false })
@@ -52,8 +52,7 @@ export default async function PaymentsPage() {
           <ul className="mt-6 divide-y divide-neutral-200">
             {payments.map((p) => {
               const channel = humanize(p.payment_channel ?? p.method);
-              const canResume =
-                p.status === 'pending' && !!p.authorization_url && p.authorization_url.startsWith('https://');
+              const canResume = p.status === 'pending' && !!p.booking?.id && !!p.booking.listing_id;
               return (
                 <li key={p.id} className="flex flex-col gap-3 py-5 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
@@ -87,9 +86,12 @@ export default async function PaymentsPage() {
                     <p className="font-serif text-lg text-neutral-900">{formatMoney(p.amount, p.currency)}</p>
                     <StatusBadge status={p.status} />
                     {canResume && (
-                      <a href={p.authorization_url!} className={textLink}>
-                        Complete payment
-                      </a>
+                      <Link
+                        href={`/booking/${p.booking!.listing_id}?${new URLSearchParams({ bookingId: p.booking!.id, checkIn: p.booking!.check_in, checkOut: p.booking!.check_out, guests: String(p.booking!.guests_count), children: String(p.booking!.children_count), pets: String(p.booking!.pets_count) }).toString()}`}
+                        className={textLink}
+                      >
+                        Return to checkout
+                      </Link>
                     )}
                   </div>
                 </li>

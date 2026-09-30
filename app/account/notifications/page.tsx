@@ -31,7 +31,7 @@ export default async function NotificationsPage() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E23E85]">Your account</p>
           <h1 className="mt-1 font-serif text-3xl text-neutral-900">Notifications</h1>
-          <p className="mt-1 text-sm text-neutral-500">Booking messages, payment updates, and trip decisions.</p>
+          <p className="mt-1 text-sm text-neutral-500">Customer support replies, payment updates, and booking decisions.</p>
         </div>
         {unreadCount > 0 && (
           <form action={markAllNotificationsRead}>
@@ -50,13 +50,13 @@ export default async function NotificationsPage() {
                 <div className="flex items-center gap-2">
                   {!notification.read_at && <span className="h-2 w-2 shrink-0 rounded-full bg-[#E23E85]" aria-label="Unread" />}
                   <p className="font-medium text-neutral-900">{notification.title}</p>
-                  <span className="text-xs text-neutral-500">{humanize(notification.category)}</span>
+                  <span className="text-xs text-neutral-500">{notification.category === 'message' ? 'Customer Support' : humanize(notification.category)}</span>
                 </div>
                 <p className="mt-1 text-sm leading-6 text-neutral-600">{notification.body}</p>
                 <time dateTime={notification.created_at} className="mt-1 block text-xs text-neutral-400">{formatDate(notification.created_at, 'long')}</time>
                 <form action={openNotification} className="mt-2">
                   <input type="hidden" name="notification_id" value={notification.id} />
-                  <button type="submit" className="text-sm font-semibold text-[#9C2454] underline underline-offset-2">Open trip</button>
+                  <button type="submit" className="text-sm font-semibold text-[#9C2454] underline underline-offset-2">{notification.category === 'message' ? 'Open support conversation' : 'Open booking'}</button>
                 </form>
               </div>
               {!notification.read_at && (

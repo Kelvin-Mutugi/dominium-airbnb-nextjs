@@ -1,17 +1,16 @@
 // appartmentDetails/AvailabilityCalendar.tsx
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-
-interface DateRange {
-  start: string;
-  end: string;
-}
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { rangesOverlap, type DateRange } from "@/app/lib/booking/availability";
 
 interface AvailabilityCalendarProps {
   bookedDateRanges?: DateRange[];
   minNights: number;
   prompt?: boolean;
   availabilityUnavailable?: boolean;
+  initialCheckIn?: string;
+  initialCheckOut?: string;
+  onDateSelectionStart?: () => void;
   onDateRangeSelect?: (checkIn: Date, checkOut: Date) => void;
 }
 
@@ -26,10 +25,31 @@ function formatDateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+function parseDateKey(value?: string): Date | null {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  const parsed = new Date(year, month - 1, day);
+  return parsed.getFullYear() === year && parsed.getMonth() === month - 1 && parsed.getDate() === day
+    ? parsed
+    : null;
+}
+
+function formatDateLabel(date: Date | null): string {
+  if (!date) return "Add date";
+  return date.toLocaleDateString("en-KE", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 function stayOverlapsBookedDates(checkIn: Date, checkOut: Date, ranges: DateRange[]) {
-  const checkInKey = formatDateKey(checkIn);
-  const checkOutKey = formatDateKey(checkOut);
-  return ranges.some((range) => range.start < checkOutKey && range.end > checkInKey);
+  return ranges.some((range) =>
+    rangesOverlap(
+      { start: formatDateKey(checkIn), end: formatDateKey(checkOut) },
+      range,
+    ),
+  );
 }
 
 export function AvailabilityCalendar({
@@ -37,15 +57,22 @@ export function AvailabilityCalendar({
   minNights,
   prompt = false,
   availabilityUnavailable = false,
+  initialCheckIn,
+  initialCheckOut,
+  onDateSelectionStart,
   onDateRangeSelect,
 }: AvailabilityCalendarProps) {
+  const initialStart = parseDateKey(initialCheckIn);
+  const initialEnd = parseDateKey(initialCheckOut);
   const [viewDate, setViewDate] = useState(() => {
-    const d = new Date();
-    d.setDate(1);
-    return d;
+    const selected = initialStart ?? new Date();
+    return new Date(selected.getFullYear(), selected.getMonth(), 1);
   });
-  const [checkIn, setCheckIn] = useState<Date | null>(null);
-  const [checkOut, setCheckOut] = useState<Date | null>(null);
+  const [checkIn, setCheckIn] = useState<Date | null>(initialStart);
+  const [checkOut, setCheckOut] = useState<Date | null>(initialEnd);
+  const [expanded, setExpanded] = useState(false);
+  const [selecting, setSelecting] = useState<"checkIn" | "checkOut">("checkIn");
+  const calendarOpen = expanded;
 
   const days = useMemo(() => {
     const year = viewDate.getFullYear();
@@ -67,14 +94,16 @@ export function AvailabilityCalendar({
   function handleDayClick(day: Date) {
     if (availabilityUnavailable || day < today) return;
 
-    if (!checkIn || (checkIn && checkOut)) {
+    if (selecting === "checkIn" || !checkIn) {
       if (isDateBooked(day, bookedDateRanges)) return;
       setCheckIn(day);
       setCheckOut(null);
+      setSelecting("checkOut");
       return;
     }
 
     if (day <= checkIn) {
+      if (selecting === "checkOut") return;
       if (isDateBooked(day, bookedDateRanges)) return;
       setCheckIn(day);
       return;
@@ -86,6 +115,8 @@ export function AvailabilityCalendar({
 
     setCheckOut(day);
     onDateRangeSelect?.(checkIn, day);
+    setExpanded(false);
+    setSelecting("checkIn");
   }
 
   function isInSelectedRange(day: Date) {
@@ -97,21 +128,70 @@ export function AvailabilityCalendar({
     <div
       id="availability-calendar"
       tabIndex={-1}
-      className={`rounded-2xl border p-4 outline-none transition-colors ${
-        prompt ? "border-[#E23E85] ring-4 ring-[#E23E85]/10" : "border-[#EDEBE4]"
+      className={`rounded-lg border outline-none transition-colors ${
+        prompt ? "border-[#E23E85] ring-2 ring-[#E23E85]/10" : "border-[#E9E6DD]"
       }`}
     >
-      <div className="mb-4 rounded-xl bg-[#FAF9F6] px-3 py-2.5 text-[13px] text-[#3A3856]">
-        <span className="font-semibold text-[#1B1A2E]">Choose your dates:</span>{" "}
-        select a check-in date, then select a check-out date.
+      <div className="grid grid-cols-2 gap-2 p-2">
+        <button
+          type="button"
+          id="check-in-date-trigger"
+          aria-expanded={calendarOpen}
+          aria-pressed={calendarOpen && selecting === "checkIn"}
+          onClick={() => {
+            setSelecting("checkIn");
+            setExpanded(true);
+            onDateSelectionStart?.();
+          }}
+          className={`min-h-12 rounded-md border px-3 py-2 text-left ${calendarOpen && selecting === "checkIn" ? "border-[#1769AA] ring-1 ring-[#1769AA]" : "border-[#D8D6CE]"}`}
+        >
+          <span className="block text-[11px] font-semibold uppercase text-[#6B6A78]">Check-in</span>
+          <span className="mt-0.5 block text-sm font-medium text-[#1B1A2E]">{formatDateLabel(checkIn)}</span>
+        </button>
+        <button
+          type="button"
+          aria-expanded={calendarOpen}
+          aria-pressed={calendarOpen && selecting === "checkOut"}
+          onClick={() => {
+            setSelecting(checkIn ? "checkOut" : "checkIn");
+            setExpanded(true);
+          }}
+          className={`min-h-12 rounded-md border px-3 py-2 text-left ${calendarOpen && selecting === "checkOut" ? "border-[#1769AA] ring-1 ring-[#1769AA]" : "border-[#D8D6CE]"}`}
+        >
+          <span className="block text-[11px] font-semibold uppercase text-[#6B6A78]">Check-out</span>
+          <span className="mt-0.5 block text-sm font-medium text-[#1B1A2E]">{formatDateLabel(checkOut)}</span>
+        </button>
       </div>
-      <div className="mb-4 flex items-center justify-between">
+
+      {calendarOpen && <div className="overflow-x-auto border-t border-[#E9E6DD] p-3">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-[#3A3856]">
+          {availabilityUnavailable
+            ? "Availability is temporarily unavailable."
+            : selecting === "checkIn"
+              ? "Select your check-in date"
+              : `Select your check-out date${minNights > 1 ? ` · min ${minNights} nights` : ""}`}
+        </p>
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          aria-label="Collapse calendar"
+          className="flex size-11 shrink-0 items-center justify-center rounded-md text-[#3A3856] hover:bg-[#F4F3F0]"
+        >
+          <ChevronDown size={18} aria-hidden="true" />
+        </button>
+      </div>
+      {minNights > 1 && (
+        <p className="mb-3 text-xs font-medium text-[#3A3856]">Minimum stay: {minNights} nights</p>
+      )}
+      <div className="mb-3 flex items-center justify-between">
         <button
           type="button"
           onClick={() =>
             setViewDate((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))
           }
-          className="rounded-full p-1.5 hover:bg-[#FAF9F6]"
+          aria-label="Previous month"
+          className="flex size-11 items-center justify-center rounded-full hover:bg-[#FAF9F6]"
         >
           <ChevronLeft size={18} />
         </button>
@@ -123,27 +203,31 @@ export function AvailabilityCalendar({
           onClick={() =>
             setViewDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))
           }
-          className="rounded-full p-1.5 hover:bg-[#FAF9F6]"
+          aria-label="Next month"
+          className="flex size-11 items-center justify-center rounded-full hover:bg-[#FAF9F6]"
         >
           <ChevronRight size={18} />
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-[12px] text-[#3A3856]/60">
+      <div className="grid min-w-[308px] grid-cols-7 text-center text-[12px] text-[#3A3856]/60">
         {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
           <div key={i}>{d}</div>
         ))}
       </div>
 
-      <div className="mt-1 grid grid-cols-7 gap-1">
+      <div className="mt-1 grid min-w-[308px] grid-cols-7">
         {days.map((day, i) => {
           if (!day) return <div key={i} />;
 
           const booked = isDateBooked(day, bookedDateRanges);
           const past = day < today;
-          const choosingCheckout = Boolean(checkIn && !checkOut && day > checkIn);
+          const choosingCheckout = Boolean(checkIn && selecting === "checkOut" && day > checkIn);
           const checkoutOverlap = choosingCheckout && stayOverlapsBookedDates(checkIn!, day, bookedDateRanges);
-          const disabled = past || (booked && !choosingCheckout) || checkoutOverlap;
+          const checkoutNights = checkIn ? Math.round((day.getTime() - checkIn.getTime()) / 86_400_000) : 0;
+          const tooShortCheckout = choosingCheckout && checkoutNights < minNights;
+          const beforeCheckIn = selecting === "checkOut" && Boolean(checkIn && day <= checkIn);
+          const disabled = past || beforeCheckIn || (booked && !choosingCheckout) || checkoutOverlap || tooShortCheckout;
           const isCheckIn = checkIn && day.getTime() === checkIn.getTime();
           const isCheckOut = checkOut && day.getTime() === checkOut.getTime();
           const inRange = isInSelectedRange(day);
@@ -154,8 +238,8 @@ export function AvailabilityCalendar({
               type="button"
               disabled={availabilityUnavailable || disabled}
               onClick={() => handleDayClick(day)}
-              className={`aspect-square rounded-lg text-[13px] transition-colors ${
-                (booked && !choosingCheckout) || past || checkoutOverlap
+              className={`aspect-square min-h-11 min-w-11 text-[13px] transition-colors ${
+                (booked && !choosingCheckout) || past || beforeCheckIn || checkoutOverlap || tooShortCheckout
                   ? "cursor-not-allowed text-[#3A3856]/25 line-through"
                   : isCheckIn || isCheckOut
                   ? "bg-[#1B1A2E] text-white"
@@ -170,15 +254,7 @@ export function AvailabilityCalendar({
         })}
       </div>
 
-      <p className="mt-3 text-[13px] text-[#3A3856]">
-        {availabilityUnavailable
-          ? "Availability could not be checked right now. Please try again later."
-          : checkOut
-          ? `${checkIn?.toLocaleDateString()} → ${checkOut.toLocaleDateString()}`
-          : checkIn
-            ? `Now select checkout (min ${minNights} night${minNights > 1 ? "s" : ""})`
-            : "Start by selecting your check-in date."}
-      </p>
+      </div>}
     </div>
   );
 }

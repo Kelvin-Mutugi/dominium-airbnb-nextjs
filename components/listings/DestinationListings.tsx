@@ -31,7 +31,7 @@ export default function DestinationListings({
         <div className="flex items-center">
           <h2 className="text-[20px] font-semibold text-[#36454F]">{label}</h2>
           <Link
-            href={`/listings/${encodeURIComponent(slug)}`}
+            href={`/allListings?location=${encodeURIComponent(slug)}`}
             aria-label={`View all ${label}`}
             className="ml-[15px] flex h-7 w-7 items-center justify-center rounded-full border border-[#E9E6DD] bg-[#F7F7F7] font-bold text-[#36454F] transition-colors hover:border-[#E23E85] hover:text-[#E23E85]"
           >
@@ -44,17 +44,17 @@ export default function DestinationListings({
             type="button"
             aria-label={`Scroll ${carouselLabel} left`}
             onClick={() => carouselRef.current?.scroll("left")}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[#E9E6DD] bg-white text-[#36454F] transition-colors hover:border-[#E23E85] hover:text-[#E23E85]"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-[#E9E6DD] bg-white text-[#36454F] transition-colors hover:border-[#E23E85] hover:text-[#E23E85]"
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={14} />
           </button>
           <button
             type="button"
             aria-label={`Scroll ${carouselLabel} right`}
             onClick={() => carouselRef.current?.scroll("right")}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[#E9E6DD] bg-white text-[#36454F] transition-colors hover:border-[#E23E85] hover:text-[#E23E85]"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-[#E9E6DD] bg-white text-[#36454F] transition-colors hover:border-[#E23E85] hover:text-[#E23E85]"
           >
-            <ChevronRight size={18} />
+            <ChevronRight size={14} />
           </button>
         </div>
       </div>
@@ -62,7 +62,7 @@ export default function DestinationListings({
       {isLoading ? (
         <HorizontalListingCarousel ref={carouselRef} label={carouselLabel}>
           {Array.from({ length: 8 }, (_, index) => (
-            <div key={index} className="w-[160px] shrink-0 snap-start">
+            <div key={index} className="w-[180px] shrink-0 snap-start">
               <MinimalListingCard loading />
             </div>
           ))}
@@ -70,7 +70,7 @@ export default function DestinationListings({
       ) : (
         <HorizontalListingCarousel ref={carouselRef} label={carouselLabel}>
           {listings.map((listing) => (
-            <div key={listing.id} className="w-[160px] shrink-0 snap-start">
+            <div key={listing.id} className="w-[180px] shrink-0 snap-start">
               <MinimalListingCard item={listing} />
             </div>
           ))}

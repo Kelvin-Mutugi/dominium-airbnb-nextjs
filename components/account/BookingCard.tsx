@@ -21,6 +21,7 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
 
   const guests = `${b.guests_count} ${b.guests_count === 1 ? 'guest' : 'guests'}`;
   const children = b.children_count > 0 ? `, ${b.children_count} ${b.children_count === 1 ? 'child' : 'children'}` : '';
+  const pets = b.pets_count > 0 ? `, ${b.pets_count} ${b.pets_count === 1 ? 'pet' : 'pets'}` : '';
   const rooms = `, ${b.rooms_count} ${b.rooms_count === 1 ? 'room' : 'rooms'}`;
 
   return (
@@ -57,6 +58,7 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
         <p className="text-sm text-neutral-500">
           {nights} {nights === 1 ? 'night' : 'nights'}, {guests}
           {children}
+          {pets}
           {rooms}
         </p>
 
@@ -64,7 +66,7 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
           <p className="mt-2 line-clamp-2 text-sm text-neutral-500">Your note: {b.special_requests}</p>
         )}
         <p className="mt-2 text-xs text-neutral-400">
-          Booking {b.id.slice(0, 8)}, made {formatDate(b.created_at, 'long')}
+          Booking {b.booking_reference}, made {formatDate(b.created_at, 'long')}
         </p>
         {b.changeRequest && (
           <div className="mt-3 max-w-prose border-l-2 border-neutral-300 pl-3 text-xs text-neutral-600">
@@ -100,11 +102,11 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
             className="inline-flex items-center gap-1.5 py-1 text-sm font-medium text-neutral-600 transition hover:text-[#1B1A2E] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E23E85]"
           >
             <MessageCircle size={15} aria-hidden="true" />
-            Message host
-            {b.unreadMessageCount > 0 && (
-              <span className="ml-1 inline-flex items-center gap-1 text-xs font-semibold text-[#9C2454]" aria-label={`${b.unreadMessageCount} new ${b.unreadMessageCount === 1 ? 'message' : 'messages'}`}>
+            Chat with customer support
+            {b.unreadSupportReplyCount > 0 && (
+              <span className="ml-1 inline-flex items-center gap-1 text-xs font-semibold text-[#9C2454]" aria-label={`${b.unreadSupportReplyCount} new customer support ${b.unreadSupportReplyCount === 1 ? 'reply' : 'replies'}`}>
                 <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[#E23E85]" />
-                {b.unreadMessageCount === 1 ? 'New' : `${b.unreadMessageCount} new`}
+                {b.unreadSupportReplyCount === 1 ? 'New reply' : `${b.unreadSupportReplyCount} new replies`}
               </span>
             )}
           </Link>
@@ -125,7 +127,7 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
           {canReview && <ReviewButton bookingId={b.id} listingTitle={listing?.title ?? 'your stay'} />}
           {canReviewHost && <HostReviewButton bookingId={b.id} />}
           <Link href={`/account/support?booking=${b.id}&category=booking_issue`} className={textLink}>
-            Get help with this stay
+            Report a problem or dispute
           </Link>
           {b.phase === 'past' && b.reviewed && <span className="text-sm text-neutral-500">You reviewed this stay</span>}
           {listing && (

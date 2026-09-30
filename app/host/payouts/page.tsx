@@ -11,32 +11,82 @@ import StatusBadge from "@/components/host/StatusBadge";
 export default function HostPayoutsPage() {
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [expandedPayoutId, setExpandedPayoutId] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
-    (async () => {
-      setPayouts(await getHostPayoutsData());
-      setLoading(false);
-    })();
-  }, []);
+    let active = true;
+    getHostPayoutsData()
+      .then((data) => {
+        if (active) setPayouts(data);
+      })
+      .catch((loadError) => {
+        console.error("Failed to load payouts:", loadError);
+        if (active) setError("We couldn't load your payouts. Please try again.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [reloadToken]);
 
   if (loading) return <p className="text-gray-500">Loading payouts…</p>;
 
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <p className="text-red-700">{error}</p>
+        <button
+          type="button"
+          onClick={() => {
+            setError(null);
+            setLoading(true);
+            setReloadToken((token) => token + 1);
+          }}
+          className="font-semibold text-[#b30f4b] underline"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
   const owed = payouts.filter((p) => p.status === "owed").reduce((sum, p) => sum + Number(p.amount), 0);
+  const processing = payouts.filter((p) => p.status === "processing").reduce((sum, p) => sum + Number(p.amount), 0);
   const paid = payouts.filter((p) => p.status === "paid").reduce((sum, p) => sum + Number(p.amount), 0);
+  const owedCount = payouts.filter((p) => p.status === "owed").length;
+  const processingCount = payouts.filter((p) => p.status === "processing").length;
+  const paidCount = payouts.filter((p) => p.status === "paid").length;
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-[#12231d]">Payouts</h1>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Owed to you</p>
-          <p className="mt-1 text-2xl font-bold text-[#ec1561]">KES {owed.toLocaleString()}</p>
+      <div className="grid gap-px border border-[#12231d]/15 bg-[#12231d]/15 sm:grid-cols-3">
+        <div className="bg-white p-5">
+          <p className="text-sm font-medium text-[#565c57]">Owed to you</p>
+          <p className="mt-2 text-2xl font-semibold tabular-nums text-[#9a5b00]">KES {owed.toLocaleString("en-KE")}</p>
+          <p className="mt-2 text-xs leading-5 text-[#747873]">
+            {owedCount} {owedCount === 1 ? "payout" : "payouts"} recorded as owed and awaiting payment.
+          </p>
         </div>
-        <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Paid out so far</p>
-          <p className="mt-1 text-2xl font-bold text-[#12231d]">KES {paid.toLocaleString()}</p>
+        <div className="bg-white p-5">
+          <p className="text-sm font-medium text-[#565c57]">Processing</p>
+          <p className="mt-2 text-2xl font-semibold tabular-nums text-[#365d80]">KES {processing.toLocaleString("en-KE")}</p>
+          <p className="mt-2 text-xs leading-5 text-[#747873]">
+            {processingCount} {processingCount === 1 ? "payout" : "payouts"} is being handled and is not marked paid yet.
+          </p>
+        </div>
+        <div className="bg-white p-5">
+          <p className="text-sm font-medium text-[#565c57]">Paid out</p>
+          <p className="mt-2 text-2xl font-semibold tabular-nums text-[#315b47]">KES {paid.toLocaleString("en-KE")}</p>
+          <p className="mt-2 text-xs leading-5 text-[#747873]">
+            {paidCount} {paidCount === 1 ? "payout" : "payouts"} marked paid in your history.
+          </p>
         </div>
       </div>
 
@@ -98,7 +148,7 @@ export default function HostPayoutsPage() {
                     {expanded && (
                       <tr className="bg-white">
                         <td colSpan={4} className="px-4 pb-4">
-                          <div className="grid gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                          <div className="grid gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
                             <div>
                               <p className="text-xs font-medium uppercase text-gray-500">Guest</p>
                               <Link
@@ -107,14 +157,12 @@ export default function HostPayoutsPage() {
                               >
                                 {p.booking?.guest_name ?? "View booking details"}
                               </Link>
-                              {p.booking?.guest_email && <p className="break-all text-gray-600">{p.booking.guest_email}</p>}
-                              {p.booking?.guest_phone && <p className="text-gray-600">{p.booking.guest_phone}</p>}
                             </div>
                             <div>
                               <p className="text-xs font-medium uppercase text-gray-500">Listing</p>
                               {p.booking?.listing ? (
                                 <Link
-                                  href={`/host/listings/${p.booking.listing.id}/edit`}
+                                  href={`/host/listings/${p.booking.listing.id}`}
                                   className="mt-1 inline-block font-medium text-[#b30f4b] underline decoration-[#b30f4b]/40 underline-offset-2 hover:text-[#870b38]"
                                 >
                                   {p.booking.listing.title}
@@ -128,19 +176,18 @@ export default function HostPayoutsPage() {
                             </div>
                             <div>
                               <p className="text-xs font-medium uppercase text-gray-500">Booking</p>
-                              <p className="mt-1 text-gray-700">{p.booking?.guests_count ?? "—"} guests</p>
-                              <p className="text-gray-700">Total: KES {Number(p.booking?.total_amount ?? 0).toLocaleString()}</p>
-                              <Link
-                                href={`/host/bookings?status=completed&booking=${encodeURIComponent(p.booking_id)}#host-booking-${p.booking_id}`}
-                                className="mt-1 inline-block font-medium text-[#b30f4b] underline decoration-[#b30f4b]/40 underline-offset-2 hover:text-[#870b38]"
-                              >
+                              <p className="mt-1 text-gray-700">Reference: {p.booking?.booking_reference ?? "Unavailable"}</p>
+                              <p className="text-gray-700">Booking status: <StatusBadge status={p.booking?.status ?? "unknown"} /></p>
+                              <p className="text-gray-700">{p.booking?.nights ?? "—"} nights · {p.booking?.adults_count ?? "—"} adults · {p.booking?.children_count ?? "—"} children · {p.booking?.rooms_count ?? "—"} rooms</p>
+                              <p className="text-gray-700">Guest: {p.booking?.guest_name ?? "Guest"}{p.booking?.guest_country ? ` · ${p.booking.guest_country}` : ""}</p>
+                              <p className="text-gray-700">Host payout: KES {Number(p.booking?.host_payout_amount ?? p.amount).toLocaleString()}</p>
+                              {p.booking?.special_requests && <p className="mt-1 whitespace-pre-wrap text-gray-600">Request: {p.booking.special_requests}</p>}
+                              <Link href={`/host/bookings?status=completed&booking=${encodeURIComponent(p.booking_id)}#host-booking-${p.booking_id}`} className="mt-1 inline-block font-medium text-[#b30f4b] underline decoration-[#b30f4b]/40 underline-offset-2 hover:text-[#870b38]">
                                 Open booking
                               </Link>
-                            </div>
-                            <div>
-                              <p className="text-xs font-medium uppercase text-gray-500">Payout</p>
-                              <p className="mt-1 text-gray-700">Host amount: KES {Number(p.booking?.host_payout_amount ?? p.amount).toLocaleString()}</p>
-                              <p className="text-gray-700">Recorded: {new Date(p.created_at).toLocaleDateString()}</p>
+                              <p className="mt-2 text-gray-700">Payout ledger: KES {Number(p.amount).toLocaleString()}</p>
+                              <p className="text-gray-700">Status: <StatusBadge status={p.status} /></p>
+                              <p className="text-gray-700">Paid: {p.paid_at ? new Date(p.paid_at).toLocaleDateString() : "Not paid yet"}</p>
                             </div>
                           </div>
                         </td>
