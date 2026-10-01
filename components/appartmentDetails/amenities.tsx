@@ -74,19 +74,41 @@ export default function AmenitiesGrid({ listing }: AmenitiesGridProps) {
 
   if (items.length === 0) return null;
 
-  return (
-    <div className="mt-6 mb-3 grid gap-2 sm:grid-cols-4">
-      {items.map(({ key, icon: Icon, label }) => (
-        <div
-          key={key}
-          className="flex items-center gap-3 rounded-xl p-3 transition-colors"
+  const renderItems = (compact: boolean) =>
+    items.map(({ key, icon: Icon, label }) => (
+      <div
+        key={key}
+        className={
+          compact
+            ? "flex min-w-0 items-center gap-2 rounded-xl p-2 transition-colors"
+            : "flex items-center gap-3 rounded-xl p-3 transition-colors"
+        }
+      >
+        <span
+          className={`flex shrink-0 items-center justify-center rounded-full bg-white shadow-sm ${compact ? "h-8 w-8" : "h-9 w-9"}`}
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
-            <Icon size={18} className="text-[#1B1A2E]" />
-          </span>
-          <span className="text-[15px] text-[#1B1A2E]">{label}</span>
-        </div>
-      ))}
-    </div>
+          <Icon size={compact ? 16 : 18} className="text-[#1B1A2E]" />
+        </span>
+        <span
+          className={
+            compact
+              ? "min-w-0 text-[13px] leading-5 text-[#1B1A2E]"
+              : "text-[15px] text-[#1B1A2E]"
+          }
+        >
+          {label}
+        </span>
+      </div>
+    ));
+
+  return (
+    <>
+      <div className="mt-4 mb-2 grid grid-cols-2 gap-x-1 gap-y-1 sm:hidden">
+        {renderItems(true)}
+      </div>
+      <div className="hidden mt-6 mb-3 gap-2 sm:grid sm:grid-cols-4">
+        {renderItems(false)}
+      </div>
+    </>
   );
 }

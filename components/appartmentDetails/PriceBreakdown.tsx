@@ -15,7 +15,7 @@ export function PriceBreakdown({
   if (price.nights <= 0) return null;
 
   return (
-    <div className="mt-4 space-y-2 border-t border-[#EDEBE4] pt-4 text-[14px] text-[#3A3856]">
+    <div className="mt-4 space-y-2 border-t border-[#EDEBE4] pt-4 text-[14px] text-[#3A3856]/80 lg:text-[#3A3856]">
       <div className="flex justify-between">
         <span>
           {fmt(price.nightlyRate)} × {price.nights} night{price.nights > 1 ? "s" : ""}

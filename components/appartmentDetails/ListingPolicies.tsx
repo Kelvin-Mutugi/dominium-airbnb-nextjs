@@ -67,7 +67,7 @@ export function ListingPolicies({ listing }: ListingPoliciesProps) {
   if (sections.length === 0) return null;
 
   return (
-    <div className="mt-6 divide-y divide-[#EDEBE4] overflow-hidden rounded-xl bg-[#FAFAFA]">
+    <div className="mt-4 divide-y divide-[#EDEBE4] overflow-hidden rounded-xl bg-white shadow-[0_4px_24px_rgba(31,41,55,0.09)] md:mt-6">
       {sections.map(({ key, icon: Icon, title, content }) => {
         const isOpen = openKey === key;
         const anchorId = key === "houserules"
@@ -83,17 +83,17 @@ export function ListingPolicies({ listing }: ListingPoliciesProps) {
             <button
               type="button"
               onClick={() => setOpenKey(isOpen ? null : key)}
-              className="flex w-full items-center gap-3 p-4 text-left"
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-left md:gap-3 md:p-4"
               aria-expanded={isOpen}
               aria-controls={`policy-panel-${key}`}
             >
-              <Icon size={18} className="shrink-0 text-[#1B1A2E]" />
-              <span className="flex-1 text-[15px] font-medium text-[#1B1A2E]">
+              <Icon size={18} className="h-4 w-4 shrink-0 text-[#1B1A2E] md:h-[18px] md:w-[18px]" />
+              <span className="flex-1 text-sm font-medium text-[#1B1A2E] md:text-[15px]">
                 {title}
               </span>
               <ChevronDown
                 size={18}
-                className={`shrink-0 text-[#1B1A2E]/50 transition-transform duration-200 ${
+                className={`h-4 w-4 shrink-0 text-[#1B1A2E]/50 transition-transform duration-200 md:h-[18px] md:w-[18px] ${
                   isOpen ? "rotate-180" : ""
                 }`}
               />
@@ -105,15 +105,15 @@ export function ListingPolicies({ listing }: ListingPoliciesProps) {
                 isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
               }`}
             >
-              <div className="min-h-0 px-4 pb-4 pl-[42px]">
+              <div className="min-h-0 px-3 pb-3 pl-9 md:px-4 md:pb-4 md:pl-[42px]">
                 {Array.isArray(content) ? (
-                  <ul className="list-disc space-y-1.5 pl-4 text-[14px] leading-relaxed text-[#1B1A2E]/80">
+                  <ul className="list-disc space-y-1 pl-4 text-[13px] leading-5 text-[#1B1A2E]/80 md:space-y-1.5 md:text-[14px] md:leading-relaxed">
                     {content.map((rule, i) => (
                       <li key={i}>{rule}</li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-[14px] leading-relaxed text-[#1B1A2E]/80">
+                  <p className="text-[13px] leading-5 text-[#1B1A2E]/80 md:text-[14px] md:leading-relaxed">
                     {content}
                   </p>
                 )}

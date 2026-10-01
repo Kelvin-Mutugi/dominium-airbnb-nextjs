@@ -12,6 +12,7 @@ interface SaveListingButtonProps {
   className?: string;
   iconSize?: number;
   showLabel?: boolean;
+  labelClassName?: string;
 }
 
 export default function SaveListingButton({
@@ -19,6 +20,7 @@ export default function SaveListingButton({
   className = "",
   iconSize = 18,
   showLabel = false,
+  labelClassName = "",
 }: SaveListingButtonProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -138,7 +140,11 @@ export default function SaveListingButton({
           className={isSaved ? "fill-[#E23E85] text-[#E23E85]" : ""}
           aria-hidden="true"
         />
-          {showLabel && <span>{isSaved ? "Saved" : "Save stay"}</span>}
+          {showLabel && (
+            <span className={labelClassName}>
+              {isSaved ? "Saved" : "Save stay"}
+            </span>
+          )}
       </button>
       {error && <span className="sr-only" role="status">{error}</span>}
     </>

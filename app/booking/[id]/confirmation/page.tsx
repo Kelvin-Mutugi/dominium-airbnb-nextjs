@@ -138,9 +138,22 @@ export default function BookingConfirmationPage() {
             </dl>
             <section className="mt-6 border-b border-[#E9E6DD] pb-6">
               <h2 className="font-semibold">Host contact</h2>
-              <p className="mt-2 whitespace-pre-wrap text-sm text-[#3A3856]">
-                {booking.hostContact || "Your host hasn’t added arrival contact details yet. Use booking messages to reach them."}
-              </p>
+              {booking.hostContact ? (
+                <p className="mt-2 whitespace-pre-wrap text-sm text-[#3A3856]">
+                  {booking.hostContact}
+                </p>
+              ) : (
+                <p className="mt-2 text-sm text-[#3A3856]">
+                  Your host hasn&apos;t added arrival contact details yet.{" "}
+                  <Link
+                    href={`/account/support?${new URLSearchParams({ booking: booking.bookingId, category: "booking_issue" }).toString()}`}
+                    className="font-medium text-[#1769AA] underline underline-offset-2"
+                  >
+                    Contact support
+                  </Link>
+                  .
+                </p>
+              )}
             </section>
             <Link href="/account/bookings" className="mt-6 inline-flex min-h-12 items-center rounded-md bg-[#1B1A2E] px-5 font-semibold text-white">View bookings</Link>
           </>

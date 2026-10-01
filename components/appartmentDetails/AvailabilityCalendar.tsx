@@ -1,6 +1,6 @@
 // appartmentDetails/AvailabilityCalendar.tsx
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCcw, X } from "lucide-react";
 import { rangesOverlap, type DateRange } from "@/app/lib/booking/availability";
 
 interface AvailabilityCalendarProps {
@@ -12,6 +12,7 @@ interface AvailabilityCalendarProps {
   initialCheckOut?: string;
   onDateSelectionStart?: () => void;
   onDateRangeSelect?: (checkIn: Date, checkOut: Date) => void;
+  onDatesClear?: () => void;
 }
 
 function isDateBooked(date: Date, ranges: DateRange[]) {
@@ -61,6 +62,7 @@ export function AvailabilityCalendar({
   initialCheckOut,
   onDateSelectionStart,
   onDateRangeSelect,
+  onDatesClear,
 }: AvailabilityCalendarProps) {
   const initialStart = parseDateKey(initialCheckIn);
   const initialEnd = parseDateKey(initialCheckOut);
@@ -124,12 +126,19 @@ export function AvailabilityCalendar({
     return day > checkIn && day < checkOut;
   }
 
+  function clearDates() {
+    setCheckIn(null);
+    setCheckOut(null);
+    setSelecting("checkIn");
+    onDatesClear?.();
+  }
+
   return (
     <div
       id="availability-calendar"
       tabIndex={-1}
       className={`rounded-lg border outline-none transition-colors ${
-        prompt ? "border-[#E23E85] ring-2 ring-[#E23E85]/10" : "border-[#E9E6DD]"
+        prompt ? "border-[#E23E85]/50 ring-2 ring-[#E23E85]/10" : "border-[#F0EEE9]"
       }`}
     >
       <div className="grid grid-cols-2 gap-2 p-2">
@@ -143,7 +152,7 @@ export function AvailabilityCalendar({
             setExpanded(true);
             onDateSelectionStart?.();
           }}
-          className={`min-h-12 rounded-md border px-3 py-2 text-left ${calendarOpen && selecting === "checkIn" ? "border-[#1769AA] ring-1 ring-[#1769AA]" : "border-[#D8D6CE]"}`}
+          className={`min-h-12 rounded-md border border-transparent bg-[#FAF9F7] px-3 py-2 text-left transition-colors ${calendarOpen && selecting === "checkIn" ? "border-[#1769AA]/50 bg-white ring-1 ring-[#1769AA]/25" : "hover:bg-[#F4F3F0]"}`}
         >
           <span className="block text-[11px] font-semibold uppercase text-[#6B6A78]">Check-in</span>
           <span className="mt-0.5 block text-sm font-medium text-[#1B1A2E]">{formatDateLabel(checkIn)}</span>
@@ -156,7 +165,7 @@ export function AvailabilityCalendar({
             setSelecting(checkIn ? "checkOut" : "checkIn");
             setExpanded(true);
           }}
-          className={`min-h-12 rounded-md border px-3 py-2 text-left ${calendarOpen && selecting === "checkOut" ? "border-[#1769AA] ring-1 ring-[#1769AA]" : "border-[#D8D6CE]"}`}
+          className={`min-h-12 rounded-md border border-transparent bg-[#FAF9F7] px-3 py-2 text-left transition-colors ${calendarOpen && selecting === "checkOut" ? "border-[#1769AA]/50 bg-white ring-1 ring-[#1769AA]/25" : "hover:bg-[#F4F3F0]"}`}
         >
           <span className="block text-[11px] font-semibold uppercase text-[#6B6A78]">Check-out</span>
           <span className="mt-0.5 block text-sm font-medium text-[#1B1A2E]">{formatDateLabel(checkOut)}</span>
@@ -172,14 +181,27 @@ export function AvailabilityCalendar({
               ? "Select your check-in date"
               : `Select your check-out date${minNights > 1 ? ` · min ${minNights} nights` : ""}`}
         </p>
-        <button
-          type="button"
-          onClick={() => setExpanded(false)}
-          aria-label="Collapse calendar"
-          className="flex size-11 shrink-0 items-center justify-center rounded-md text-[#3A3856] hover:bg-[#F4F3F0]"
-        >
-          <ChevronDown size={18} aria-hidden="true" />
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          {(checkIn || checkOut) && (
+            <button
+              type="button"
+              onClick={clearDates}
+              className="inline-flex min-h-10 items-center gap-1 rounded-md px-2 text-xs font-semibold text-[#3A3856] hover:bg-[#F4F3F0]"
+            >
+              <RotateCcw size={14} aria-hidden="true" />
+              Clear dates
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            aria-label="Close calendar"
+            className="inline-flex min-h-10 items-center gap-1 rounded-md px-2 text-xs font-semibold text-[#3A3856] hover:bg-[#F4F3F0]"
+          >
+            <X size={16} aria-hidden="true" />
+            Close
+          </button>
+        </div>
       </div>
       {minNights > 1 && (
         <p className="mb-3 text-xs font-medium text-[#3A3856]">Minimum stay: {minNights} nights</p>
