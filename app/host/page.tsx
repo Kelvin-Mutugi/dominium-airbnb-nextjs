@@ -18,6 +18,24 @@ import type { HostArrivalGuideDetails, HostBookingChangeRequest, Booking } from 
 import StatusBadge from "@/components/host/StatusBadge";
 import ArrivalGuideQuickEdit from "@/components/host/ArrivalGuideQuickEdit";
 
+let hostOverviewRequest: ReturnType<typeof getHostOverviewData> | null = null;
+
+function loadHostOverviewData() {
+  if (!hostOverviewRequest) {
+    const request = getHostOverviewData();
+    hostOverviewRequest = request;
+    void request.then(
+      () => {
+        if (hostOverviewRequest === request) hostOverviewRequest = null;
+      },
+      () => {
+        if (hostOverviewRequest === request) hostOverviewRequest = null;
+      },
+    );
+  }
+  return hostOverviewRequest;
+}
+
 export default function HostDashboardPage() {
   const [hasActiveOrDraftListings, setHasActiveOrDraftListings] = useState<boolean | null>(null);
   const [upcoming, setUpcoming] = useState<Booking[]>([]);
@@ -41,7 +59,7 @@ export default function HostDashboardPage() {
     async function loadDashboard() {
       try {
         setError(null);
-        const data = await getHostOverviewData();
+        const data = await loadHostOverviewData();
         if (!active) return;
         setHasActiveOrDraftListings(data.hasActiveOrDraftListings);
         setUpcoming(data.upcoming);
@@ -112,7 +130,7 @@ export default function HostDashboardPage() {
     <div className="mx-auto max-w-7xl space-y-7 pb-4">
       <header className="flex flex-col justify-between gap-5 border-b border-[#12231d]/15 pb-6 sm:flex-row sm:items-end">
         <div>
-          <p className="text-xs font-semibold uppercase text-[#b30f4b]">Host overview</p>
+          <p className="text-xs font-semibold uppercase text-[#9C2454]">Host overview</p>
           <h1 className="mt-2 text-3xl font-semibold text-[#12231d]">Your stays, at a glance</h1>
           <p className="mt-1 text-sm text-[#656a65]">
             {new Intl.DateTimeFormat("en-KE", { weekday: "long", day: "numeric", month: "long" }).format(new Date())}
@@ -153,7 +171,7 @@ export default function HostDashboardPage() {
             <h2 className="font-semibold text-[#12231d]">Your hosting setup is just getting started</h2>
             <p className="mt-1 text-sm text-[#656a65]">Listing creation and publishing are currently managed by the admin team during verification.</p>
           </div>
-          <Link href="/host/listings" className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-[#b30f4b] hover:underline">
+          <Link href="/host/listings" className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-[#9C2454] hover:underline">
             Check listing status <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </section>
@@ -163,10 +181,10 @@ export default function HostDashboardPage() {
         <section className="min-w-0 border border-[#E9E6DD] bg-white shadow-[0_2px_12px_rgba(27,26,46,0.045)]">
           <div className="flex items-center justify-between gap-3 border-b border-[#12231d]/10 px-4 py-4 sm:px-5">
             <div>
-              <p className="text-xs font-semibold uppercase text-[#b30f4b]">Action needed</p>
+              <p className="text-xs font-semibold uppercase text-[#9C2454]">Action needed</p>
               <h2 className="mt-1 text-lg font-semibold text-[#12231d]">Needs your attention</h2>
             </div>
-            {attentionCount > 0 && <span className="grid h-7 min-w-7 place-items-center rounded-full bg-[#fbe7ed] px-2 text-xs font-bold tabular-nums text-[#b30f4b]">{attentionCount}</span>}
+            {attentionCount > 0 && <span className="grid h-7 min-w-7 place-items-center rounded-full bg-[#FCE8F0] px-2 text-xs font-bold tabular-nums text-[#9C2454]">{attentionCount}</span>}
           </div>
           {attentionCount === 0 && !attentionDataUnavailable ? (
             <div className="flex items-center gap-3 px-5 py-8">
@@ -180,7 +198,7 @@ export default function HostDashboardPage() {
             <ul className="divide-y divide-[#12231d]/10">
               {verificationNeedsAction && onboardingStatus && (
                 <li>
-                  <Link href="/host/onboarding" className="flex items-center gap-3 px-4 py-4 transition hover:bg-[#fbf9f5] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#ec1561]/40 sm:px-5">
+                  <Link href="/host/onboarding" className="flex items-center gap-3 px-4 py-4 transition hover:bg-[#fbf9f5] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#E23E85]/40 sm:px-5">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#fff0d8] text-[#9a5b00]"><AlertTriangle className="h-4 w-4" aria-hidden="true" /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-semibold text-[#12231d]">{onboardingStatus.kyc_status === "rejected" ? "Update your host verification" : "Complete host verification"}</span>
@@ -192,7 +210,7 @@ export default function HostDashboardPage() {
               )}
               {pendingChanges.slice(0, 2).map((request) => (
                 <li key={`change-${request.id}`}>
-                  <Link href={`/host/bookings?booking=${encodeURIComponent(request.booking_id)}`} className="flex items-center gap-3 px-4 py-4 transition hover:bg-[#fbf9f5] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#ec1561]/40 sm:px-5">
+                  <Link href={`/host/bookings?booking=${encodeURIComponent(request.booking_id)}`} className="flex items-center gap-3 px-4 py-4 transition hover:bg-[#fbf9f5] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#E23E85]/40 sm:px-5">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#fff0d8] text-[#9a5b00]"><CalendarDays className="h-4 w-4" aria-hidden="true" /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold text-[#12231d]">Guest {request.request_type === "cancellation" ? "cancellation" : "date change"} request</span>
@@ -204,7 +222,7 @@ export default function HostDashboardPage() {
               ))}
               {unreadBookings.slice(0, 2).map((booking) => (
                 <li key={`message-${booking.id}`}>
-                  <Link href={`/host/bookings/${encodeURIComponent(booking.id)}`} className="flex items-center gap-3 px-4 py-4 transition hover:bg-[#fbf9f5] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#ec1561]/40 sm:px-5">
+                  <Link href={`/host/bookings/${encodeURIComponent(booking.id)}`} className="flex items-center gap-3 px-4 py-4 transition hover:bg-[#fbf9f5] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#E23E85]/40 sm:px-5">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#eaf0f7] text-[#365d80]"><MessageCircle className="h-4 w-4" aria-hidden="true" /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold text-[#12231d]">Booking message reply · {booking.listing?.title ?? "Booking"}</span>
@@ -217,7 +235,7 @@ export default function HostDashboardPage() {
               {attentionDataUnavailable && (
                 <li className="flex items-center justify-between gap-3 px-4 py-3 text-sm text-[#747873] sm:px-5">
                   <span>Some requests or messages could not be checked.</span>
-                  <Link href="/host/bookings" className="shrink-0 font-semibold text-[#b30f4b] hover:underline">Open bookings</Link>
+                  <Link href="/host/bookings" className="shrink-0 font-semibold text-[#9C2454] hover:underline">Open bookings</Link>
                 </li>
               )}
               {(pendingChanges.length > 2 || unreadBookings.length > 2) && (
@@ -237,7 +255,7 @@ export default function HostDashboardPage() {
               <p className="text-xs font-semibold uppercase text-[#365d80]">Coming up</p>
               <h2 className="mt-1 text-lg font-semibold text-[#12231d]">Next arrivals</h2>
             </div>
-            <Link href="/host/calendar" aria-label="Open host calendar" title="Open calendar" className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#12231d] transition hover:bg-[#f3efe9] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/40">
+            <Link href="/host/calendar" aria-label="Open host calendar" title="Open calendar" className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#12231d] transition hover:bg-[#f3efe9] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/40">
               <CalendarDays className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>
@@ -260,7 +278,7 @@ export default function HostDashboardPage() {
                     <article className="px-4 py-4 sm:px-5">
                       <div className="flex gap-3">
                         <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center border border-[#12231d]/10 bg-[#faf8f4] text-center">
-                          <span className="text-[10px] font-semibold uppercase text-[#b30f4b]">{formatStayDate(booking.check_in).split(" ")[1]}</span>
+                          <span className="text-[10px] font-semibold uppercase text-[#9C2454]">{formatStayDate(booking.check_in).split(" ")[1]}</span>
                           <span className="text-lg font-semibold leading-5 tabular-nums text-[#12231d]">{formatStayDate(booking.check_in).split(" ")[0]}</span>
                         </div>
                         <div className="min-w-0 flex-1">
@@ -307,7 +325,7 @@ export default function HostDashboardPage() {
                         )}
                         <div className="flex flex-wrap gap-3">
                           <Link href={`/host/bookings?status=confirmed&booking=${encodeURIComponent(booking.id)}`} className="text-xs font-semibold text-[#365d80] hover:underline">Review guest &amp; stay</Link>
-                          <Link href={`/host/bookings/${encodeURIComponent(booking.id)}`} className="inline-flex items-center gap-1 text-xs font-semibold text-[#b30f4b] hover:underline">
+                          <Link href={`/host/bookings/${encodeURIComponent(booking.id)}`} className="inline-flex items-center gap-1 text-xs font-semibold text-[#9C2454] hover:underline">
                             <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" /> Contact customer support
                           </Link>
                         </div>

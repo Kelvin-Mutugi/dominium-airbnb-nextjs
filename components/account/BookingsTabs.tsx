@@ -38,7 +38,7 @@ export function BookingsTabs({
       <div
         role="tablist"
         aria-label="Booking status"
-        className="inline-flex gap-1 rounded-full bg-neutral-100 p-1"
+        className="account-neu-inset flex max-w-full gap-1 overflow-x-auto rounded-full p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {tabs.map((t) => {
           const active = t.id === tab;
@@ -51,10 +51,10 @@ export function BookingsTabs({
               aria-selected={active}
               aria-controls="bookings-panel"
               onClick={() => setTab(t.id)}
-              className={`rounded-full px-4 py-2 text-sm transition ${
+              className={`min-h-11 shrink-0 rounded-full px-4 py-2 text-sm transition-colors ${
                 active
-                  ? 'bg-white font-semibold text-[#1B1A2E] shadow-sm'
-                  : 'text-neutral-500 hover:text-neutral-800'
+                  ? 'account-neu-surface font-semibold text-[#9C2454]'
+                  : 'text-neutral-600 hover:bg-white/70 hover:text-neutral-900 active:bg-neutral-100'
               } ${focusRing}`}
             >
               {t.label}
@@ -66,7 +66,7 @@ export function BookingsTabs({
 
       <div role="tabpanel" id="bookings-panel" aria-labelledby={`bookings-tab-${current.id}`} className="mt-5">
         {current.items.length ? (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 sm:gap-4">
             {current.items.map((b) => (
               <BookingCard key={b.id} booking={b} />
             ))}

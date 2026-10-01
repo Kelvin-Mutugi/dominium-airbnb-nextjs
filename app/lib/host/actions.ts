@@ -7,7 +7,6 @@ import { hashCalendarToken, syncCalendarConnection, syncStaleCalendarConnections
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 import { createClient } from "@/app/lib/supabase/server";
 import { todayISO } from "@/app/lib/format";
-import { getRequesterSupportUnreadCounts } from "@/app/customer-support/actions";
 import type {
   AvailabilityBlock,
   Booking,
@@ -25,6 +24,34 @@ import type {
 const MPESA_REGEX = /^0\d{9}$/;
 const HOST_BOOKING_FIELDS = "id, booking_reference, listing_id, host_id, check_in, check_out, nights, adults_count, children_count, pets_count, rooms_count, status, host_payout_amount, guest_name, guest_country, special_requests";
 const HOST_BOOKING_WITH_LISTING = `${HOST_BOOKING_FIELDS}, listing:listings(id, title, town, county)`;
+
+type HostUnreadThread = {
+  booking_id: string;
+  requester_last_read_at: string;
+  messages: { created_at: string; sender_role: string }[];
+};
+
+async function getHostUnreadSupportCounts(userId: string, bookingIds?: string[]) {
+  if (bookingIds && bookingIds.length === 0) return {} as Record<string, number>;
+
+  const admin = getSupabaseAdmin();
+  const select = "booking_id, requester_last_read_at, messages:customer_support_messages!inner(created_at, sender_role)";
+  const result = bookingIds
+    ? await admin.from("customer_support_threads").select(select).eq("requester_id", userId).eq("status", "waiting_on_requester").eq("messages.sender_role", "admin").in("booking_id", bookingIds)
+    : await admin.from("customer_support_threads").select(select).eq("requester_id", userId).eq("status", "waiting_on_requester").eq("messages.sender_role", "admin");
+
+  if (result.error) throw new Error("Unable to load customer support replies.");
+
+  const counts: Record<string, number> = {};
+  for (const thread of (result.data ?? []) as unknown as HostUnreadThread[]) {
+    for (const message of thread.messages) {
+      if (Date.parse(message.created_at) > Date.parse(thread.requester_last_read_at)) {
+        counts[thread.booking_id] = (counts[thread.booking_id] ?? 0) + 1;
+      }
+    }
+  }
+  return counts;
+}
 
 function isAdult(dob: string) {
   const birth = new Date(dob);
@@ -330,11 +357,12 @@ export async function getHostOverviewData() {
   const { user } = await requireHost();
   const supabase = await createClient();
   const today = todayISO();
-  const [listingCountResult, upcomingResult, verificationResult, changesResult] = await Promise.all([
+  const [listingCountResult, upcomingResult, verificationResult, changesResult, unreadSupportCounts] = await Promise.all([
     supabase.from("listings").select("id", { count: "exact", head: true }).eq("host_id", user.id).in("status", ["draft", "published"]),
     supabase.from("bookings").select(HOST_BOOKING_WITH_LISTING).eq("host_id", user.id).eq("status", "confirmed").gte("check_in", today).order("check_in", { ascending: true }).limit(5),
     supabase.from("profiles").select("kyc_status, kyc_rejection_reason, host_verified_at").eq("id", user.id).maybeSingle(),
     supabase.from("booking_change_requests").select("id, booking_id, request_type, current_check_in, current_check_out, requested_check_in, requested_check_out, quoted_total_amount, amount_paid, refund_percent, estimated_refund_amount, reason, created_at, booking:bookings!inner(guest_name, listing:listings(title))").eq("host_id", user.id).eq("status", "pending").order("created_at", { ascending: true }).limit(10),
+    getHostUnreadSupportCounts(user.id).catch(() => null),
   ]);
 
   if (upcomingResult.error) {
@@ -345,19 +373,17 @@ export async function getHostOverviewData() {
   const changeRequests = changesResult.error ? null : (changesResult.data ?? []) as unknown as HostBookingChangeRequest[];
   const onboardingStatus = verificationResult.error ? null : verificationResult.data;
 
-  let supportReplyBookings: Booking[] | null = null;
-  const admin = getSupabaseAdmin();
   const listingIds = [...new Set(upcoming.map((booking) => booking.listing_id))];
-  const [threadsResult, guidesResult] = await Promise.all([
-    admin.from("customer_support_threads")
-      .select("id, booking_id, requester_last_read_at")
-      .eq("requester_id", user.id)
-      .eq("status", "waiting_on_requester"),
+  const unreadBookingIds = Object.keys(unreadSupportCounts ?? {});
+  const [guidesResult, unreadRows] = await Promise.all([
     listingIds.length
       ? supabase.from("listing_arrival_guides")
           .select("listing_id, arrival_address, arrival_directions, check_in_instructions, wifi_name, wifi_password, arrival_contact, local_tips")
           .eq("host_id", user.id)
           .in("listing_id", listingIds)
+      : Promise.resolve({ data: [], error: null }),
+    unreadBookingIds.length
+      ? supabase.from("bookings").select(HOST_BOOKING_WITH_LISTING).eq("host_id", user.id).in("id", unreadBookingIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
 
@@ -367,40 +393,12 @@ export async function getHostOverviewData() {
     arrivalGuides = Object.fromEntries(listingIds.map((id) => [id, guides[id] ?? null]));
   }
 
-  if (!threadsResult.error) {
-    const supportThreads = threadsResult.data ?? [];
-    const { data: messages, error: messagesError } = supportThreads.length
-      ? await admin.from("customer_support_messages")
-          .select("thread_id, created_at")
-          .in("thread_id", supportThreads.map((thread) => thread.id))
-          .eq("sender_role", "admin")
-      : { data: [], error: null };
-
-    if (!messagesError) {
-      const threadById = new Map(supportThreads.map((thread) => [thread.id, thread]));
-      const unreadCountByBooking = new Map<string, number>();
-      for (const message of messages ?? []) {
-        const thread = threadById.get(message.thread_id);
-        if (thread && Date.parse(message.created_at) > Date.parse(thread.requester_last_read_at)) {
-          unreadCountByBooking.set(thread.booking_id, (unreadCountByBooking.get(thread.booking_id) ?? 0) + 1);
-        }
-      }
-
-      const unreadBookingIds = [...unreadCountByBooking.keys()];
-      const unreadRows = unreadBookingIds.length
-        ? await supabase.from("bookings")
-            .select(HOST_BOOKING_WITH_LISTING)
-            .eq("host_id", user.id)
-            .in("id", unreadBookingIds)
-        : { data: [], error: null };
-      supportReplyBookings = unreadRows.error
-        ? null
-        : (unreadRows.data ?? []).map((booking) => ({
-            ...(booking as unknown as Booking),
-            unreadSupportReplyCount: unreadCountByBooking.get(booking.id) ?? 0,
-          }));
-    }
-  }
+  const supportReplyBookings = unreadSupportCounts === null || unreadRows.error
+    ? null
+    : (unreadRows.data ?? []).map((booking) => ({
+        ...(booking as unknown as Booking),
+        unreadSupportReplyCount: unreadSupportCounts[booking.id] ?? 0,
+      }));
 
   return {
     hasActiveOrDraftListings: listingCountResult.error ? null : (listingCountResult.count ?? 0) > 0,
@@ -415,19 +413,15 @@ export async function getHostOverviewData() {
 export async function getHostNavigationAttentionCount() {
   const { user } = await requireHost();
   const supabase = await createClient();
-  const [bookingsResult, changesResult] = await Promise.all([
-    supabase.from("bookings").select("id, status").eq("host_id", user.id),
-    supabase.from("booking_change_requests").select("id").eq("host_id", user.id).eq("status", "pending"),
+  const [pendingBookingsResult, changesResult, unreadSupportCounts] = await Promise.all([
+    supabase.from("bookings").select("id", { count: "exact", head: true }).eq("host_id", user.id).eq("status", "pending"),
+    supabase.from("booking_change_requests").select("id", { count: "exact", head: true }).eq("host_id", user.id).eq("status", "pending"),
+    getHostUnreadSupportCounts(user.id),
   ]);
-  if (bookingsResult.error || changesResult.error) throw new Error("Unable to load host attention count.");
+  if (pendingBookingsResult.error || changesResult.error) throw new Error("Unable to load host attention count.");
 
-  const bookings = bookingsResult.data ?? [];
-  const bookingIds = bookings.map((booking) => booking.id);
-  const unreadSupportReplies = await getRequesterSupportUnreadCounts(user.id, bookingIds);
-  const unreadSupportReplyCount = Object.values(unreadSupportReplies).reduce((total, count) => total + count, 0);
-
-  const pendingBookingCount = bookings.filter((booking) => booking.status === "pending").length;
-  return pendingBookingCount + unreadSupportReplyCount + (changesResult.data?.length ?? 0);
+  const unreadSupportReplyCount = Object.values(unreadSupportCounts).reduce((total, count) => total + count, 0);
+  return (pendingBookingsResult.count ?? 0) + unreadSupportReplyCount + (changesResult.count ?? 0);
 }
 
 export async function getHostListingsData() {
@@ -501,7 +495,7 @@ export async function getHostBookingsData(status: Exclude<BookingStatus, "pendin
   if (!bookings.length) return bookings;
 
   const bookingIds = bookings.map((booking) => booking.id);
-  const unreadByBooking = await getRequesterSupportUnreadCounts(user.id, bookingIds);
+  const unreadByBooking = await getHostUnreadSupportCounts(user.id, bookingIds);
   return bookings.map((booking) => ({ ...booking, unreadSupportReplyCount: unreadByBooking[booking.id] ?? 0 }));
 }
 

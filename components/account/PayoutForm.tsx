@@ -53,8 +53,8 @@ export function PayoutForm({
           {OPTIONS.map((o) => (
             <label
               key={o.id}
-              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 text-sm transition focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-teal-700 ${
-                method === o.id ? 'border-[#E23E85] bg-[#FDF0F5]' : 'border-neutral-300 bg-white hover:bg-neutral-50'
+              className={`flex min-h-16 cursor-pointer items-start gap-3 rounded-2xl p-4 text-sm transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#E23E85] ${
+                method === o.id ? 'account-neu-lift bg-[#FCE8F0] ring-2 ring-[#E23E85]/25' : 'account-neu-surface hover:bg-neutral-50'
               }`}
             >
               <input
@@ -63,7 +63,7 @@ export function PayoutForm({
                 value={o.id}
                 checked={method === o.id}
                 onChange={() => setMethod(o.id)}
-                className="mt-0.5 accent-teal-800"
+                className="mt-0.5 accent-[#E23E85]"
               />
               <span>
                 <span className="block font-medium text-neutral-900">{o.label}</span>

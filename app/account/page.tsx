@@ -31,9 +31,9 @@ export default async function AccountOverviewPage() {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-7 md:space-y-9">
       <header>
-        <h1 className="font-serif text-3xl text-neutral-900">Welcome back, {firstName}</h1>
+        <h1 className="font-serif text-2xl text-neutral-900 sm:text-3xl">Welcome back, {firstName}</h1>
         {awaitingReview > 0 && (
           <p className="mt-2 text-neutral-600">
             {awaitingReview === 1 ? 'One stay is' : `${awaitingReview} stays are`} waiting for your review.{' '}
@@ -64,14 +64,14 @@ export default async function AccountOverviewPage() {
         ]}
       />
 
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-8">
         <section aria-labelledby="recent-heading">
           <div className="flex items-baseline justify-between">
             <h2 id="recent-heading" className="font-serif text-xl">
               Recent bookings
             </h2>
             {all.length > 0 && (
-              <Link href="/account/bookings" className={textLink}>
+              <Link href="/account/bookings" className={`${textLink} min-h-11 inline-flex items-center`}>
                 See all bookings
               </Link>
             )}
@@ -80,12 +80,12 @@ export default async function AccountOverviewPage() {
           {all.length === 0 ? (
             <p className="mt-4 text-sm text-neutral-500">Nothing here yet.</p>
           ) : (
-            <ul className="mt-2 divide-y divide-neutral-200">
+            <ul className="mt-3 space-y-2">
               {all.slice(0, 4).map((b) => {
                 const image = coverImage(b.listing?.listing_images);
                 return (
-                  <li key={b.id} className="flex items-center gap-4 py-4">
-                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-neutral-200">
+                  <li key={b.id} className="account-neu-surface flex min-w-0 items-center gap-3 rounded-2xl p-3 sm:gap-4 sm:p-4">
+                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-neutral-200">
                       {image && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={image} alt="" className="h-full w-full object-cover" loading="lazy" />
@@ -106,7 +106,7 @@ export default async function AccountOverviewPage() {
         </section>
 
         <aside className="space-y-6">
-          <section className="rounded-xl bg-white p-5 ring-1 ring-neutral-200" aria-labelledby="details-heading">
+          <section className="account-neu-surface rounded-2xl p-5" aria-labelledby="details-heading">
             <h2 id="details-heading" className="font-serif text-lg">
               Your details
             </h2>
@@ -131,7 +131,7 @@ export default async function AccountOverviewPage() {
           </section>
 
           {isHost ? (
-            <section className="rounded-2xl bg-[#FDF0F5] p-5 ring-1 ring-[#E23E85]/15" aria-labelledby="host-heading">
+            <section className="account-neu-surface rounded-2xl p-5" aria-labelledby="host-heading">
               <h2 id="host-heading" className="font-serif text-lg text-[#1B1A2E]">
                 Hosting
               </h2>
@@ -145,7 +145,7 @@ export default async function AccountOverviewPage() {
                       : 'Complete host verification to activate your hosting account.'}
               </p>
               {profile.kyc_status === 'rejected' && profile.kyc_rejection_reason && (
-                <p className="mt-2 text-sm text-rose-800">{profile.kyc_rejection_reason}</p>
+                <p className="mt-2 rounded-xl bg-[#FCE8F0] p-3 text-sm text-[#9C2454]">{profile.kyc_rejection_reason}</p>
               )}
               {!profile.host_verified_at && (
                 <Link href={profile.kyc_status === 'rejected' ? '/host/onboarding' : '/host/pending-review'} className={`${textLink} mt-2 inline-block`}>
@@ -159,7 +159,7 @@ export default async function AccountOverviewPage() {
               </Link>
             </section>
           ) : profile.role === 'guest' ? (
-            <section className="rounded-2xl bg-[#FDF0F5] p-5 ring-1 ring-[#E23E85]/15" aria-labelledby="become-host-heading">
+            <section className="account-neu-surface rounded-2xl p-5" aria-labelledby="become-host-heading">
               <h2 id="become-host-heading" className="font-serif text-lg text-[#1B1A2E]">
                 Have a space to share?
               </h2>
@@ -189,9 +189,9 @@ function NextStay({ booking: b }: { booking: BookingView }) {
           : 'You’re staying here now';
 
   return (
-    <article className="relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-neutral-200 sm:flex-row">
+    <article className="account-neu-surface relative flex flex-col overflow-hidden rounded-3xl md:flex-row">
       {/* Date stub */}
-      <div className="relative flex shrink-0 items-center gap-4 overflow-hidden bg-[#1B1A2E] px-6 py-5 text-white sm:w-48 sm:flex-col sm:justify-center sm:gap-1 sm:py-8 sm:text-center">
+      <div className="relative flex min-h-36 shrink-0 items-center gap-4 overflow-hidden bg-[#1B1A2E] px-6 py-5 text-white md:w-48 md:flex-col md:justify-center md:gap-1 md:py-8 md:text-center">
         {checkInImage && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={checkInImage} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
@@ -207,19 +207,15 @@ function NextStay({ booking: b }: { booking: BookingView }) {
       </div>
 
       {/* Perforation */}
-      <div aria-hidden="true" className="border-t-2 border-dashed border-neutral-300 sm:hidden" />
-      <div aria-hidden="true" className="relative hidden w-0 border-l-2 border-dashed border-neutral-300 sm:block">
-        <span className="absolute -left-[13px] -top-3 h-6 w-6 rounded-full bg-neutral-50" />
-        <span className="absolute -bottom-3 -left-[13px] h-6 w-6 rounded-full bg-neutral-50" />
-      </div>
+      <div aria-hidden="true" className="hidden" />
 
-      <div className="flex min-w-0 flex-1 flex-col gap-5 p-6">
+      <div className="flex min-w-0 flex-1 flex-col gap-5 p-4 sm:p-6">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-semibold text-[#E23E85]">{when}</p>
+            <p className="text-sm font-semibold text-[#9C2454]">{when}</p>
             {b.status === 'pending' && <StatusBadge status="pending" label="Awaiting payment" />}
           </div>
-          <h2 className="mt-1 font-serif text-2xl leading-snug text-neutral-900">{b.listing?.title ?? 'Your stay'}</h2>
+          <h2 className="mt-1 font-serif text-xl leading-snug text-neutral-900 sm:text-2xl">{b.listing?.title ?? 'Your stay'}</h2>
           {b.listing && (
             <p className="mt-1 text-sm text-neutral-500">
               {b.listing.town}, {b.listing.county}
@@ -227,7 +223,7 @@ function NextStay({ booking: b }: { booking: BookingView }) {
           )}
         </div>
 
-        <dl className="grid grid-cols-3 gap-4 text-sm">
+        <dl className="account-neu-inset grid grid-cols-1 gap-3 rounded-2xl p-3 text-sm sm:grid-cols-3 sm:gap-4 sm:p-4">
           <div>
             <dt className="text-neutral-500">Check-out</dt>
             <dd className="mt-0.5 font-medium text-neutral-900">{formatDate(b.check_out, 'noYear')}</dd>
@@ -248,12 +244,12 @@ function NextStay({ booking: b }: { booking: BookingView }) {
           <p className="text-sm text-neutral-500">Check-in from {b.listing.check_in_time}.</p>
         )}
 
-        <div className="flex flex-wrap gap-3">
-          <Link href="/account/bookings" className={btnPrimary}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
+          <Link href="/account/bookings" className={`${btnPrimary} w-full sm:w-auto`}>
             Manage booking
           </Link>
           {b.listing && (
-            <Link href={`/apartments/${b.listing.id}`} className={btnSecondary}>
+            <Link href={`/apartments/${b.listing.id}`} className={`${btnSecondary} w-full sm:w-auto`}>
               View listing
             </Link>
           )}

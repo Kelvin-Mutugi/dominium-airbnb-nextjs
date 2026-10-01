@@ -126,8 +126,8 @@ export function BookingChangeActions({
           {message}
         </p>
       )}
-      {error && !cancelDialog.current?.open && !dateDialog.current?.open && (
-        <p role="alert" className="px-3 py-1 text-xs text-rose-700">
+      {error && (
+        <p role="alert" className="rounded-xl bg-[#FCE8F0] px-3 py-2 text-xs text-[#9C2454]">
           {error}
         </p>
       )}
@@ -187,7 +187,7 @@ export function BookingChangeActions({
             </>
           )}
           {error && (
-            <p role="alert" className="mt-3 text-sm text-rose-700">
+            <p role="alert" className="mt-3 rounded-xl bg-[#FCE8F0] p-3 text-sm text-[#9C2454]">
               {error}
             </p>
           )}
@@ -282,7 +282,7 @@ export function BookingChangeActions({
           )}
 
           {error && (
-            <p role="alert" className="mt-3 text-sm text-rose-700">
+            <p role="alert" className="mt-3 rounded-xl bg-[#FCE8F0] p-3 text-sm text-[#9C2454]">
               {error}
             </p>
           )}

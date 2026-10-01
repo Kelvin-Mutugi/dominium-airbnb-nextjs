@@ -40,9 +40,9 @@ export function CustomerSupportThreadView({
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-8">
       <section aria-labelledby="customer-support-conversation-heading" className="min-w-0">
-        <header className="border-b border-neutral-200 pb-4">
+        <header className="account-neu-surface rounded-2xl p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 id="customer-support-conversation-heading" className="font-serif text-xl text-neutral-900">Booking messages with support</h2>
             <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${thread.status === 'closed' || thread.status === 'resolved' ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-900'}`}>
@@ -59,7 +59,7 @@ export function CustomerSupportThreadView({
             const requesterMessage = message.sender_role === thread.requester_role;
             return (
               <li key={message.id} className={`flex ${requesterMessage ? 'justify-end' : 'justify-start'}`}>
-                <article className={`max-w-[min(88%,38rem)] px-4 py-3 ${requesterMessage ? 'bg-[#1B1A2E] text-white' : 'border border-neutral-200 bg-white text-neutral-900'}`}>
+                <article className={`max-w-[min(88%,38rem)] rounded-2xl px-4 py-3 ${requesterMessage ? 'bg-[#1B1A2E] text-white' : 'account-neu-surface text-neutral-900'}`}>
                   <p className={`mb-1 text-[11px] font-semibold uppercase ${requesterMessage ? 'text-white/65' : 'text-[#9C2454]'}`}>{requesterMessage ? `You · ${thread.requester_role}` : 'Dominium Customer Support'}</p>
                   <p className="whitespace-pre-wrap text-sm leading-6">{message.body}</p>
                   <time dateTime={message.created_at} className={`mt-2 block text-right text-[11px] ${requesterMessage ? 'text-white/65' : 'text-neutral-500'}`}>
@@ -71,20 +71,20 @@ export function CustomerSupportThreadView({
           })}
         </ol>
 
-        <div className="border-t border-neutral-200 pt-4">
-          {isClosed && <p className="mb-3 border-l-4 border-neutral-300 bg-neutral-50 px-3 py-2 text-sm text-neutral-600">This conversation is closed. Sending a new message will reopen it with customer support.</p>}
+        <div className="account-neu-inset rounded-2xl p-4">
+          {isClosed && <p className="mb-3 rounded-xl bg-white px-3 py-2 text-sm text-neutral-600">This conversation is closed. Sending a new message will reopen it with customer support.</p>}
           <label htmlFor="customer-support-message" className="block text-sm font-medium text-neutral-800">Message support about this booking</label>
-          <textarea id="customer-support-message" value={body} maxLength={5000} rows={4} onChange={(event) => setBody(event.target.value)} className="mt-1.5 w-full resize-y rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm leading-6 text-neutral-900 focus:border-[#9C2454] focus:outline-none focus:ring-2 focus:ring-[#9C2454]/20" placeholder="Describe what you need help with…" />
+          <textarea id="customer-support-message" value={body} maxLength={5000} rows={4} onChange={(event) => setBody(event.target.value)} className="mt-1.5 min-h-28 w-full resize-y rounded-xl bg-white px-3 py-2.5 text-sm leading-6 text-neutral-900 shadow-[inset_0_1px_2px_rgba(27,26,46,0.04)] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/30" placeholder="Describe what you need help with…" />
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-            <p aria-live="polite" role={error ? 'alert' : 'status'} className="text-sm text-rose-700">{error ?? (sent ? 'Message sent to customer support.' : '')}</p>
-            <button type="button" onClick={submitMessage} disabled={pending || !body.trim()} className="min-h-10 rounded-md bg-[#1B1A2E] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#302F43] disabled:cursor-not-allowed disabled:opacity-50">
+            <p aria-live="polite" role={error ? 'alert' : 'status'} className={`text-sm ${error ? 'text-[#9C2454]' : 'text-neutral-600'}`}>{error ?? (sent ? 'Message sent to customer support.' : '')}</p>
+            <button type="button" onClick={submitMessage} disabled={pending || !body.trim()} className="min-h-11 rounded-full bg-[#1B1A2E] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#302F43] active:bg-[#11101F] disabled:cursor-not-allowed disabled:opacity-55 motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E23E85]">
               {pending ? 'Sending…' : isClosed ? 'Reopen conversation' : 'Send message'}
             </button>
           </div>
         </div>
       </section>
 
-      <aside className="h-fit border-t border-neutral-200 pt-5 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+      <aside className="account-neu-surface h-fit rounded-2xl p-4 sm:p-5">
         <h2 className="font-serif text-lg text-neutral-900">About this conversation</h2>
         <dl className="mt-3 space-y-3 text-sm">
           <div>

@@ -12,7 +12,7 @@ const SECTIONS = [
 
 function GuideLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#b30f4b] underline decoration-[#b30f4b]/30 underline-offset-4 hover:decoration-[#b30f4b]">
+    <Link href={href} className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#9C2454] underline decoration-[#9C2454]/30 underline-offset-4 hover:decoration-[#9C2454]">
       {children}
       <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
     </Link>
@@ -23,7 +23,7 @@ export default function HostGuidePage() {
   return (
     <div className="mx-auto max-w-6xl space-y-8">
       <header className="border-b border-[#d8d5ce] pb-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#b30f4b]">Host resources</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#9C2454]">Host resources</p>
         <h1 className="mt-2 text-3xl font-bold text-[#12231d]">Host guide</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
           Practical steps for setting up a listing, managing stays, keeping calendars aligned, and tracking payouts.
@@ -124,11 +124,11 @@ export default function HostGuidePage() {
             <ul className="space-y-2.5">
               {SECTIONS.map((section) => (
                 <li key={section.id}>
-                  <a href={`#${section.id}`} className="text-sm text-gray-600 hover:text-[#b30f4b]">{section.label}</a>
+                  <a href={`#${section.id}`} className="text-sm text-gray-600 hover:text-[#9C2454]">{section.label}</a>
                 </li>
               ))}
             </ul>
-            <Link href="/host" className="mt-6 inline-flex items-center gap-2 border-t border-[#d8d5ce] pt-4 text-sm font-semibold text-[#12231d] hover:text-[#b30f4b]">
+            <Link href="/host" className="mt-6 inline-flex items-center gap-2 border-t border-[#d8d5ce] pt-4 text-sm font-semibold text-[#12231d] hover:text-[#9C2454]">
               Back to dashboard <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </nav>

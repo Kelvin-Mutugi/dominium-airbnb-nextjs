@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Heart } from "lucide-react";
 import { supabase } from "@/app/lib/supabase/client";
 
 const PENDING_SAVE_KEY = "dominium-pending-saved-listing";
+const subscribeToHydration = () => () => {};
+const getHydratedSnapshot = () => true;
+const getServerHydrationSnapshot = () => false;
 
 interface SaveListingButtonProps {
   listingId: string;
@@ -28,6 +31,11 @@ export default function SaveListingButton({
   const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const hasHydrated = useSyncExternalStore(
+    subscribeToHydration,
+    getHydratedSnapshot,
+    getServerHydrationSnapshot,
+  );
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -125,14 +133,14 @@ export default function SaveListingButton({
         type="button"
         aria-label={isSaved ? "Remove from saved stays" : "Save stay"}
         aria-pressed={isSaved}
-        aria-busy={isLoading || isSaving}
+        aria-busy={hasHydrated && (isLoading || isSaving)}
         title={error || (isSaved ? "Remove from saved stays" : "Save stay")}
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
           void toggleSaved();
         }}
-        disabled={isLoading || isSaving}
+        disabled={hasHydrated && (isLoading || isSaving)}
         className={className}
       >
         <Heart

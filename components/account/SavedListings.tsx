@@ -45,11 +45,11 @@ export default function SavedListings({
 
   if (saved.length === 0 && !error) {
     return (
-      <div className="border-y border-neutral-200 py-10 text-center">
+      <div className="account-neu-surface rounded-3xl px-5 py-10 text-center">
         <Heart className="mx-auto text-neutral-400" size={24} aria-hidden="true" />
         <h2 className="mt-3 font-medium text-neutral-900">No saved stays yet</h2>
         <p className="mt-1 text-sm text-neutral-600">Save places while browsing to keep your shortlist here.</p>
-        <Link href="/allListings" className="mt-4 inline-flex font-semibold text-rose-700 underline underline-offset-4">
+        <Link href="/allListings" className="mt-4 inline-flex min-h-11 items-center font-semibold text-[#9C2454] underline underline-offset-4">
           Browse stays
         </Link>
       </div>
@@ -58,12 +58,12 @@ export default function SavedListings({
 
   return (
     <>
-      {error && <p role="alert" className="mb-4 text-sm text-rose-700">{error}</p>}
+      {error && <p role="alert" className="mb-4 rounded-2xl bg-[#FCE8F0] px-4 py-3 text-sm text-[#9C2454]">{error}</p>}
       {saved.length > 0 && (
-        <ul className="divide-y divide-neutral-200 border-y border-neutral-200">
+        <ul className="space-y-3">
           {saved.map((listing) => (
-            <li key={listing.id} className="grid gap-4 py-5 sm:grid-cols-[180px_minmax(0,1fr)_auto] sm:items-center">
-              <Link href={`/apartments/${listing.id}`} className="relative h-36 overflow-hidden bg-neutral-200 sm:h-28">
+            <li key={listing.id} className="account-neu-surface grid gap-4 overflow-hidden rounded-3xl p-3 md:grid-cols-[180px_minmax(0,1fr)_auto] md:items-center md:p-4">
+              <Link href={`/apartments/${listing.id}`} aria-label={`View ${listing.title}`} className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-neutral-100 md:aspect-auto md:h-32">
                 {listing.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={listing.imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
@@ -83,13 +83,13 @@ export default function SavedListings({
                 </div>
                 <p className="mt-2 text-sm text-neutral-600">{listing.amenities.slice(0, 4).join(' · ')}</p>
               </div>
-              <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end">
+              <div className="flex items-center justify-between gap-4 md:flex-col md:items-end">
                 <p className="font-semibold text-neutral-900">KES {listing.pricePerNight.toLocaleString()} <span className="font-normal text-neutral-500">/ night</span></p>
                 <button
                   type="button"
                   onClick={() => void removeSavedListing(listing.id)}
                   disabled={removingId === listing.id}
-                  className="text-sm font-medium text-neutral-600 underline underline-offset-4 hover:text-rose-700 disabled:opacity-50"
+                  className="min-h-11 rounded-full px-4 text-sm font-semibold text-[#9C2454] transition-colors hover:bg-[#FCE8F0] active:bg-[#F5D3E1] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {removingId === listing.id ? 'Removing…' : 'Remove'}
                 </button>

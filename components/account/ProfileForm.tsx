@@ -114,7 +114,7 @@ export function ProfileForm(props: Props) {
           </Section>
         )}
 
-        <div className="flex flex-wrap items-center gap-4 border-t border-neutral-200 pt-6">
+        <div className="flex flex-col items-start gap-3 pt-5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
           <button type="submit" disabled={pending} className={btnPrimary}>
             {pending ? 'Saving…' : 'Save changes'}
           </button>

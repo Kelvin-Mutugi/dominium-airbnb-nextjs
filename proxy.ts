@@ -4,6 +4,9 @@ import { createServerClient } from "@supabase/ssr";
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const isHostServerAction = pathname.startsWith("/host") && request.method === "POST" && request.headers.has("next-action");
+  if (isHostServerAction) return NextResponse.next();
+
   const isProtectedRoute =
     pathname.startsWith("/host") ||
     pathname.startsWith("/complete-profile") ||

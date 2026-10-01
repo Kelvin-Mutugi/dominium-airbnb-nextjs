@@ -28,6 +28,28 @@ body {
   font-family: var(--font-plex), "IBM Plex Sans", sans-serif;
 }
 
+.account-neu-surface {
+  background-color: #fff;
+  box-shadow:
+    0 2px 10px rgb(27 26 46 / 0.06),
+    3px 3px 8px rgb(27 26 46 / 0.035),
+    -3px -3px 8px rgb(255 255 255 / 0.9);
+}
+
+.account-neu-lift {
+  box-shadow:
+    0 2px 10px rgb(27 26 46 / 0.06),
+    3px 3px 8px rgb(27 26 46 / 0.035),
+    -3px -3px 8px rgb(255 255 255 / 0.9);
+}
+
+.account-neu-inset {
+  background-color: #f7f7f9;
+  box-shadow:
+    inset 2px 2px 5px rgb(27 26 46 / 0.045),
+    inset -2px -2px 5px rgb(255 255 255 / 0.9);
+}
+
 @keyframes hero-fade {
   0%,
   100% {
@@ -102,15 +124,83 @@ body {
   background-color: #302f43;
 }
 
+.host-panel {
+  background-color: #f5f5f7;
+}
+
 .host-panel aside {
-  box-shadow: 2px 0 12px rgb(27 26 46 / 0.045);
+  border-right-color: transparent;
+  background-color: #f7f7f9;
+  box-shadow:
+    3px 0 12px rgb(27 26 46 / 0.055),
+    inset -2px 0 6px rgb(27 26 46 / 0.025);
 }
 
 .host-panel > main :is(section, article)[class~="bg-white"],
 .host-panel > main [class~="bg-white"][class*="rounded"] {
-  box-shadow: 0 2px 12px rgb(27 26 46 / 0.045);
+  border-color: transparent;
+  box-shadow:
+    0 2px 10px rgb(27 26 46 / 0.06),
+    3px 3px 8px rgb(27 26 46 / 0.035),
+    -3px -3px 8px rgb(255 255 255 / 0.9);
+}
+
+.host-panel > main [class~="bg-gray-50"][class*="rounded"],
+.host-panel > main [class~="bg-[#faf8f4]"][class*="rounded"] {
+  box-shadow:
+    inset 2px 2px 5px rgb(27 26 46 / 0.045),
+    inset -2px -2px 5px rgb(255 255 255 / 0.9);
+}
+
+.host-panel > main :is(input, select, textarea) {
+  border-color: transparent;
+  border-radius: 0.75rem;
+  background-color: #fff;
+  box-shadow:
+    0 1px 4px rgb(27 26 46 / 0.08),
+    inset 1px 1px 2px rgb(27 26 46 / 0.025);
+}
+
+.host-panel > main :is(input, select, textarea):focus-visible {
+  outline: 2px solid rgb(226 62 133 / 0.55);
+  outline-offset: 2px;
+}
+
+.host-panel > main button:not(:disabled),
+.host-panel > main a[class*="rounded"] {
+  transition-property: background-color, color, box-shadow, transform;
+  transition-duration: 160ms;
+}
+
+.host-panel > main button:not(:disabled):hover,
+.host-panel > main a[class*="rounded"]:hover {
+  box-shadow:
+    3px 3px 7px rgb(27 26 46 / 0.07),
+    -3px -3px 7px rgb(255 255 255 / 0.9);
+}
+
+.host-panel > main button:not(:disabled):active,
+.host-panel > main a[class*="rounded"]:active {
+  box-shadow: inset 2px 2px 4px rgb(27 26 46 / 0.06);
+  transform: translateY(1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .host-panel > main button,
+  .host-panel > main a[class*="rounded"] {
+    transition-duration: 0ms;
+  }
 }
 
 .host-panel > nav[class*="fixed"] {
-  box-shadow: 0 -2px 12px rgb(27 26 46 / 0.055);
+  border-top-color: transparent;
+  background-color: #f7f7f9;
+  box-shadow:
+    0 -3px 12px rgb(27 26 46 / 0.06),
+    inset 0 2px 5px rgb(27 26 46 / 0.025);
+}
+
+.host-panel > div[class*="fixed"] {
+  border-bottom-color: transparent;
+  box-shadow: 0 3px 12px rgb(27 26 46 / 0.055);
 }

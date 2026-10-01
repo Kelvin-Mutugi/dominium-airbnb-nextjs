@@ -116,7 +116,7 @@ export default function ListingForm({
   }
 
   const inputClass =
-    "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-1 focus:ring-[#ec1561]";
+    "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#E23E85] focus:outline-none focus:ring-1 focus:ring-[#E23E85]";
   const labelClass = "mb-1 block text-sm font-medium text-[#12231d]";
 
   return (
@@ -269,7 +269,7 @@ export default function ListingForm({
                 <button
                   type="button"
                   onClick={() => set("house_rules", values.house_rules.filter((_, idx) => idx !== i))}
-                  className="text-[#12231d] hover:text-[#ec1561]"
+                  className="text-[#12231d] hover:text-[#E23E85]"
                   aria-label={`Remove house rule: ${r}`}
                 >
                   ✕
@@ -289,7 +289,7 @@ export default function ListingForm({
               type="button"
               onClick={addHouseRule}
               disabled={!houseRuleInput.trim()}
-              className="rounded-lg border border-[#12231d] px-4 text-sm font-medium text-[#12231d] transition duration-150 hover:bg-[#12231d] hover:text-white active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#ec1561] focus:ring-offset-2 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400 disabled:hover:bg-transparent disabled:hover:text-gray-400"
+              className="rounded-lg border border-[#12231d] px-4 text-sm font-medium text-[#12231d] transition duration-150 hover:bg-[#12231d] hover:text-white active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#E23E85] focus:ring-offset-2 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400 disabled:hover:bg-transparent disabled:hover:text-gray-400"
             >
               Add
             </button>
@@ -344,7 +344,7 @@ export default function ListingForm({
               key={a}
               onClick={() => toggleAmenity(a)}
               className={`rounded-full border px-3 py-1.5 text-sm ${
-                values.amenities.includes(a) ? "border-[#ec1561] bg-[#ec1561]/10 text-[#ec1561]" : "border-gray-200 text-gray-600"
+                values.amenities.includes(a) ? "border-[#E23E85] bg-[#E23E85]/10 text-[#9C2454]" : "border-gray-200 text-gray-600"
               }`}
             >
               {a}
@@ -379,7 +379,7 @@ export default function ListingForm({
       </section>
 
       <div className="flex justify-end gap-3">
-        <button type="submit" disabled={saving} className="rounded-lg bg-[#ec1561] px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
+        <button type="submit" disabled={saving} className="rounded-lg bg-[#E23E85] px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
           {saving ? "Saving…" : submitLabel}
         </button>
       </div>

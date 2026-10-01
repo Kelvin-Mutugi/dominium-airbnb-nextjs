@@ -34,9 +34,9 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
   const unread = b.unreadSupportReplyCount;
 
   return (
-    <article className="rounded-3xl border border-neutral-200/80 bg-white p-4 shadow-[0_1px_2px_rgba(27,26,46,0.04)] sm:p-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:gap-5">
-        <div className="h-44 w-full shrink-0 overflow-hidden rounded-2xl bg-neutral-100 sm:h-32 sm:w-44">
+    <article className="account-neu-surface rounded-3xl p-4 sm:p-5">
+      <div className="flex flex-col gap-4 md:flex-row md:gap-5">
+        <div className="h-48 w-full shrink-0 overflow-hidden rounded-2xl bg-neutral-100 md:h-36 md:w-48">
           {image && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={image} alt="" className="h-full w-full object-cover" loading="lazy" />
@@ -73,12 +73,12 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
           </p>
         </div>
 
-        <p className="font-serif text-xl text-neutral-900 sm:text-right">{formatMoney(b.total_amount)}</p>
+        <p className="font-serif text-xl text-neutral-900 md:ml-auto md:text-right">{formatMoney(b.total_amount)}</p>
       </div>
 
       {/* Status of any change or cancellation request: always visible, because it's news */}
       {cr && (
-        <div className="mt-4 rounded-2xl bg-neutral-50 px-4 py-3 text-sm text-neutral-600">
+        <div className="account-neu-inset mt-4 rounded-2xl px-4 py-3 text-sm text-neutral-600">
           <p className="font-medium text-neutral-800">
             {humanize(cr.request_type)} request {humanize(cr.status).toLowerCase()}
           </p>
@@ -105,7 +105,7 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
       )}
 
       {/* The few things most people actually want */}
-      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-4">
+      <div className="account-neu-inset mt-4 flex flex-wrap items-center gap-2 rounded-2xl p-3">
         {canReview ? (
           <ReviewButton bookingId={b.id} listingTitle={listing?.title ?? 'your stay'} />
         ) : (
@@ -148,7 +148,7 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
           <ChevronDown size={16} aria-hidden="true" className="transition-transform group-open:rotate-180" />
         </summary>
 
-        <div className="mt-2 rounded-2xl bg-neutral-50 p-2">
+        <div className="account-neu-inset mt-2 rounded-2xl p-2">
           {(canChangeConfirmedBooking || canCancel || canReviewHost) && (
             <div className="flex flex-col">
               {canChangeConfirmedBooking && (

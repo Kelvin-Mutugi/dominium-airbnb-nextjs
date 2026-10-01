@@ -63,7 +63,7 @@ export function PasswordForm() {
           {pending ? 'Updating…' : 'Update password'}
         </button>
         {localError ? (
-          <p role="alert" className="text-sm text-rose-700">
+          <p role="alert" className="rounded-xl bg-[#FCE8F0] p-3 text-sm text-[#9C2454]">
             {localError}
           </p>
         ) : (

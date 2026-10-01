@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getAccountContext } from '@/app/lib/account';
 import { formatDate, humanize } from '@/app/lib/format';
 import { SupportSubmitButton } from '@/components/account/SupportSubmitButton';
+import { focusRing, inputClass, PageHeader } from '@/components/account/ui';
 import { submitSupportCase } from './actions';
 
 type SupportCase = {
@@ -16,11 +17,11 @@ type SupportCase = {
 };
 
 const CASE_STATUSES: Record<string, string> = {
-  new: 'bg-sky-50 text-sky-800',
-  in_review: 'bg-amber-50 text-amber-800',
-  waiting_on_user: 'bg-orange-50 text-orange-800',
-  resolved: 'bg-emerald-50 text-emerald-800',
-  closed: 'bg-gray-100 text-gray-700',
+  new: 'bg-neutral-100 text-neutral-700',
+  in_review: 'bg-[#FCE8F0] text-[#9C2454]',
+  waiting_on_user: 'bg-amber-50 text-amber-900',
+  resolved: 'bg-neutral-100 text-neutral-700',
+  closed: 'bg-neutral-100 text-neutral-700',
 };
 
 export default async function AccountSupportPage({
@@ -68,38 +69,32 @@ export default async function AccountSupportPage({
 
   return (
     <div className="max-w-4xl">
-      <header className="mb-8 border-b border-[#E9E6DD] pb-6">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#E23E85]">Help centre</p>
-        <h1 className="font-serif text-3xl text-[#1B1A2E]">Support cases &amp; disputes</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6B6A78]">
-          Submit a tracked case for payment or refund problems, complaints, safety concerns, or disputes. For a quick booking question, use Message support from the booking instead.
-        </p>
-      </header>
+      <PageHeader title="Support" description="Send a tracked request for payment or refund problems, complaints, safety concerns, or disputes. For a quick booking question, message support from the booking." />
 
       {params.submitted === '1' && (
-        <p role="status" className="mb-6 border-l-4 border-emerald-600 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+        <p role="status" className="mb-5 rounded-2xl bg-neutral-50 px-4 py-3 text-sm text-[#1B1A2E]">
           Your request has been sent. You can follow its status below.
         </p>
       )}
       {params.error && (
-        <p role="alert" className="mb-6 border-l-4 border-rose-600 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+        <p role="alert" className="mb-5 rounded-2xl bg-[#FCE8F0] px-4 py-3 text-sm text-[#9C2454]">
           {params.error}
         </p>
       )}
 
-      <section aria-labelledby="new-request-heading" className="border-b border-[#E9E6DD] pb-8">
+      <section aria-labelledby="new-request-heading" className="account-neu-inset rounded-3xl p-4 sm:p-6">
         <h2 id="new-request-heading" className="text-lg font-semibold text-[#1B1A2E]">Submit a support case</h2>
         <form action={submitSupportCase} className="mt-5 grid gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor="support-category" className="block text-sm font-medium text-[#1B1A2E]">What do you need help with?</label>
-            <select id="support-category" name="category" defaultValue={params.category && categories.some(([key]) => key === params.category) ? params.category : 'booking_issue'} className="mt-1.5 w-full rounded-lg border border-[#D9D5CF] bg-white px-3 py-2.5 text-sm focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20">
+            <select id="support-category" name="category" defaultValue={params.category && categories.some(([key]) => key === params.category) ? params.category : 'booking_issue'} className={`${inputClass} mt-1.5 ${focusRing}`}>
               {categories.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
             </select>
           </div>
 
           <div>
             <label htmlFor="support-booking" className="block text-sm font-medium text-[#1B1A2E]">Related booking <span className="font-normal text-gray-500">(optional)</span></label>
-            <select id="support-booking" name="booking_id" defaultValue={requestedBookingExists ? params.booking : ''} className="mt-1.5 w-full rounded-lg border border-[#D9D5CF] bg-white px-3 py-2.5 text-sm focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20">
+            <select id="support-booking" name="booking_id" defaultValue={requestedBookingExists ? params.booking : ''} className={`${inputClass} mt-1.5 ${focusRing}`}>
               <option value="">Not related to a booking</option>
               {bookingOptions.map((booking) => {
                 const listing = Array.isArray(booking.listing) ? booking.listing[0] : booking.listing;
@@ -110,12 +105,12 @@ export default async function AccountSupportPage({
 
           <div className="sm:col-span-2">
             <label htmlFor="support-subject" className="block text-sm font-medium text-[#1B1A2E]">Subject</label>
-            <input id="support-subject" name="subject" required minLength={5} maxLength={120} className="mt-1.5 w-full rounded-lg border border-[#D9D5CF] bg-white px-3 py-2.5 text-sm focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" placeholder="A short summary" />
+            <input id="support-subject" name="subject" required minLength={5} maxLength={120} className={`${inputClass} mt-1.5`} placeholder="A short summary" />
           </div>
 
           <div className="sm:col-span-2">
             <label htmlFor="support-message" className="block text-sm font-medium text-[#1B1A2E]">What happened?</label>
-            <textarea id="support-message" name="message" required minLength={20} maxLength={5000} rows={6} className="mt-1.5 w-full resize-y rounded-lg border border-[#D9D5CF] bg-white px-3 py-2.5 text-sm leading-6 focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" placeholder="Share the details that will help us investigate." />
+            <textarea id="support-message" name="message" required minLength={20} maxLength={5000} rows={6} className={`${inputClass} mt-1.5 resize-y leading-6`} placeholder="Share the details that will help us investigate." />
           </div>
 
           <div className="sm:col-span-2">
@@ -124,17 +119,17 @@ export default async function AccountSupportPage({
         </form>
       </section>
 
-      <section aria-labelledby="request-history-heading" className="pt-8">
+      <section aria-labelledby="request-history-heading" className="mt-8">
         <div className="flex items-baseline justify-between gap-4">
           <h2 id="request-history-heading" className="text-lg font-semibold text-[#1B1A2E]">Your requests</h2>
           <span className="text-xs text-gray-500">Latest 50</span>
         </div>
         {(cases ?? []).length === 0 ? (
-          <p className="mt-4 border-t border-[#E9E6DD] py-6 text-sm text-[#6B6A78]">You haven’t sent a support request yet.</p>
+          <p className="account-neu-surface mt-4 rounded-2xl px-4 py-6 text-sm text-neutral-600">You haven’t sent a support request yet.</p>
         ) : (
-          <ul className="mt-3 divide-y divide-[#E9E6DD]">
+          <ul className="mt-3 space-y-3">
             {(cases as SupportCase[]).map((supportCase) => (
-              <li key={supportCase.id} className="py-5">
+              <li key={supportCase.id} className="account-neu-surface rounded-2xl p-4 sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-medium text-[#1B1A2E]">{supportCase.subject}</p>
@@ -144,12 +139,12 @@ export default async function AccountSupportPage({
                 </div>
                 <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#4B4A5A]">{supportCase.message}</p>
                 {supportCase.public_reply && (
-                  <div className="mt-4 border-l-2 border-[#E23E85] bg-[#FDF0F5] px-3 py-2.5">
+                  <div className="mt-4 rounded-xl bg-[#FCE8F0] px-3 py-2.5">
                     <p className="text-xs font-semibold text-[#9C2454]">Response from support</p>
                     <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-[#4B2637]">{supportCase.public_reply}</p>
                   </div>
                 )}
-                {supportCase.booking_id && <Link href={`/account/bookings`} className="mt-2 inline-block text-xs font-medium text-[#CF2F74] hover:underline">Booking {bookingReferenceById.get(supportCase.booking_id) ?? "details"}</Link>}
+                {supportCase.booking_id && <Link href={`/account/bookings`} className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-[#9C2454] hover:underline">Booking {bookingReferenceById.get(supportCase.booking_id) ?? 'details'}</Link>}
               </li>
             ))}
           </ul>

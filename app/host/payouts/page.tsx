@@ -47,7 +47,7 @@ export default function HostPayoutsPage() {
             setLoading(true);
             setReloadToken((token) => token + 1);
           }}
-          className="font-semibold text-[#b30f4b] underline"
+          className="font-semibold text-[#9C2454] underline"
         >
           Try again
         </button>
@@ -126,7 +126,7 @@ export default function HostPayoutsPage() {
                           setExpandedPayoutId(expanded ? null : p.id);
                         }
                       }}
-                      className={`cursor-pointer transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#ec1561] ${rowColor}`}
+                      className={`cursor-pointer transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#E23E85] ${rowColor}`}
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-between gap-3">
@@ -153,7 +153,7 @@ export default function HostPayoutsPage() {
                               <p className="text-xs font-medium uppercase text-gray-500">Guest</p>
                               <Link
                                 href={`/host/bookings?status=completed&booking=${encodeURIComponent(p.booking_id)}#host-booking-${p.booking_id}`}
-                                className="mt-1 inline-block font-medium text-[#b30f4b] underline decoration-[#b30f4b]/40 underline-offset-2 hover:text-[#870b38]"
+                                className="mt-1 inline-block font-medium text-[#9C2454] underline decoration-[#9C2454]/40 underline-offset-2 hover:text-[#7E1C44]"
                               >
                                 {p.booking?.guest_name ?? "View booking details"}
                               </Link>
@@ -163,7 +163,7 @@ export default function HostPayoutsPage() {
                               {p.booking?.listing ? (
                                 <Link
                                   href={`/host/listings/${p.booking.listing.id}`}
-                                  className="mt-1 inline-block font-medium text-[#b30f4b] underline decoration-[#b30f4b]/40 underline-offset-2 hover:text-[#870b38]"
+                                  className="mt-1 inline-block font-medium text-[#9C2454] underline decoration-[#9C2454]/40 underline-offset-2 hover:text-[#7E1C44]"
                                 >
                                   {p.booking.listing.title}
                                 </Link>
@@ -182,7 +182,7 @@ export default function HostPayoutsPage() {
                               <p className="text-gray-700">Guest: {p.booking?.guest_name ?? "Guest"}{p.booking?.guest_country ? ` · ${p.booking.guest_country}` : ""}</p>
                               <p className="text-gray-700">Host payout: KES {Number(p.booking?.host_payout_amount ?? p.amount).toLocaleString()}</p>
                               {p.booking?.special_requests && <p className="mt-1 whitespace-pre-wrap text-gray-600">Request: {p.booking.special_requests}</p>}
-                              <Link href={`/host/bookings?status=completed&booking=${encodeURIComponent(p.booking_id)}#host-booking-${p.booking_id}`} className="mt-1 inline-block font-medium text-[#b30f4b] underline decoration-[#b30f4b]/40 underline-offset-2 hover:text-[#870b38]">
+                              <Link href={`/host/bookings?status=completed&booking=${encodeURIComponent(p.booking_id)}#host-booking-${p.booking_id}`} className="mt-1 inline-block font-medium text-[#9C2454] underline decoration-[#9C2454]/40 underline-offset-2 hover:text-[#7E1C44]">
                                 Open booking
                               </Link>
                               <p className="mt-2 text-gray-700">Payout ledger: KES {Number(p.amount).toLocaleString()}</p>
