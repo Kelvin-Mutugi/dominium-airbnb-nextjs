@@ -1,10 +1,12 @@
 import type { Amenity, Listing } from "@/components/homeData";
 import { HOMEPAGE_DESTINATIONS } from "@/app/homepageSections";
 import { normalizeListingAdditionalCharges } from "@/app/lib/listing-charges";
-import { createClient } from "@/app/lib/supabase/server";
+import { getPublicSupabaseClient } from "@/app/lib/supabase/public";
+import { unstable_cache } from "next/cache";
 
 const FEATURED_PAGE_SIZE = 8;
-const DESTINATION_PAGE_SIZE = 10;
+const DESTINATION_PAGE_SIZE = 9;
+const DESTINATION_FETCH_SIZE = DESTINATION_PAGE_SIZE + FEATURED_PAGE_SIZE;
 
 interface DatabaseListing {
   id: string;
@@ -79,12 +81,6 @@ function normalizeListing(listing: DatabaseListing): Listing {
   };
 }
 
-function uniqueListings(listings: Listing[]) {
-  return listings.filter(
-    (listing, index, allListings) => allListings.findIndex((candidate) => candidate.id === listing.id) === index,
-  );
-}
-
 const LISTING_SELECT = `
   id, title, description, county, town, price_per_night,
   platform_fee_per_night, additional_charges, min_nights,
@@ -92,39 +88,50 @@ const LISTING_SELECT = `
   listing_images ( url, sort_order )
 `;
 
-export async function getHomepageListings(): Promise<Listing[]> {
-  const supabase = await createClient();
+async function fetchHomepageListings(searchTerms: string[] | null, limit: number): Promise<Listing[]> {
+  const supabase = getPublicSupabaseClient();
 
-  async function fetchListings({ searchTerms, limit }: { searchTerms?: string[]; limit: number }) {
-    let query = supabase.from("listings").select(LISTING_SELECT).eq("status", "published");
+  let query = supabase.from("listings").select(LISTING_SELECT).eq("status", "published");
 
-    if (searchTerms?.length) {
-      const clauses = searchTerms.flatMap((term) => [
-        `county.ilike.%${term}%`,
-        `town.ilike.%${term}%`,
-        `title.ilike.%${term}%`,
-      ]);
-      query = query.or(clauses.join(","));
-    }
-
-    const { data, error } = await query
-      .order("created_at", { ascending: false })
-      .order("sort_order", { foreignTable: "listing_images", ascending: true })
-      .limit(1, { foreignTable: "listing_images" })
-      .limit(limit);
-    if (error) throw error;
-    return ((data ?? []) as DatabaseListing[]).map(normalizeListing);
+  if (searchTerms?.length) {
+    const clauses = searchTerms.flatMap((term) => [
+      `county.ilike.%${term}%`,
+      `town.ilike.%${term}%`,
+    ]);
+    query = query.or(clauses.join(","));
   }
 
-  const [featuredListings, ...destinationResults] = await Promise.all([
-    fetchListings({ limit: FEATURED_PAGE_SIZE }),
-    ...HOMEPAGE_DESTINATIONS.map((destination) =>
-      fetchListings({ searchTerms: destination.searchTerms, limit: DESTINATION_PAGE_SIZE }),
-    ),
-  ]);
+  const { data, error } = await query
+    .order("created_at", { ascending: false })
+    .order("sort_order", { foreignTable: "listing_images", ascending: true })
+    .limit(1, { foreignTable: "listing_images" })
+    .limit(limit);
+  if (error) throw error;
+  return ((data ?? []) as DatabaseListing[]).map(normalizeListing);
+}
 
-  const featured = uniqueListings(featuredListings);
-  const featuredIds = new Set(featured.map((listing) => listing.id));
-  const destinations = uniqueListings(destinationResults.flat()).filter((listing) => !featuredIds.has(listing.id));
-  return [...featured, ...destinations];
+const getCachedHomepageFeatured = unstable_cache(
+  () => fetchHomepageListings(null, FEATURED_PAGE_SIZE),
+  ["homepage-featured-v1", String(FEATURED_PAGE_SIZE)],
+  {
+    revalidate: 300,
+    tags: ["public-listings", "homepage-featured"],
+  },
+);
+
+const getCachedHomepageDestination = unstable_cache(
+  (searchTerms: string[]) => fetchHomepageListings(searchTerms, DESTINATION_FETCH_SIZE),
+  ["homepage-destination-v1", String(DESTINATION_PAGE_SIZE), String(DESTINATION_FETCH_SIZE)],
+  {
+    revalidate: 300,
+    tags: ["public-listings", "homepage-destinations"],
+  },
+);
+
+export function getHomepageFeaturedListings(): Promise<Listing[]> {
+  return getCachedHomepageFeatured();
+}
+
+export function getHomepageDestinationListings(searchTerms: string[]): Promise<Listing[]> {
+  return getCachedHomepageDestination(searchTerms);
 }

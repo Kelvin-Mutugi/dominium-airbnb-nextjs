@@ -3,7 +3,7 @@
 
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { createClient } from '@/app/lib/supabase/server';
 import { normalizePhone } from '@/app/lib/format';
 import type { ActionResult } from '@/types/account';
@@ -57,6 +57,7 @@ export async function updateProfile(input: {
   if (error) return { ok: false, error: SAVE_FAILED };
 
   revalidatePath('/account', 'layout');
+  if (current?.role === 'host') revalidateTag('public-host-profiles', 'max');
   return { ok: true, message: 'Profile saved.' };
 }
 
@@ -77,6 +78,7 @@ export async function updateAvatar(url: string | null): Promise<ActionResult> {
   if (error) return { ok: false, error: SAVE_FAILED };
 
   revalidatePath('/account', 'layout');
+  revalidateTag('public-host-profiles', 'max');
   return { ok: true, message: url ? 'Photo updated.' : 'Photo removed.' };
 }
 

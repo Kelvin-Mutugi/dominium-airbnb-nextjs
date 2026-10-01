@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { requireAdmin } from '@/app/lib/admin-auth';
 import { recordAdminAuditEvent } from '@/app/lib/admin-audit';
 import { getSupabaseAdmin } from '@/app/lib/supabase/admin';
@@ -51,4 +51,5 @@ export async function moderateReview(formData: FormData) {
   revalidatePath('/host/reviews');
   revalidatePath('/account/reviews');
   revalidatePath('/apartments/[id]', 'page');
+  if (reviewType === 'listing') revalidateTag('public-listings', 'max');
 }
