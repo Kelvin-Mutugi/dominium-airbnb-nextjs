@@ -189,36 +189,36 @@ export default function HostListingsPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="request-property-name" className="mb-1 block text-sm font-medium text-[#12231d]">Property name</label>
-                <input id="request-property-name" required minLength={3} maxLength={120} value={requestValues.proposedTitle} onChange={(event) => setRequestValues({ ...requestValues, proposedTitle: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" placeholder="e.g. Greenview Apartment" />
+                <input id="request-property-name" required minLength={3} maxLength={120} value={requestValues.proposedTitle} onChange={(event) => setRequestValues({ ...requestValues, proposedTitle: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" placeholder="e.g. Greenview Apartment" />
               </div>
               <div>
                 <label htmlFor="request-property-type" className="mb-1 block text-sm font-medium text-[#12231d]">Property type</label>
-                <input id="request-property-type" required minLength={2} maxLength={80} value={requestValues.propertyType} onChange={(event) => setRequestValues({ ...requestValues, propertyType: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" placeholder="Apartment, villa, guesthouse…" />
+                <input id="request-property-type" required minLength={2} maxLength={80} value={requestValues.propertyType} onChange={(event) => setRequestValues({ ...requestValues, propertyType: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" placeholder="Apartment, villa, guesthouse…" />
               </div>
               <div>
                 <label htmlFor="request-county" className="mb-1 block text-sm font-medium text-[#12231d]">County</label>
-                <input id="request-county" required minLength={2} maxLength={80} value={requestValues.county} onChange={(event) => setRequestValues({ ...requestValues, county: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" />
+                <input id="request-county" required minLength={2} maxLength={80} value={requestValues.county} onChange={(event) => setRequestValues({ ...requestValues, county: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" />
               </div>
               <div>
                 <label htmlFor="request-town" className="mb-1 block text-sm font-medium text-[#12231d]">Town / area</label>
-                <input id="request-town" required minLength={2} maxLength={100} value={requestValues.town} onChange={(event) => setRequestValues({ ...requestValues, town: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" />
+                <input id="request-town" required minLength={2} maxLength={100} value={requestValues.town} onChange={(event) => setRequestValues({ ...requestValues, town: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" />
               </div>
               <div>
                 <label htmlFor="request-address" className="mb-1 block text-sm font-medium text-[#12231d]">Address or directions <span className="font-normal text-gray-500">(optional)</span></label>
-                <input id="request-address" maxLength={500} value={requestValues.address} onChange={(event) => setRequestValues({ ...requestValues, address: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" />
+                <input id="request-address" maxLength={500} value={requestValues.address} onChange={(event) => setRequestValues({ ...requestValues, address: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" />
               </div>
               <div>
                 <label htmlFor="request-contact" className="mb-1 block text-sm font-medium text-[#12231d]">On-site contact <span className="font-normal text-gray-500">(optional)</span></label>
-                <input id="request-contact" maxLength={40} value={requestValues.contactPhone} onChange={(event) => setRequestValues({ ...requestValues, contactPhone: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" placeholder="Phone number for arranging a visit" />
+                <input id="request-contact" maxLength={40} value={requestValues.contactPhone} onChange={(event) => setRequestValues({ ...requestValues, contactPhone: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" placeholder="Phone number for arranging a visit" />
               </div>
             </div>
             <div>
               <label htmlFor="request-notes" className="mb-1 block text-sm font-medium text-[#12231d]">Additional details <span className="font-normal text-gray-500">(optional)</span></label>
-              <textarea id="request-notes" maxLength={3000} rows={3} value={requestValues.propertyNotes} onChange={(event) => setRequestValues({ ...requestValues, propertyNotes: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" placeholder="Best time to visit, number of units, or anything the team should know" />
+              <textarea id="request-notes" maxLength={3000} rows={3} value={requestValues.propertyNotes} onChange={(event) => setRequestValues({ ...requestValues, propertyNotes: event.target.value })} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" placeholder="Best time to visit, number of units, or anything the team should know" />
             </div>
             {requestError && <p role="alert" className="text-sm text-red-700">{requestError}</p>}
             <div className="flex justify-end">
-              <button type="submit" disabled={submittingRequest} className="rounded-lg bg-[#ec1561] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
+              <button type="submit" disabled={submittingRequest} className="rounded-lg bg-[#E23E85] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
                 {submittingRequest ? "Sending request…" : "Send to admin team"}
               </button>
             </div>
@@ -238,7 +238,7 @@ export default function HostListingsPage() {
                       <p className="mt-1 text-xs text-gray-500">Submitted {new Date(request.created_at).toLocaleDateString("en-KE")}</p>
                       {request.proposed_visit_at && <p className="mt-1 text-xs text-gray-600">Visit: {new Date(request.proposed_visit_at).toLocaleString("en-KE")}</p>}
                       {request.host_message && <p className="mt-2 whitespace-pre-wrap text-sm text-gray-600">{request.host_message}</p>}
-                      {request.listing_id && <Link href={`/host/listings/${request.listing_id}`} className="mt-1 inline-block text-xs font-semibold text-[#b30f4b] hover:underline">View created listing</Link>}
+                      {request.listing_id && <Link href={`/host/listings/${request.listing_id}`} className="mt-1 inline-block text-xs font-semibold text-[#9C2454] hover:underline">View created listing</Link>}
                     </div>
                     <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${status.className}`}>{status.label}</span>
                   </li>
@@ -272,7 +272,7 @@ export default function HostListingsPage() {
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`rounded-full px-3 py-1.5 text-sm font-medium capitalize transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#ec1561]/30 ${
+              className={`rounded-full px-3 py-1.5 text-sm font-medium capitalize transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#E23E85]/30 ${
                 active
                   ? "bg-[#12231d] text-white shadow-sm"
                   : "bg-white text-gray-600 hover:bg-gray-100 hover:text-[#12231d]"
@@ -389,7 +389,7 @@ export default function HostListingsPage() {
                   <p className="mt-2 text-sm text-[#565c57]">{listingGuidance.detail}</p>
                 </Link>
 
-                <Link href={listingGuidance.href} className="inline-flex shrink-0 items-center gap-1.5 self-start text-sm font-semibold text-[#b30f4b] hover:underline sm:self-center">
+                <Link href={listingGuidance.href} className="inline-flex shrink-0 items-center gap-1.5 self-start text-sm font-semibold text-[#9C2454] hover:underline sm:self-center">
                   {listing.status === "published" ? <CalendarDays className="h-4 w-4" aria-hidden="true" /> : null}
                   {listingGuidance.action}
                   {listing.status !== "published" && <ArrowRight className="h-4 w-4" aria-hidden="true" />}

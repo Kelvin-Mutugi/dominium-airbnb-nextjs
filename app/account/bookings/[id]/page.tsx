@@ -24,9 +24,9 @@ export default async function GuestBookingThreadPage({ params }: { params: Promi
   return (
     <div className="mx-auto max-w-6xl">
       <Link href="/account/bookings" className={`${btnSecondary} mb-6`}>Back to bookings</Link>
-      <header className="mb-8 border-b border-neutral-200 pb-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E23E85]">Booking messages · {booking.booking_reference} · {booking.status}</p>
-        <h1 className="mt-2 font-serif text-3xl text-neutral-900">{listing?.title ?? 'Your stay'}</h1>
+      <header className="account-neu-surface mb-6 rounded-3xl p-4 sm:p-6">
+        <p className="text-xs font-semibold text-[#9C2454]">Booking messages · {booking.booking_reference} · {booking.status}</p>
+        <h1 className="mt-2 font-serif text-2xl text-neutral-900 sm:text-3xl">{listing?.title ?? 'Your stay'}</h1>
         <p className="mt-2 text-sm text-neutral-600">{formatDate(booking.check_in, 'noYear')} to {formatDate(booking.check_out, 'short')} · {formatMoney(booking.total_amount)}</p>
       </header>
       <CustomerSupportThreadView thread={conversation.thread} messages={conversation.messages} />

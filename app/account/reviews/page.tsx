@@ -24,18 +24,28 @@ export default async function ReviewsPage() {
   const reviews = (data ?? []) as unknown as ReviewRow[];
   const { data: hostReviewData, error: hostReviewError } = await supabase
     .from('host_reviews')
-    .select('id, rating, comment, created_at, moderation_status, host:profiles!host_reviews_host_id_fkey ( full_name )')
+    .select('id, host_id, rating, comment, created_at, moderation_status')
     .eq('guest_id', user.id)
     .order('created_at', { ascending: false });
   if (hostReviewError) throw new Error(hostReviewError.message);
-  const hostReviews = (hostReviewData ?? []) as unknown as Array<{
+  const hostReviewRows = (hostReviewData ?? []) as Array<{
     id: string;
+    host_id: string;
     rating: number;
     comment: string | null;
     created_at: string;
     moderation_status: string;
-    host: { full_name: string } | Array<{ full_name: string }> | null;
   }>;
+  const hostIds = [...new Set(hostReviewRows.map((review) => review.host_id))];
+  const { data: hosts, error: hostsError } = hostIds.length
+    ? await supabase.from('profiles').select('id, full_name').in('id', hostIds)
+    : { data: [], error: null };
+  if (hostsError) throw new Error(hostsError.message);
+  const hostNameById = new Map((hosts ?? []).map((host) => [host.id, host.full_name]));
+  const hostReviews = hostReviewRows.map((review) => ({
+    ...review,
+    hostName: hostNameById.get(review.host_id) ?? 'Host',
+  }));
 
   return (
     <>
@@ -43,9 +53,9 @@ export default async function ReviewsPage() {
 
       {awaiting.length > 0 && (
         <Section title="Waiting for your review" description="Stays you’ve checked out of.">
-          <ul className="divide-y divide-neutral-200">
+          <ul className="space-y-3">
             {awaiting.map((b) => (
-              <li key={b.id} className="flex flex-wrap items-center justify-between gap-3 py-4 first:pt-0">
+              <li key={b.id} className="account-neu-surface flex flex-col items-start justify-between gap-3 rounded-2xl p-4 sm:flex-row sm:flex-wrap sm:items-center">
                 <div className="min-w-0">
                   <p className="font-medium text-neutral-900">{b.listing?.title ?? 'Your stay'}</p>
                   <p className="text-sm text-neutral-500">
@@ -71,9 +81,9 @@ export default async function ReviewsPage() {
             cta="Browse stays"
           />
         ) : (
-          <ul className="divide-y divide-neutral-200">
+          <ul className="space-y-3">
             {reviews.map((r) => (
-              <li key={r.id} className="py-5 first:pt-0">
+              <li key={r.id} className="account-neu-surface rounded-2xl p-4 sm:p-5">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <p className="font-medium text-neutral-900">
                     {r.listing ? (
@@ -99,20 +109,17 @@ export default async function ReviewsPage() {
         {hostReviews.length === 0 ? (
           <p className="text-sm text-neutral-500">You haven’t reviewed a host yet.</p>
         ) : (
-          <ul className="divide-y divide-neutral-200">
-            {hostReviews.map((review) => {
-              const host = Array.isArray(review.host) ? review.host[0] : review.host;
-              return (
-                <li key={review.id} className="py-5 first:pt-0">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <p className="font-medium text-neutral-900">{host?.full_name ?? 'Host'}</p>
-                    <Stars rating={review.rating} />
-                  </div>
-                  <p className="mt-1 text-xs text-neutral-400">{formatDate(review.created_at, 'long')} · {humanize(review.moderation_status)}</p>
-                  {review.comment && <p className="mt-2 max-w-prose leading-relaxed text-neutral-700">{review.comment}</p>}
-                </li>
-              );
-            })}
+          <ul className="space-y-3">
+            {hostReviews.map((review) => (
+              <li key={review.id} className="account-neu-surface rounded-2xl p-4 sm:p-5">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <p className="font-medium text-neutral-900">{review.hostName}</p>
+                  <Stars rating={review.rating} />
+                </div>
+                <p className="mt-1 text-xs text-neutral-400">{formatDate(review.created_at, 'long')} · {humanize(review.moderation_status)}</p>
+                {review.comment && <p className="mt-2 max-w-prose leading-relaxed text-neutral-700">{review.comment}</p>}
+              </li>
+            ))}
           </ul>
         )}
       </Section>

@@ -137,7 +137,7 @@ export function AvailabilityCalendar({
     <div
       id="availability-calendar"
       tabIndex={-1}
-      className={`rounded-lg border outline-none transition-colors ${
+      className={`w-full min-w-0 max-w-full overflow-hidden rounded-lg border outline-none transition-colors ${
         prompt ? "border-[#E23E85]/50 ring-2 ring-[#E23E85]/10" : "border-[#F0EEE9]"
       }`}
     >
@@ -172,7 +172,7 @@ export function AvailabilityCalendar({
         </button>
       </div>
 
-      {calendarOpen && <div className="overflow-x-auto border-t border-[#E9E6DD] p-3">
+      {calendarOpen && <div className="max-w-full overflow-x-auto overscroll-x-contain border-t border-[#E9E6DD] p-3">
       <div className="mb-3 flex items-center justify-between gap-3">
         <p className="text-sm font-medium text-[#3A3856]">
           {availabilityUnavailable

@@ -278,7 +278,7 @@ export default function HostBookingsPage() {
                 setFilter(f.value);
                 void load(true, f.value, false);
               }}
-              className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#ec1561]/30 ${
+              className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#E23E85]/30 ${
                 active
                   ? "bg-[#12231d] text-white shadow-sm"
                   : "bg-white text-gray-600 hover:bg-gray-100 hover:text-[#12231d]"
@@ -309,7 +309,7 @@ export default function HostBookingsPage() {
                 className={`rounded-2xl bg-white p-4 shadow-sm transition-opacity ${
                   isUpdating ? "opacity-70" : ""
                 } ${
-                  focusBookingId === b.id ? "outline outline-2 outline-offset-2 outline-[#ec1561]" : ""
+                  focusBookingId === b.id ? "outline outline-2 outline-offset-2 outline-[#E23E85]" : ""
                 }`}
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -355,7 +355,7 @@ export default function HostBookingsPage() {
                     <p className="font-semibold text-[#12231d]">KES {b.host_payout_amount.toLocaleString()}</p>
                     <Link
                       href={`/account/support?booking=${b.id}&category=host_guest_concern`}
-                      className="mt-2 inline-block text-xs font-medium text-[#ec1561] underline underline-offset-2"
+                      className="mt-2 inline-block text-xs font-medium text-[#9C2454] underline underline-offset-2"
                     >
                       Report a problem or dispute
                     </Link>

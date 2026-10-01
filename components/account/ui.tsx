@@ -12,15 +12,15 @@ export const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E23E85]';
 
 export const inputClass =
-  'block w-full rounded-xl border border-[#D9D5CF] bg-white px-3 py-2.5 text-sm text-[#1B1A2E] placeholder:text-[#8A8797] focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20 disabled:bg-[#F7F5F2] disabled:text-[#8A8797]';
+  'block min-h-11 w-full rounded-xl bg-white px-3 py-2.5 text-sm text-[#1B1A2E] shadow-[0_1px_4px_rgba(27,26,46,0.08),inset_1px_1px_2px_rgba(27,26,46,0.025)] placeholder:text-[#777583] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/30 disabled:bg-neutral-100 disabled:text-neutral-500';
 
-export const btnPrimary = `inline-flex items-center justify-center rounded-xl bg-[#E23E85] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(226,62,133,0.2)] transition hover:bg-[#CF2F74] disabled:cursor-not-allowed disabled:opacity-60 ${focusRing}`;
+export const btnPrimary = `inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#1B1A2E] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_2px_8px_rgba(27,26,46,0.12)] transition-all hover:bg-[#302F43] hover:shadow-[3px_3px_7px_rgba(27,26,46,0.12),-2px_-2px_6px_rgba(255,255,255,0.4)] active:bg-[#11101F] active:shadow-[inset_2px_2px_4px_rgba(0,0,0,0.18)] disabled:cursor-not-allowed disabled:opacity-55 motion-reduce:transition-none ${focusRing}`;
 
-export const btnSecondary = `inline-flex items-center justify-center rounded-xl border border-[#D9D5CF] bg-white px-4 py-2.5 text-sm font-semibold text-[#1B1A2E] transition hover:border-[#E23E85] hover:bg-[#FDF0F5] disabled:cursor-not-allowed disabled:opacity-60 ${focusRing}`;
+export const btnSecondary = `inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-[#1B1A2E] transition-all hover:bg-neutral-50 hover:shadow-[3px_3px_7px_rgba(27,26,46,0.06),-3px_-3px_7px_rgba(255,255,255,0.9)] active:bg-neutral-100 active:shadow-[inset_2px_2px_4px_rgba(27,26,46,0.05)] disabled:cursor-not-allowed disabled:opacity-55 motion-reduce:transition-none ${focusRing}`;
 
-export const btnDanger = `inline-flex items-center justify-center rounded-lg bg-rose-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-60 ${focusRing}`;
+export const btnDanger = `inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#9C2454] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_2px_8px_rgba(156,36,84,0.12)] transition-all hover:bg-[#831D46] hover:shadow-[3px_3px_7px_rgba(27,26,46,0.10),-2px_-2px_6px_rgba(255,255,255,0.35)] active:bg-[#6F183B] active:shadow-[inset_2px_2px_4px_rgba(0,0,0,0.16)] disabled:cursor-not-allowed disabled:opacity-55 motion-reduce:transition-none ${focusRing}`;
 
-export const textLink = `text-sm font-semibold text-[#E23E85] underline underline-offset-2 hover:text-[#CF2F74] ${focusRing}`;
+export const textLink = `min-h-11 inline-flex items-center text-sm font-semibold text-[#9C2454] underline underline-offset-2 hover:text-[#7E1C44] ${focusRing}`;
 
 /* ---------- layout pieces ---------- */
 
@@ -34,13 +34,12 @@ export function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <header className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-[#E9E6DD] pb-6">
+    <header className="mb-6 flex flex-col gap-4 pb-2 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
       <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#E23E85]">Your Dominium</p>
-        <h1 className="font-serif text-3xl text-[#1B1A2E]">{title}</h1>
-        {description && <p className="mt-1.5 max-w-prose text-[#6B6A78]">{description}</p>}
+        <h1 className="font-serif text-2xl text-[#1B1A2E] sm:text-3xl">{title}</h1>
+        {description && <p className="mt-1.5 max-w-prose text-sm leading-6 text-neutral-600">{description}</p>}
       </div>
-      {action}
+      {action && <div className="w-full sm:w-auto">{action}</div>}
     </header>
   );
 }
@@ -56,7 +55,7 @@ export function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="grid gap-6 border-t border-neutral-200 py-8 lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-10">
+    <section className="grid gap-3 py-6 md:grid-cols-[12rem_minmax(0,1fr)] md:gap-8 md:py-7 lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-10">
       <div>
         <h2 className="font-serif text-lg text-neutral-900">{title}</h2>
         {description && <p className="mt-1 text-sm leading-relaxed text-neutral-500">{description}</p>}
@@ -69,11 +68,11 @@ export function Section({
 export function StatStrip({ items }: { items: { label: string; value: ReactNode }[] }) {
   const cols = items.length === 3 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2 sm:grid-cols-4';
   return (
-    <dl className={`grid ${cols} gap-px overflow-hidden rounded-xl bg-neutral-200 ring-1 ring-neutral-200`}>
+    <dl className={`grid ${cols} gap-2`}>
       {items.map((item) => (
-        <div key={item.label} className="bg-white px-5 py-4">
-          <dt className="text-sm text-neutral-500">{item.label}</dt>
-          <dd className="mt-1 font-serif text-2xl text-neutral-900">{item.value}</dd>
+        <div key={item.label} className="account-neu-surface min-w-0 rounded-2xl px-4 py-3 sm:px-5 sm:py-4">
+          <dt className="text-xs leading-5 text-neutral-600 sm:text-sm">{item.label}</dt>
+          <dd className="mt-1 break-words font-serif text-xl text-neutral-900 sm:text-2xl">{item.value}</dd>
         </div>
       ))}
     </dl>
@@ -92,7 +91,7 @@ export function EmptyState({
   cta?: string;
 }) {
   return (
-    <div className="rounded-xl border border-dashed border-neutral-300 px-6 py-12 text-center">
+    <div className="account-neu-surface rounded-3xl px-5 py-10 text-center sm:px-6 sm:py-12">
       <p className="font-serif text-lg text-neutral-900">{title}</p>
       <p className="mx-auto mt-1 max-w-sm text-sm text-neutral-500">{body}</p>
       {href && cta && (
@@ -107,25 +106,25 @@ export function EmptyState({
 /* ---------- small atoms ---------- */
 
 const TONES: Record<string, string> = {
-  pending: 'bg-amber-50 text-amber-800 ring-amber-600/20',
-  owed: 'bg-amber-50 text-amber-800 ring-amber-600/20',
-  confirmed: 'bg-[#FDF0F5] text-[#CF2F74] ring-[#E23E85]/20',
-  paid: 'bg-[#FDF0F5] text-[#CF2F74] ring-[#E23E85]/20',
-  success: 'bg-[#FDF0F5] text-[#CF2F74] ring-[#E23E85]/20',
-  active: 'bg-[#FDF0F5] text-[#CF2F74] ring-[#E23E85]/20',
-  completed: 'bg-neutral-100 text-neutral-700 ring-neutral-500/20',
-  refunded: 'bg-neutral-100 text-neutral-700 ring-neutral-500/20',
-  cancelled: 'bg-rose-50 text-rose-800 ring-rose-600/20',
-  failed: 'bg-rose-50 text-rose-800 ring-rose-600/20',
-  suspended: 'bg-rose-50 text-rose-800 ring-rose-600/20',
-  expired: 'bg-neutral-100 text-neutral-700 ring-neutral-500/20',
+  pending: 'bg-amber-50 text-amber-900',
+  owed: 'bg-amber-50 text-amber-900',
+  confirmed: 'bg-[#FCE8F0] text-[#9C2454]',
+  paid: 'bg-[#FCE8F0] text-[#9C2454]',
+  success: 'bg-[#FCE8F0] text-[#9C2454]',
+  active: 'bg-[#FCE8F0] text-[#9C2454]',
+  completed: 'bg-neutral-100 text-neutral-700',
+  refunded: 'bg-neutral-100 text-neutral-700',
+  cancelled: 'bg-rose-50 text-[#9C2454]',
+  failed: 'bg-rose-50 text-[#9C2454]',
+  suspended: 'bg-rose-50 text-[#9C2454]',
+  expired: 'bg-neutral-100 text-neutral-700',
 };
 
 export function StatusBadge({ status, label }: { status: string; label?: string }) {
   const tone = TONES[status] ?? TONES.completed;
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ring-1 ring-inset ${tone}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${tone}`}
     >
       {label ?? status.replace(/_/g, ' ')}
     </span>
@@ -159,7 +158,7 @@ export function Avatar({ name, url, size = 'md' }: { name: string; url?: string 
   return (
     <span
       aria-hidden="true"
-      className={`${dims} inline-flex shrink-0 items-center justify-center rounded-full bg-[#E23E85] font-serif text-white`}
+      className={`${dims} inline-flex shrink-0 items-center justify-center rounded-full bg-[#9C2454] font-serif text-white`}
     >
       {initials(name)}
     </span>
@@ -197,11 +196,11 @@ export function Field({
 export function FormMessage({ result }: { result: ActionResult | null }) {
   if (!result) return null;
   return result.ok ? (
-    <p role="status" className="text-sm text-[#CF2F74]">
+    <p role="status" className="text-sm text-[#9C2454]">
       {result.message ?? 'Saved.'}
     </p>
   ) : (
-    <p role="alert" className="text-sm text-rose-700">
+    <p role="alert" className="text-sm text-[#9C2454]">
       {result.error}
     </p>
   );

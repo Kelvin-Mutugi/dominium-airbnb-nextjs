@@ -7,8 +7,8 @@ import { btnSecondary } from '@/components/account/ui';
 
 function GuideSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="border-t border-neutral-200 py-5 first:border-t-0 first:pt-0">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">{title}</h2>
+    <section className="account-neu-surface rounded-2xl p-4 sm:p-5">
+      <h2 className="text-sm font-semibold text-neutral-600">{title}</h2>
       <div className="mt-2 whitespace-pre-wrap text-[15px] leading-7 text-neutral-800">{children}</div>
     </section>
   );
@@ -57,14 +57,14 @@ export default async function ArrivalGuidePage({ params }: { params: Promise<{ i
   return (
     <main className="mx-auto max-w-3xl px-5 py-8 text-neutral-900 sm:px-8 print:max-w-none print:px-0 print:py-0">
       <Link href="/account/bookings" className={`${btnSecondary} mb-6 print:hidden`}>Back to bookings</Link>
-      <header className="mb-7 border-b border-neutral-200 pb-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#9C2454]">Arrival guide · Booking {booking.booking_reference}</p>
-        <h1 className="mt-2 font-serif text-3xl">{listing.title}</h1>
+      <header className="account-neu-surface mb-6 rounded-3xl p-4 sm:p-6">
+        <p className="text-xs font-semibold text-[#9C2454]">Arrival guide · Booking {booking.booking_reference}</p>
+        <h1 className="mt-2 font-serif text-2xl sm:text-3xl">{listing.title}</h1>
         <p className="mt-2 text-sm text-neutral-600">{guide.dates}</p>
         <div className="mt-5"><ArrivalGuideActions guide={guide} /></div>
       </header>
 
-      <div className="divide-y divide-neutral-200">
+      <div className="grid gap-3">
         <GuideSection title="Check-in and check-out">
           {`Check-in: ${guide.checkInTime || 'Contact customer support for the check-in time'}\nCheck-out: ${guide.checkOutTime || 'Contact customer support for the check-out time'}`}
         </GuideSection>
@@ -80,7 +80,7 @@ export default async function ArrivalGuidePage({ params }: { params: Promise<{ i
         )}
       </div>
 
-      <footer className="mt-8 border-t border-neutral-200 pt-5 text-sm text-neutral-600 print:hidden">
+      <footer className="account-neu-inset mt-6 rounded-2xl p-4 text-sm text-neutral-600 print:hidden">
         <p>Keep your offline copy private; it may contain access information.</p>
         <Link href={`/account/bookings/${booking.id}`} className="mt-2 inline-block font-semibold text-[#9C2454] underline underline-offset-2">Contact customer support about this booking</Link>
       </footer>

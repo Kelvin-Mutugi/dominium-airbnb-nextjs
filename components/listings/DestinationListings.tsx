@@ -61,7 +61,7 @@ export default function DestinationListings({
 
       {isLoading ? (
         <HorizontalListingCarousel ref={carouselRef} label={carouselLabel}>
-          {Array.from({ length: 8 }, (_, index) => (
+          {Array.from({ length: 9 }, (_, index) => (
             <div key={index} className="w-[180px] shrink-0 snap-start">
               <MinimalListingCard loading />
             </div>

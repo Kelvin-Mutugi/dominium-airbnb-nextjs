@@ -213,7 +213,7 @@ export default function HostOnboardingPage() {
     router.push("/host/pending-review");
   }
 
-  const inputClass = "mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-[#ec1561] focus:outline-none focus:ring-1 focus:ring-[#ec1561]";
+  const inputClass = "mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-[#E23E85] focus:outline-none focus:ring-1 focus:ring-[#E23E85]";
   const labelClass = "block text-sm font-medium text-[#12231d]";
 
   return (
@@ -372,12 +372,12 @@ export default function HostOnboardingPage() {
               type="checkbox"
               checked={form.agreedToHostTerms}
               onChange={(e) => update("agreedToHostTerms", e.target.checked)}
-              className="mt-1 h-4 w-4 shrink-0 accent-[#ec1561]"
+              className="mt-1 h-4 w-4 shrink-0 accent-[#E23E85]"
               required
             />
             <span>
               I accept and agree to the{" "}
-              <Link href="/host-listing-agreement-and-terms-of-service" target="_blank" className="font-semibold text-[#ec1561] underline">
+              <Link href="/host-listing-agreement-and-terms-of-service" target="_blank" className="font-semibold text-[#9C2454] underline">
                 Host Listing Agreement and Terms of Service
               </Link>
               . I confirm that I am the legal owner or authorized manager of the properties I list, and that the

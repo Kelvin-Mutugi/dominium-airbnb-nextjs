@@ -49,12 +49,12 @@ export default async function PaymentsPage() {
             ]}
           />
 
-          <ul className="mt-6 divide-y divide-neutral-200">
+          <ul className="mt-5 space-y-3">
             {payments.map((p) => {
               const channel = humanize(p.payment_channel ?? p.method);
               const canResume = p.status === 'pending' && !!p.booking?.id && !!p.booking.listing_id;
               return (
-                <li key={p.id} className="flex flex-col gap-3 py-5 sm:flex-row sm:items-start sm:justify-between">
+                <li key={p.id} className="account-neu-surface flex flex-col gap-4 rounded-2xl p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
                   <div className="min-w-0">
                     <p className="font-medium text-neutral-900">{p.booking?.listing?.title ?? 'Booking payment'}</p>
                     {p.booking && (
@@ -82,7 +82,7 @@ export default async function PaymentsPage() {
                     </Link>
                   </div>
 
-                  <div className="flex items-center gap-4 sm:flex-col sm:items-end sm:gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-3 sm:flex-col sm:items-end sm:justify-start sm:gap-2">
                     <p className="font-serif text-lg text-neutral-900">{formatMoney(p.amount, p.currency)}</p>
                     <StatusBadge status={p.status} />
                     {canResume && (

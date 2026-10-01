@@ -2,6 +2,7 @@
 
 import { LoaderCircle } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
+import { btnPrimary } from './ui';
 
 export function SupportSubmitButton() {
   const { pending } = useFormStatus();
@@ -10,7 +11,7 @@ export function SupportSubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex min-w-36 items-center justify-center gap-2 rounded-lg bg-[#1B1A2E] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#302F43] disabled:cursor-wait disabled:opacity-75"
+      className={`${btnPrimary} min-w-36 disabled:cursor-wait`}
     >
       {pending && <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />}
       {pending ? 'Sending…' : 'Send request'}

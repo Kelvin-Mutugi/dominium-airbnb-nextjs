@@ -1,7 +1,7 @@
 // app/admin/listings/actions.ts
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAdmin } from "@/app/lib/admin-auth";
 import { recordAdminAuditEvent } from "@/app/lib/admin-audit";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
@@ -176,6 +176,7 @@ export async function updateAdminListing(listingId: string, values: ListingFormV
   revalidatePath("/admin/listings");
   revalidatePath(`/admin/listings/${listingId}`);
   revalidatePath(`/admin/listings/${listingId}/edit`);
+  revalidateTag("public-listings", "max");
 }
 
 const ADMIN_LISTING_IMAGE_TYPES: Record<string, string> = {
@@ -272,6 +273,7 @@ export async function registerAdminListingImage(listingId: string, path: string)
   revalidatePath(`/admin/listings/${listingId}`);
   revalidatePath(`/admin/listings/${listingId}/edit`);
   revalidatePath("/admin/listings");
+  revalidateTag("public-listings", "max");
   return image;
 }
 
@@ -324,6 +326,7 @@ export async function deleteAdminListingImage(imageId: string) {
   revalidatePath(`/admin/listings/${image.listing_id}`);
   revalidatePath(`/admin/listings/${image.listing_id}/edit`);
   revalidatePath("/admin/listings");
+  revalidateTag("public-listings", "max");
 }
 
 async function updateListingStatus(
@@ -371,6 +374,7 @@ async function updateListingStatus(
 
   revalidatePath("/admin/listings");
   revalidatePath(`/admin/listings/${listingId}`);
+  revalidateTag("public-listings", "max");
 }
 
 export async function reinstateListing(listingId: string) {

@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { requireAdmin } from '@/app/lib/admin-auth';
 import { recordAdminAuditEvent } from '@/app/lib/admin-audit';
 import { getSupabaseAdmin } from '@/app/lib/supabase/admin';
@@ -75,4 +75,5 @@ export async function reviewHostVerification(formData: FormData) {
   revalidatePath('/account', 'layout');
   revalidatePath('/host');
   revalidatePath('/host/pending-review');
+  revalidateTag('public-host-profiles', 'max');
 }

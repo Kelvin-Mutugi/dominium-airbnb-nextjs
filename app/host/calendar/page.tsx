@@ -365,7 +365,7 @@ export default function HostCalendarPage() {
           <select
             value={selectedListingId}
             onChange={(event) => setSelectedListingId(event.target.value)}
-            className="max-w-56 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20"
+            className="max-w-56 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20"
           >
             <option value="all">All listings</option>
             {listings.map((listing) => <option key={listing.id} value={listing.id}>{listing.title}</option>)}
@@ -408,10 +408,10 @@ export default function HostCalendarPage() {
               <div className="flex items-center gap-3">
                 <h2 className="min-w-36 text-lg font-semibold text-[#12231d]">{monthLabel}</h2>
                 <div className="flex items-center">
-                  <button onClick={() => changeMonth(-1)} aria-label="Previous month" title="Previous month" className="rounded-md p-2 text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#ec1561]/40">
+                  <button onClick={() => changeMonth(-1)} aria-label="Previous month" title="Previous month" className="rounded-md p-2 text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#E23E85]/40">
                     <ChevronLeft className="h-5 w-5" />
                   </button>
-                  <button onClick={() => changeMonth(1)} aria-label="Next month" title="Next month" className="rounded-md p-2 text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#ec1561]/40">
+                  <button onClick={() => changeMonth(1)} aria-label="Next month" title="Next month" className="rounded-md p-2 text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#E23E85]/40">
                     <ChevronRight className="h-5 w-5" />
                   </button>
                 </div>
@@ -463,7 +463,7 @@ export default function HostCalendarPage() {
                   <p className="text-xs font-semibold text-gray-500">{item.type} · {formatDate(item.start)} to {formatDate(item.end)}</p>
                   <p className="mt-1 font-medium text-[#12231d]">{item.listingTitle}</p>
                   <p className="text-sm text-gray-600">{item.detail}</p>
-                  {item.href && <Link href={item.href} className="mt-2 inline-block text-sm font-medium text-[#ec1561] underline underline-offset-2">Open booking</Link>}
+                  {item.href && <Link href={item.href} className="mt-2 inline-block text-sm font-medium text-[#9C2454] underline underline-offset-2">Open booking</Link>}
                 </article>
               ))}
             </div>
@@ -478,17 +478,17 @@ export default function HostCalendarPage() {
               <form onSubmit={handleConnectCalendar} className="grid gap-3 sm:grid-cols-2">
                 <label className="text-sm font-medium text-gray-700">
                   Listing
-                  <select required value={connectionListingId} onChange={(event) => setConnectionListingId(event.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20">
+                  <select required value={connectionListingId} onChange={(event) => setConnectionListingId(event.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20">
                     {listings.map((listing) => <option key={listing.id} value={listing.id}>{listing.title}</option>)}
                   </select>
                 </label>
                 <label className="text-sm font-medium text-gray-700">
                   Calendar name <span className="font-normal text-gray-400">(optional)</span>
-                  <input value={connectionName} onChange={(event) => setConnectionName(event.target.value)} maxLength={80} placeholder="Airbnb" className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" />
+                  <input value={connectionName} onChange={(event) => setConnectionName(event.target.value)} maxLength={80} placeholder="Airbnb" className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" />
                 </label>
                 <label className="text-sm font-medium text-gray-700 sm:col-span-2">
                   External iCal URL
-                  <input required type="url" value={connectionUrl} onChange={(event) => setConnectionUrl(event.target.value)} placeholder="https://..." className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" />
+                  <input required type="url" value={connectionUrl} onChange={(event) => setConnectionUrl(event.target.value)} placeholder="https://..." className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" />
                   <span className="mt-1 block text-xs font-normal text-gray-500">Supported: Airbnb, Booking.com, Vrbo, Google Calendar, and Outlook.</span>
                 </label>
                 <button type="submit" disabled={savingConnection || listings.length === 0 || !connectionUrl.trim()} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#12231d] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#243c34] disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2">
@@ -515,7 +515,7 @@ export default function HostCalendarPage() {
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
-                          <button type="button" disabled={Boolean(syncingConnectionId) || Boolean(removingConnectionId)} onClick={() => void handleSyncConnection(connection.id)} aria-label="Sync calendar now" title="Sync now" className="rounded-md p-2 text-gray-600 hover:bg-gray-100 hover:text-[#12231d] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/30 disabled:opacity-50">
+                          <button type="button" disabled={Boolean(syncingConnectionId) || Boolean(removingConnectionId)} onClick={() => void handleSyncConnection(connection.id)} aria-label="Sync calendar now" title="Sync now" className="rounded-md p-2 text-gray-600 hover:bg-gray-100 hover:text-[#12231d] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/30 disabled:opacity-50">
                             {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                           </button>
                           <button type="button" disabled={Boolean(removingConnectionId) || Boolean(syncingConnectionId)} onClick={() => void handleRemoveConnection(connection.id)} aria-label="Disconnect calendar" title="Disconnect calendar" className="rounded-md p-2 text-gray-500 hover:bg-rose-50 hover:text-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-300 disabled:opacity-50">
@@ -536,7 +536,7 @@ export default function HostCalendarPage() {
               </div>
               <label className="block text-sm font-medium text-gray-700">
                 Listing
-                <select value={exportListingId} onChange={(event) => { setExportListingId(event.target.value); setExportUrl(""); setCopyMessage(null); }} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20">
+                <select value={exportListingId} onChange={(event) => { setExportListingId(event.target.value); setExportUrl(""); setCopyMessage(null); }} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20">
                   {listings.map((listing) => <option key={listing.id} value={listing.id}>{listing.title}</option>)}
                 </select>
               </label>
@@ -544,7 +544,7 @@ export default function HostCalendarPage() {
                 <div className="space-y-2">
                   <div className="flex gap-2">
                     <input readOnly value={exportUrl} onFocus={(event) => event.currentTarget.select()} aria-label="Private calendar link" className="min-w-0 flex-1 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-[#12231d]" />
-                    <button type="button" onClick={() => void handleCopyExportFeed()} aria-label="Copy private calendar link" title="Copy link" className="shrink-0 rounded-md border border-gray-200 p-2 text-[#12231d] hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#ec1561]/30">
+                    <button type="button" onClick={() => void handleCopyExportFeed()} aria-label="Copy private calendar link" title="Copy link" className="shrink-0 rounded-md border border-gray-200 p-2 text-[#12231d] hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#E23E85]/30">
                       <Copy className="h-4 w-4" />
                     </button>
                   </div>
@@ -570,21 +570,21 @@ export default function HostCalendarPage() {
               <form onSubmit={handleAddBlock} className="grid gap-3 sm:grid-cols-2">
                 <label className="text-sm font-medium text-gray-700 sm:col-span-2">
                   Listing
-                  <select required value={blockListingId} onChange={(event) => setBlockListingId(event.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20">
+                  <select required value={blockListingId} onChange={(event) => setBlockListingId(event.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20">
                     {listings.map((listing) => <option key={listing.id} value={listing.id}>{listing.title}</option>)}
                   </select>
                 </label>
                 <label className="text-sm font-medium text-gray-700">
                   Start date
-                  <input required type="date" min={todayKey} value={startDate} onChange={(event) => setStartDate(event.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-[#12231d] focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" />
+                  <input required type="date" min={todayKey} value={startDate} onChange={(event) => setStartDate(event.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-[#12231d] focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" />
                 </label>
                 <label className="text-sm font-medium text-gray-700">
                   End date
-                  <input required type="date" min={startDate || todayKey} value={endDate} onChange={(event) => setEndDate(event.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-[#12231d] focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" />
+                  <input required type="date" min={startDate || todayKey} value={endDate} onChange={(event) => setEndDate(event.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-[#12231d] focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" />
                 </label>
                 <label className="text-sm font-medium text-gray-700 sm:col-span-2">
                   Reason <span className="font-normal text-gray-400">(optional)</span>
-                  <input value={reason} onChange={(event) => setReason(event.target.value)} maxLength={120} placeholder="Maintenance, personal use…" className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-2 focus:ring-[#ec1561]/20" />
+                  <input value={reason} onChange={(event) => setReason(event.target.value)} maxLength={120} placeholder="Maintenance, personal use…" className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" />
                 </label>
                 <button type="submit" disabled={saving || listings.length === 0 || !startDate || !endDate || startDate >= endDate} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#12231d] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#243c34] disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2">
                   {saving ? <><Loader2 className="h-4 w-4 animate-spin" />Saving</> : <><CalendarDays className="h-4 w-4" />Block dates</>}

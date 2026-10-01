@@ -38,7 +38,7 @@ export default async function HostReviewsPage() {
   return (
     <div className="space-y-7">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#ec1561]">Guest feedback</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#9C2454]">Guest feedback</p>
         <h1 className="mt-1 text-2xl font-bold text-[#12231d]">Reviews about you</h1>
           <p className="mt-1 text-sm text-gray-500">Reviews are tied to completed stays and checked before they appear publicly. Showing the latest 100.</p>
       </header>

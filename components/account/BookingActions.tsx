@@ -1,12 +1,12 @@
 // FILE LOCATION: components/account/BookingActions.tsx
-// Put this file at components/account/BookingActions.tsx in your project root (or src/components/account/BookingActions.tsx if your project has a src/ folder).
 
 'use client';
 
 import { useId, useRef, useState } from 'react';
 import { cancelBooking, submitHostReview, submitReview } from '@/app/account/bookings/actions';
 import { useAction } from './useAction';
-import { FormMessage, StarIcon, btnDanger, btnPrimary, btnSecondary, focusRing, inputClass } from './ui';
+import { FormMessage, StarIcon, focusRing, inputClass } from './ui';
+import { dialogShell, ghostBtn, inkBtn, menuHint, menuRow } from './bookingStyles';
 
 export function CancelBookingButton({ bookingId }: { bookingId: string }) {
   const [confirming, setConfirming] = useState(false);
@@ -14,24 +14,27 @@ export function CancelBookingButton({ bookingId }: { bookingId: string }) {
 
   if (!confirming) {
     return (
-      <button type="button" onClick={() => setConfirming(true)} className={`${btnSecondary} !py-1.5`}>
+      <button type="button" onClick={() => setConfirming(true)} className={menuRow}>
         Cancel booking
+        <span className={menuHint}>Stop this request before the host confirms it.</span>
       </button>
     );
   }
 
   return (
-    <div className="flex flex-col items-end gap-2 text-right">
-      <p className="text-sm text-neutral-700">Cancel this booking?</p>
-      <div className="flex gap-2">
-        <button type="button" onClick={() => setConfirming(false)} className={`${btnSecondary} !py-1.5`}>
+    <div className="rounded-xl bg-white px-3 py-3">
+      <p className="text-sm font-medium text-neutral-800">Cancel this booking?</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button type="button" onClick={() => setConfirming(false)} className={ghostBtn}>
           Keep it
         </button>
-        <button type="button" disabled={pending} onClick={() => run(bookingId)} className={`${btnDanger} !py-1.5`}>
+        <button type="button" disabled={pending} onClick={() => run(bookingId)} className={inkBtn}>
           {pending ? 'Cancelling…' : 'Yes, cancel'}
         </button>
       </div>
-      <FormMessage result={result?.ok ? null : result} />
+      <div className="mt-2">
+        <FormMessage result={result?.ok ? null : result} />
+      </div>
     </div>
   );
 }
@@ -46,7 +49,7 @@ export function ReviewButton({ bookingId, listingTitle }: { bookingId: string; l
 
   async function submit() {
     if (Object.values(ratings).some((rating) => rating < 1)) {
-      setLocalError('Rate each part of your stay before submitting.');
+      setLocalError('Tap a star for each line before posting.');
       return;
     }
     setLocalError(null);
@@ -56,32 +59,29 @@ export function ReviewButton({ bookingId, listingTitle }: { bookingId: string; l
 
   const ratingCategories = [
     ['cleanlinessRating', 'Cleanliness'],
-    ['accuracyRating', 'Accuracy'],
+    ['accuracyRating', 'Matched the listing'],
     ['locationRating', 'Location'],
     ['communicationRating', 'Host communication'],
   ] as const;
 
   return (
     <>
-      <button type="button" onClick={() => dialogRef.current?.showModal()} className={`${btnPrimary} !py-1.5`}>
+      <button type="button" onClick={() => dialogRef.current?.showModal()} className={inkBtn}>
         Write a review
       </button>
 
-      <dialog
-        ref={dialogRef}
-        aria-labelledby={titleId}
-        className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl bg-white p-0 text-neutral-900 shadow-xl backdrop:bg-neutral-900/50"
-      >
-        <div className="p-6">
+      <dialog ref={dialogRef} aria-labelledby={titleId} className={dialogShell}>
+        <div className="p-6 sm:p-7">
           <h2 id={titleId} className="font-serif text-xl">
             How was {listingTitle}?
           </h2>
+          <p className="mt-1 text-sm text-neutral-500">It takes under a minute and helps future guests.</p>
 
-          <div className="mt-4 space-y-3">
+          <div className="mt-5 space-y-3">
             {ratingCategories.map(([key, label]) => (
               <div key={key} className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-sm font-medium text-neutral-700">{label}</span>
-                <div role="radiogroup" aria-label={label} className="flex gap-1">
+                <div role="radiogroup" aria-label={label} className="flex gap-0.5">
                   {[1, 2, 3, 4, 5].map((value) => (
                     <button
                       key={value}
@@ -90,9 +90,9 @@ export function ReviewButton({ bookingId, listingTitle }: { bookingId: string; l
                       aria-checked={ratings[key] === value}
                       aria-label={`${value} ${value === 1 ? 'star' : 'stars'} for ${label.toLowerCase()}`}
                       onClick={() => setRatings((current) => ({ ...current, [key]: value }))}
-                      className={`rounded p-1 ${focusRing}`}
+                      className={`rounded-full p-1 ${focusRing}`}
                     >
-                      <StarIcon size={22} className={value <= ratings[key] ? 'text-amber-500' : 'text-neutral-300'} />
+                      <StarIcon size={24} className={value <= ratings[key] ? 'text-amber-500' : 'text-neutral-300'} />
                     </button>
                   ))}
                 </div>
@@ -100,8 +100,8 @@ export function ReviewButton({ bookingId, listingTitle }: { bookingId: string; l
             ))}
           </div>
 
-          <label htmlFor={`${titleId}-comment`} className="mt-5 block text-sm font-medium text-neutral-800">
-            Tell future guests about your stay
+          <label htmlFor={`${titleId}-comment`} className="mt-6 block text-sm font-medium text-neutral-800">
+            Anything you’d like to add? <span className="font-normal text-neutral-400">(optional)</span>
           </label>
           <textarea
             id={`${titleId}-comment`}
@@ -115,7 +115,7 @@ export function ReviewButton({ bookingId, listingTitle }: { bookingId: string; l
 
           <div className="mt-2 min-h-5">
             {localError ? (
-              <p role="alert" className="text-sm text-rose-700">
+              <p role="alert" className="rounded-xl bg-[#FCE8F0] p-3 text-sm text-[#9C2454]">
                 {localError}
               </p>
             ) : (
@@ -124,10 +124,10 @@ export function ReviewButton({ bookingId, listingTitle }: { bookingId: string; l
           </div>
 
           <div className="mt-4 flex justify-end gap-2">
-            <button type="button" onClick={() => dialogRef.current?.close()} className={btnSecondary}>
-              Cancel
+            <button type="button" onClick={() => dialogRef.current?.close()} className={ghostBtn}>
+              Not now
             </button>
-            <button type="button" onClick={submit} disabled={pending} className={btnPrimary}>
+            <button type="button" onClick={submit} disabled={pending} className={inkBtn}>
               {pending ? 'Posting…' : 'Post review'}
             </button>
           </div>
@@ -147,7 +147,7 @@ export function HostReviewButton({ bookingId, hostName = 'your host' }: { bookin
 
   async function submit() {
     if (rating < 1) {
-      setLocalError('Choose a star rating first.');
+      setLocalError('Tap a star to rate first.');
       return;
     }
     setLocalError(null);
@@ -157,29 +157,69 @@ export function HostReviewButton({ bookingId, hostName = 'your host' }: { bookin
 
   return (
     <>
-      <button type="button" onClick={() => dialogRef.current?.showModal()} className={`${btnSecondary} !py-1.5`}>
-        Review host
+      <button type="button" onClick={() => dialogRef.current?.showModal()} className={menuRow}>
+        Review your host
+        <span className={menuHint}>Tell us how check-in and communication went.</span>
       </button>
-      <dialog ref={dialogRef} aria-labelledby={titleId} className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl bg-white p-0 text-neutral-900 shadow-xl backdrop:bg-neutral-900/50">
-        <div className="p-6">
-          <h2 id={titleId} className="font-serif text-xl">How was {hostName}?</h2>
-          <p className="mt-1 text-sm text-neutral-500">Your review will be checked before it appears publicly.</p>
-          <div role="radiogroup" aria-label="Host rating" className="mt-4 flex gap-1">
+
+      <dialog ref={dialogRef} aria-labelledby={titleId} className={dialogShell}>
+        <div className="p-6 sm:p-7">
+          <h2 id={titleId} className="font-serif text-xl">
+            How was {hostName}?
+          </h2>
+          <p className="mt-1 text-sm text-neutral-500">Your review is checked before it appears publicly.</p>
+
+          <div role="radiogroup" aria-label="Host rating" className="mt-5 flex gap-1">
             {[1, 2, 3, 4, 5].map((value) => (
-              <button key={value} type="button" role="radio" aria-checked={rating === value} aria-label={`${value} ${value === 1 ? 'star' : 'stars'}`} onClick={() => setRating(value)} className={`rounded p-1 ${focusRing}`}>
-                <StarIcon size={30} className={value <= rating ? 'text-amber-500' : 'text-neutral-300'} />
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={rating === value}
+                aria-label={`${value} ${value === 1 ? 'star' : 'stars'}`}
+                onClick={() => setRating(value)}
+                className={`rounded-full p-1 ${focusRing}`}
+              >
+                <StarIcon size={32} className={value <= rating ? 'text-amber-500' : 'text-neutral-300'} />
               </button>
             ))}
           </div>
-          <label htmlFor={`${titleId}-comment`} className="mt-5 block text-sm font-medium text-neutral-800">Share your experience with the host</label>
-          <textarea id={`${titleId}-comment`} rows={4} maxLength={2000} value={comment} onChange={(event) => setComment(event.target.value)} className={`${inputClass} mt-1.5`} placeholder="Communication, check-in, and hospitality…" />
+
+          <label htmlFor={`${titleId}-comment`} className="mt-6 block text-sm font-medium text-neutral-800">
+            Anything you’d like to add? <span className="font-normal text-neutral-400">(optional)</span>
+          </label>
+          <textarea
+            id={`${titleId}-comment`}
+            rows={4}
+            maxLength={2000}
+            value={comment}
+            onChange={(event) => setComment(event.target.value)}
+            className={`${inputClass} mt-1.5`}
+            placeholder="Communication, check-in, and hospitality…"
+          />
+
           <div className="mt-2 min-h-5">
-            {localError ? <p role="alert" className="text-sm text-rose-700">{localError}</p> : <FormMessage result={result?.ok ? null : result} />}
-            {result?.ok && <p role="status" className="text-sm text-emerald-700">{result.message}</p>}
+            {localError ? (
+              <p role="alert" className="rounded-xl bg-[#FCE8F0] p-3 text-sm text-[#9C2454]">
+                {localError}
+              </p>
+            ) : (
+              <FormMessage result={result?.ok ? null : result} />
+            )}
+            {result?.ok && (
+              <p role="status" className="text-sm text-emerald-700">
+                {result.message}
+              </p>
+            )}
           </div>
+
           <div className="mt-4 flex justify-end gap-2">
-            <button type="button" onClick={() => dialogRef.current?.close()} className={btnSecondary}>Cancel</button>
-            <button type="button" onClick={submit} disabled={pending} className={btnPrimary}>{pending ? 'Submitting…' : 'Submit review'}</button>
+            <button type="button" onClick={() => dialogRef.current?.close()} className={ghostBtn}>
+              Not now
+            </button>
+            <button type="button" onClick={submit} disabled={pending} className={inkBtn}>
+              {pending ? 'Sending…' : 'Send review'}
+            </button>
           </div>
         </div>
       </dialog>

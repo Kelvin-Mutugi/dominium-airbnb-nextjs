@@ -1,45 +1,31 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/navigationBar";
 import HeroSection from "@/components/HeroSection";
 import FeaturedListings from "@/components/listings/Feartured/FeaturedListings";
-import DestinationListings from "@/components/listings/DestinationListings";
 import BookingProcess from "@/components/BookingProcess";
 import PopularDestinations, { type Home } from "@/components/Populardestinations";
 import WhyBookUs from "@/components/WhyBookUs";
 import MagicalKenya from "@/components/MagicalKenya";
-import { HOMEPAGE_DESTINATIONS } from "@/app/homepageSections";
 import { ROUTES, type Listing } from "@/components/homeData";
-
-function uniqueListings(listings: Listing[]) {
-  return listings.filter(
-    (listing, index, allListings) => allListings.findIndex((candidate) => candidate.id === listing.id) === index,
-  );
-}
 
 export default function HomePageClient({
   listings,
   isLoading = false,
+  children,
 }: {
   listings: Listing[];
   isLoading?: boolean;
+  children?: ReactNode;
 }) {
   const router = useRouter();
   const [selectedRoute, setSelectedRoute] = useState<string>(ROUTES[0]);
   const [checkIn, setCheckIn] = useState("");
 
   const featuredListings = listings.slice(0, 8);
-  const destinationSections = HOMEPAGE_DESTINATIONS.map((destination) => ({
-    ...destination,
-    listings: uniqueListings(
-      listings.filter((listing) => {
-        const location = listing.loc.toLowerCase();
-        return destination.searchTerms.some((term) => location.includes(term));
-      }),
-    ).slice(0, 10),
-  })).filter((destination) => isLoading || destination.listings.length > 0);
   const homes: Home[] = listings
     .map((listing) => ({
       ...listing,
@@ -80,16 +66,7 @@ export default function HomePageClient({
       />
       <MagicalKenya />
       <FeaturedListings listings={featuredListings} isLoading={isLoading} />
-     
-      {destinationSections.map((destination) => (
-        <DestinationListings
-          key={destination.slug}
-          label={destination.label}
-          slug={destination.slug}
-          listings={destination.listings}
-          isLoading={isLoading}
-        />
-      ))}
+      {children}
        <MagicalKenya />
       <PopularDestinations
         homes={homes}

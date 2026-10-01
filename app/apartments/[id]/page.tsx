@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import ApartmentDetails from "@/components/ApartmentDetails";
 import Navbar from "@/components/navigationBar";
 import type { Listing, RelatedListingSummary } from "@/components/homeData";
-import { supabase } from "@/app/lib/supabase/client";
+import type { PublicListingDetail } from "@/app/lib/public-listings";
 import { normalizeListingAdditionalCharges } from "@/app/lib/listing-charges";
 
 function normalizeAmenities(value: unknown): string[] {
@@ -31,51 +31,13 @@ export default function ApartmentPage() {
 
   useEffect(() => {
     async function loadListing() {
-      const { data, error } = await supabase
-        .from("listings")
-        .select(
-          `
-            id,
-            title,
-            description,
-            county,
-            town,
-            property_type,
-            price_per_night,
-            max_guests,
-            bedrooms,
-            bathrooms,
-            amenities,
-            features,
-            house_rules,
-            booking_terms,
-            cancellation_policy,
-            refund_policy,
-            latitude,
-            longitude,
-            check_in_time,
-            check_out_time,
-            min_nights,
-            service_fee_percent,
-            platform_fee_per_night,
-            additional_charges,
-            is_rare_find,
-            rare_find_note,
-            average_rating,
-            review_count,
-            listing_images ( url, sort_order )
-          `,
-        )
-        .eq("id", params.id)
-        .eq("status", "published")
-        .order("sort_order", {
-          foreignTable: "listing_images",
-          ascending: true,
-        })
-        .maybeSingle();
-
-      if (error) {
-        console.error("Failed to load listing from Supabase:", error);
+      let data: PublicListingDetail | null;
+      try {
+        const response = await fetch(`/api/listings/${encodeURIComponent(params.id)}`);
+        if (!response.ok) throw new Error(`Listing detail request returned ${response.status}.`);
+        data = (await response.json()) as PublicListingDetail;
+      } catch (error) {
+        console.error("Failed to load listing details:", error);
         setIsLoading(false);
         return;
       }
@@ -99,7 +61,7 @@ export default function ApartmentPage() {
         })(),
         (async () => {
           try {
-            const response = await fetch(`/api/listings/${params.id}/reviews`, { cache: "no-store" });
+            const response = await fetch(`/api/listings/${params.id}/reviews`);
             if (!response.ok) throw new Error(`Reviews request returned ${response.status}.`);
             const payload = (await response.json()) as { reviews?: Listing["reviews"] };
             return payload.reviews ?? [];
@@ -110,7 +72,7 @@ export default function ApartmentPage() {
         })(),
         (async () => {
           try {
-            const response = await fetch(`/api/listings/${params.id}/public-details`, { cache: "no-store" });
+            const response = await fetch(`/api/listings/${params.id}/public-details`);
             if (!response.ok) throw new Error(`Public listing details returned ${response.status}.`);
             return (await response.json()) as {
               host?: Listing["hostProfile"];
@@ -161,7 +123,7 @@ export default function ApartmentPage() {
         detail: `Max guests: ${data.max_guests}`,
         img: gallery[0] ?? "",
         gallery,
-        description: data.description,
+        description: data.description ?? "",
         features: normalizeAmenities(data.features),
         host: hostProfile?.displayName ?? "Host",
         hostProfile,
@@ -172,9 +134,9 @@ export default function ApartmentPage() {
         maxGuests: data.max_guests,
         bedrooms: data.bedrooms,
         bathrooms: data.bathrooms,
-        checkInTime: data.check_in_time,
-        checkOutTime: data.check_out_time,
-        minNights: data.min_nights,
+        checkInTime: data.check_in_time ?? "2:00 PM",
+        checkOutTime: data.check_out_time ?? "11:00 AM",
+        minNights: data.min_nights ?? 1,
         pricePerNight: price,
         serviceFeePercent: 0,
         serviceFeePerNight: data.platform_fee_per_night == null ? undefined : Number(data.platform_fee_per_night),

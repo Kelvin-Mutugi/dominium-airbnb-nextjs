@@ -1,0 +1,74 @@
+"filename", "language", "JSON", "MS SQL", "Markdown", "TypeScript", "TypeScript JSX", "JavaScript JSX", "comment", "blank", "total"
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/BOOKINGSETUP.md", "Markdown", 0, 0, -3, 0, 0, 0, 0, 8, 5
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/aboutPage/page.tsx", "TypeScript JSX", 0, 0, 0, 0, 284, 0, 8, 11, 303
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/account/bookings/[id]/arrival-guide/page.tsx", "TypeScript JSX", 0, 0, 0, 0, -3, 0, 0, 0, -3
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/account/payments/page.tsx", "TypeScript JSX", 0, 0, 0, 0, 2, 0, 0, 0, 2
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/account/support/page.tsx", "TypeScript JSX", 0, 0, 0, 0, 2, 0, 0, 0, 2
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/admin/bookings/[id]/page.tsx", "TypeScript JSX", 0, 0, 0, 0, 19, 0, 0, 0, 19
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/admin/bookings/page.tsx", "TypeScript JSX", 0, 0, 0, 0, 6, 0, 0, 0, 6
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/admin/customer-support/[threadId]/page.tsx", "TypeScript JSX", 0, 0, 0, 0, 1, 0, 0, 0, 1
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/admin/support/page.tsx", "TypeScript JSX", 0, 0, 0, 0, 1, 0, 0, 0, 1
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/apartments/[id]/page.tsx", "TypeScript JSX", 0, 0, 0, 0, 15, 0, 0, 0, 15
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/api/bookings/[id]/route.ts", "TypeScript", 0, 0, 0, 171, 0, 0, 0, 12, 183
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/api/host/calendar/[token]/route.ts", "TypeScript", 0, 0, 0, 1, 0, 0, 0, 0, 1
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/api/listings/[id]/availability/route.ts", "TypeScript", 0, 0, 0, 9, 0, 0, 0, 1, 10
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/api/listings/availability-search/route.ts", "TypeScript", 0, 0, 0, 9, 0, 0, 0, 1, 10
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/api/payments/paystack/initialize/route.ts", "TypeScript", 0, 0, 0, 52, 0, 0, 0, -8, 44
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/api/payments/paystack/verify/route.ts", "TypeScript", 0, 0, 0, -79, 0, 0, 0, -10, -89
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/api/payments/paystack/webhook/route.ts", "TypeScript", 0, 0, 0, 69, 0, 0, -2, -5, 62
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/booking/[id]/confirmation/page.tsx", "TypeScript JSX", 0, 0, 0, 0, 186, 0, 0, 13, 199
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/booking/[id]/page.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 6, 0, 0, 6
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/booking/payment/callback/PaymentCallback.tsx", "TypeScript JSX", 0, 0, 0, 0, -198, 0, 0, -37, -235
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/booking/payment/callback/page.tsx", "TypeScript JSX", 0, 0, 0, 0, -25, 0, 0, -3, -28
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/customer-support/actions.ts", "TypeScript", 0, 0, 0, 45, 0, 0, 0, 7, 52
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host-listing-agreement-and-terms-of-service/page.tsx", "TypeScript JSX", 0, 0, 0, 0, -12, 0, 0, -1, -13
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/bookings/page.tsx", "TypeScript JSX", 0, 0, 0, 0, -97, 0, -2, -6, -105
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/page.tsx", "TypeScript JSX", 0, 0, 0, 0, -135, 0, 0, -5, -140
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/host/payouts/page.tsx", "TypeScript JSX", 0, 0, 0, 0, -24, 0, 0, 0, -24
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/legal/guest-privacy-policy/page.tsx", "TypeScript JSX", 0, 0, 0, 0, 315, 0, 3, 12, 330
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/legal/host-listing-agreement-and-terms-of-service/page.tsx", "TypeScript JSX", 0, 0, 0, 0, 12, 0, 0, 1, 13
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/legal/host-privacy-policy/page.tsx", "TypeScript JSX", 0, 0, 0, 0, 375, 0, 3, 11, 389
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/legal/refund-cancellation-policy/page.tsx", "TypeScript JSX", 0, 0, 0, 0, 12, 0, 0, 1, 13
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/lib/booking/availability.ts", "TypeScript", 0, 0, 0, 34, 0, 0, 0, 5, 39
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/lib/booking/create-booking.ts", "TypeScript", 0, 0, 0, 161, 0, 0, 0, 16, 177
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/lib/booking/pricing.ts", "TypeScript", 0, 0, 0, 50, 0, 0, 0, 6, 56
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/lib/homepage-data.ts", "TypeScript", 0, 0, 0, 7, 0, 0, 0, 0, 7
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/lib/host/actions.ts", "TypeScript", 0, 0, 0, -1, 0, 0, 0, 0, -1
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/lib/host/types.ts", "TypeScript", 0, 0, 0, 6, 0, 0, 0, 0, 6
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/lib/payments/booking-email.ts", "TypeScript", 0, 0, 0, 65, 0, 0, 0, 5, 70
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/lib/payments/paystack-inline.d.ts", "TypeScript", 0, 0, 0, 20, 0, 0, 0, 3, 23
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/lib/payments/paystack.ts", "TypeScript", 0, 0, 0, 82, 0, 0, 0, 11, 93
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/lib/payments/placeholder.ts", "TypeScript", 0, 0, 0, -17, 0, 0, -4, -4, -25
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/lib/paystack-payment.ts", "TypeScript", 0, 0, 0, -63, 0, 0, 0, -15, -78
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/lib/paystack.ts", "TypeScript", 0, 0, 0, -65, 0, 0, 0, -13, -78
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/lib/supabase/route.ts", "TypeScript", 0, 0, 0, -88, 0, 0, -11, -10, -109
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/app/refund-cancellation-policy/page.tsx", "TypeScript JSX", 0, 0, 0, 0, -12, 0, 0, -1, -13
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/ApartmentDetails.tsx", "TypeScript JSX", 0, 0, 0, 0, 226, 0, 11, 3, 240
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/HomePageClient.tsx", "TypeScript JSX", 0, 0, 0, 0, 3, 0, 0, 1, 4
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/MagicalKenya.tsx", "TypeScript JSX", 0, 0, 0, 0, 141, 0, 12, 13, 166
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/account/ArrivalGuideActions.tsx", "TypeScript JSX", 0, 0, 0, 0, -2, 0, 0, 0, -2
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/account/BookingCard.tsx", "TypeScript JSX", 0, 0, 0, 0, 2, 0, 0, 0, 2
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/account/PaymentRecoveryButton.tsx", "TypeScript JSX", 0, 0, 0, 0, -57, 0, 0, -4, -61
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/admin/customer-support/customer-support-thread-card.tsx", "TypeScript JSX", 0, 0, 0, 0, 1, 0, 0, 0, 1
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/appartmentDetails/AvailabilityCalendar.tsx", "TypeScript JSX", 0, 0, 0, 0, 95, 0, 0, 3, 98
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/appartmentDetails/ListingPolicies.tsx", "TypeScript JSX", 0, 0, 0, 0, 7, 0, 0, 0, 7
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/appartmentDetails/PriceBreakdown.tsx", "TypeScript JSX", 0, 0, 0, 0, -15, 0, 0, -1, -16
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/appartmentDetails/StayDetails.tsx", "TypeScript JSX", 0, 0, 0, 0, -8, 0, 0, 0, -8
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/appartmentDetails/StickyPriceBar.tsx", "TypeScript JSX", 0, 0, 0, 0, 4, 0, 0, 0, 4
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/appartmentDetails/amenities.tsx", "TypeScript JSX", 0, 0, 0, 0, 21, 0, 0, 1, 22
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/booking/BookingCard.tsx", "TypeScript JSX", 0, 0, 0, 0, -885, 0, -28, -243, -1156
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/booking/BookingCheckout.tsx", "TypeScript JSX", 0, 0, 0, 0, 576, 0, 0, 31, 607
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/fearturedListingCard.tsx", "TypeScript JSX", 0, 0, 0, 0, -16, 0, -1, -6, -23
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/footer.tsx", "TypeScript JSX", 0, 0, 0, 0, 2, 0, 0, 0, 2
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/homeData.ts", "TypeScript", 0, 0, 0, 0, 0, 0, 3, 0, 3
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/listings/SaveListingButton.tsx", "TypeScript JSX", 0, 0, 0, 0, 6, 0, 0, 0, 6
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/minimalListingCard.tsx", "TypeScript JSX", 0, 0, 0, 0, -20, 0, 0, -2, -22
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/components/navigationBar.tsx", "TypeScript JSX", 0, 0, 0, 0, -4, 0, 0, 0, -4
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/package-lock.json", "JSON", 10, 0, 0, 0, 0, 0, 0, 0, 10
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/package.json", "JSON", 1, 0, 0, 0, 0, 0, 0, 0, 1
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/supabase/migrations/20260930160000_booking_contact_privacy.sql", "MS SQL", 0, 53, 0, 0, 0, 0, 0, 3, 56
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/supabase/migrations/20260930170000_host_booking_display_fields.sql", "MS SQL", 0, 9, 0, 0, 0, 0, 0, 2, 11
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/supabase/migrations/20260930180000_unique_booking_reference.sql", "MS SQL", 0, 24, 0, 0, 0, 0, 0, 8, 32
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/supabase/migrations/20260930190000_booking_hold_expiry_and_minimum_stay.sql", "MS SQL", 0, 314, 0, 0, 0, 0, 0, 31, 345
+"/home/kelvinmutugi/projects/dominium_airbnb_next_js/my-app/types/account.ts", "TypeScript", 0, 0, 0, 5, 0, 0, 0, 0, 5
+"Total", "-", 11, 400, -3, 473, 801, 6, -8, -154, 1526

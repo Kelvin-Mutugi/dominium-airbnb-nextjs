@@ -79,7 +79,7 @@ export function AvatarUpload({
         </div>
         <p className="mt-2 text-xs text-neutral-500">JPG, PNG or WebP, up to 2 MB.</p>
         {error && (
-          <p role="alert" className="mt-1 text-sm text-rose-700">
+          <p role="alert" className="mt-1 rounded-xl bg-[#FCE8F0] p-3 text-sm text-[#9C2454]">
             {error}
           </p>
         )}

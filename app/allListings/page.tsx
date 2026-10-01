@@ -21,7 +21,6 @@ import {
   type FilterState,
   type Listing,
 } from "@/types/types";
-import { supabase } from "@/app/lib/supabase/client";
 
 const PAGE_SIZE = 6;
 
@@ -49,79 +48,15 @@ function formatDateRange(checkIn: string, checkOut: string) {
 }
 
 async function fetchListingPage(from: number, to: number, searchQuery: SearchQuery) {
-  let query = supabase
-    .from("listings")
-    .select(
-      `
-        id,
-        title,
-        description,
-        county,
-        town,
-        price_per_night,
-        max_guests,
-        bedrooms,
-        amenities,
-        average_rating,
-        review_count,
-        listing_images ( url, sort_order )
-      `,
-    )
-    .eq("status", "published")
-    .gte("max_guests", searchQuery.guests || 0);
-
-  const location = cleanSearchTerm(searchQuery.location);
-  if (location) {
-    const locationTerms = location
-      .split(/\s+[—-]\s+|\s*,\s*/)
-      .map((term) => term.trim())
-      .filter(Boolean);
-    const clauses = locationTerms.flatMap((term) => [
-      `county.ilike.%${term}%`,
-      `town.ilike.%${term}%`,
-      `title.ilike.%${term}%`,
-    ]);
-    query = query.or(clauses.join(","));
-  }
-
-  const { data: filteredData, error: filteredError } = await query
-    .order("created_at", { ascending: false })
-    .order("sort_order", {
-      foreignTable: "listing_images",
-      ascending: true,
-    })
-    .limit(1, { foreignTable: "listing_images" })
-    .range(from, to);
-
-  if (filteredError) throw filteredError;
-
-  return (filteredData ?? []).map((listing) => {
-    const images = Array.isArray(listing.listing_images)
-      ? [...listing.listing_images].sort(
-          (first, second) => first.sort_order - second.sort_order,
-        )
-      : [];
-    const amenities = Array.isArray(listing.amenities)
-      ? listing.amenities.filter(
-          (amenity): amenity is string => typeof amenity === "string",
-        )
-      : [];
-
-    return {
-      id: String(listing.id),
-      title: listing.title,
-      location: [listing.town, listing.county].filter(Boolean).join(", "),
-      pricePerNight: Number(listing.price_per_night),
-      bedrooms: listing.bedrooms ?? 0,
-      guests: listing.max_guests,
-      amenities,
-      description: listing.description,
-      rating: Number(listing.average_rating ?? 0),
-      reviewCount: listing.review_count ?? 0,
-      verified: true,
-      imageUrl: images[0]?.url ?? "",
-    } satisfies Listing;
+  const query = new URLSearchParams({
+    location: cleanSearchTerm(searchQuery.location),
+    guests: String(searchQuery.guests || 0),
+    from: String(from),
+    to: String(to),
   });
+  const response = await fetch(`/api/listings/catalog?${query}`);
+  if (!response.ok) throw new Error("Unable to load listings.");
+  return (await response.json()) as Listing[];
 }
 
 function AllListingsContent() {

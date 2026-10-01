@@ -33,7 +33,7 @@ export default async function PendingReviewPage() {
 
   return (
     <div className="mx-auto max-w-2xl bg-white p-8 text-center shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#ec1561]">Application received</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#E23E85]">Application received</p>
       <h1 className="mt-3 text-3xl font-bold text-[#12231d]">Thanks for applying</h1>
       <p className="mx-auto mt-4 max-w-lg leading-7 text-gray-600">
         Our team is reviewing your identity and payout details. We&apos;ll update this page when a decision is made.

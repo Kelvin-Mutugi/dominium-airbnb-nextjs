@@ -18,6 +18,24 @@ import {
 } from "lucide-react";
 import { getHostNavigationAttentionCount } from "@/app/lib/host/actions";
 
+let attentionCountRequest: Promise<number> | null = null;
+
+function loadAttentionCount() {
+  if (!attentionCountRequest) {
+    const request = getHostNavigationAttentionCount();
+    attentionCountRequest = request;
+    void request.then(
+      () => {
+        if (attentionCountRequest === request) attentionCountRequest = null;
+      },
+      () => {
+        if (attentionCountRequest === request) attentionCountRequest = null;
+      },
+    );
+  }
+  return attentionCountRequest;
+}
+
 const NAV = [
   { href: "/host", label: "Dashboard", icon: Home },
   { href: "/host/listings", label: "My Listings", icon: Building2 },
@@ -43,7 +61,7 @@ export default function HostSidebar() {
 
   useEffect(() => {
     let active = true;
-    getHostNavigationAttentionCount()
+    loadAttentionCount()
       .then((count) => {
         if (active) setAttentionCount(count);
       })
@@ -66,7 +84,7 @@ export default function HostSidebar() {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden h-screen w-64 shrink-0 flex-col overflow-y-auto overscroll-contain border-r border-[#E9E6DD] bg-white px-4 py-6 text-[#1B1A2E] md:flex">
+      <aside className="account-neu-inset hidden h-screen w-64 shrink-0 flex-col overflow-y-auto overscroll-contain px-4 py-6 text-[#1B1A2E] md:flex">
         <span className="mb-8 px-2 text-xl font-bold">
           Host<span className="text-[#E23E85]"> Panel</span>
         </span>
@@ -81,10 +99,10 @@ export default function HostSidebar() {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E23E85] ${
                   active
-                    ? "bg-gray-900 text-white"
-                      : "text-gray-600 hover:bg-gray-100 hover:text-[#1B1A2E]"
+                    ? "bg-[#FCE8F0] text-[#9C2454] shadow-[inset_2px_2px_5px_rgba(156,36,84,0.08),inset_-2px_-2px_5px_rgba(255,255,255,0.8)]"
+                    : "text-gray-600 hover:bg-white/70 hover:text-[#1B1A2E] hover:shadow-[4px_4px_8px_rgba(27,26,46,0.08),-4px_-4px_8px_rgba(255,255,255,0.9)] active:bg-gray-100 active:shadow-[inset_3px_3px_6px_rgba(27,26,46,0.06),inset_-3px_-3px_6px_rgba(255,255,255,0.9)]"
                 }`}
               >
                 <Icon className="h-5 w-5" />
@@ -97,7 +115,7 @@ export default function HostSidebar() {
         <div className="mt-auto">
           <Link
             href="/"
-            className="flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-[#1B1A2E]"
+            className="account-neu-surface flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-600 transition-all hover:text-[#1B1A2E] hover:shadow-[4px_4px_8px_rgba(27,26,46,0.08),-4px_-4px_8px_rgba(255,255,255,0.9)] active:shadow-[inset_3px_3px_6px_rgba(27,26,46,0.06)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E23E85]"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to site
@@ -106,7 +124,7 @@ export default function HostSidebar() {
       </aside>
 
       {/* Mobile Header */}
-      <div className="fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-[#E9E6DD] bg-white px-4 py-3 text-[#1B1A2E] md:hidden">
+      <div className="fixed inset-x-0 top-0 z-30 flex items-center justify-between bg-[#F7F7F9] px-4 py-3 text-[#1B1A2E] shadow-[0_3px_12px_rgba(27,26,46,0.055)] md:hidden">
         <span className="font-bold">
           Host <span className="text-[#E23E85]">Panel</span>
         </span>
@@ -116,13 +134,13 @@ export default function HostSidebar() {
             aria-expanded={moreOpen}
             aria-controls="host-mobile-more-menu"
             onClick={() => setOpenMenuPath(moreOpen ? null : pathname)}
-            className="inline-flex min-h-10 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-gray-600 transition hover:bg-gray-100 hover:text-[#1B1A2E] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/40"
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold text-gray-600 transition-all hover:bg-white/70 hover:text-[#1B1A2E] hover:shadow-[3px_3px_7px_rgba(27,26,46,0.07),-3px_-3px_7px_rgba(255,255,255,0.9)] active:shadow-[inset_2px_2px_4px_rgba(27,26,46,0.06)] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/40"
           >
             <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
             More
           </button>
           {moreOpen && (
-            <nav id="host-mobile-more-menu" aria-label="More host destinations" className="absolute right-0 top-12 z-40 w-56 border border-[#E9E6DD] bg-white p-2 text-[#1B1A2E] shadow-xl">
+            <nav id="host-mobile-more-menu" aria-label="More host destinations" className="account-neu-surface absolute right-0 top-12 z-40 w-56 rounded-2xl p-2 text-[#1B1A2E]">
               {MORE_NAV.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
@@ -132,7 +150,7 @@ export default function HostSidebar() {
                     href={item.href}
                     aria-current={active ? "page" : undefined}
                     onClick={() => setOpenMenuPath(null)}
-                    className={`flex min-h-11 items-center gap-3 px-3 text-sm font-medium transition ${active ? "bg-gray-900 text-white" : "text-gray-600 hover:bg-gray-100 hover:text-[#1B1A2E]"}`}
+                    className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E23E85] ${active ? "bg-[#FCE8F0] text-[#9C2454] shadow-[inset_2px_2px_5px_rgba(156,36,84,0.08),inset_-2px_-2px_5px_rgba(255,255,255,0.8)]" : "text-gray-600 hover:bg-white/70 hover:text-[#1B1A2E] hover:shadow-[3px_3px_7px_rgba(27,26,46,0.07),-3px_-3px_7px_rgba(255,255,255,0.9)] active:shadow-[inset_2px_2px_4px_rgba(27,26,46,0.06)]"}`}
                   >
                     <Icon className="h-4 w-4" aria-hidden="true" />
                     {item.label}
@@ -157,8 +175,8 @@ export default function HostSidebar() {
               aria-current={active ? "page" : undefined}
               aria-label={item.label === "Bookings" && attentionCount > 0 ? `${item.label}, ${attentionCount} items need attention` : item.label}
               title={item.label}
-              className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 px-1 text-[10px] font-medium transition focus:outline-none focus-visible:bg-gray-100 ${
-                active ? "text-[#9C2454]" : "text-gray-600 hover:text-[#1B1A2E]"
+              className={`mx-0.5 my-1 flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[10px] font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E23E85] ${
+                active ? "bg-[#FCE8F0] text-[#9C2454] shadow-[inset_2px_2px_5px_rgba(156,36,84,0.08),inset_-2px_-2px_5px_rgba(255,255,255,0.8)]" : "text-gray-600 hover:text-[#1B1A2E] active:shadow-[inset_2px_2px_4px_rgba(27,26,46,0.06)]"
               }`}
             >
               <span className="relative">
