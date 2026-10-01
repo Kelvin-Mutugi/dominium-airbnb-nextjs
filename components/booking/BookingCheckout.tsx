@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { CreditCard, LoaderCircle, LockKeyhole, Smartphone } from "lucide-react";
 import { AvailabilityCalendar } from "@/components/appartmentDetails/AvailabilityCalendar";
 import { calculateBookingPrice, type BookingPrice } from "@/app/lib/booking/pricing";
 import { getStayNights } from "@/app/lib/booking/availability";
@@ -32,6 +33,7 @@ function formatMoney(amount: number): string {
 }
 
 function displayDate(value: string): string {
+  if (!value) return "Add date";
   const date = new Date(`${value}T00:00:00.000Z`);
   return date.toLocaleDateString("en-KE", {
     day: "numeric",
@@ -90,6 +92,7 @@ export default function BookingCheckout({
   const [termsError, setTermsError] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [isPaying, setIsPaying] = useState(false);
+  const [paymentPopupLoaded, setPaymentPopupLoaded] = useState(false);
   const [signinOpen, setSigninOpen] = useState(false);
   const [signinEmail, setSigninEmail] = useState("");
   const [signinPassword, setSigninPassword] = useState("");
@@ -283,6 +286,8 @@ export default function BookingCheckout({
     }
 
     setIsPaying(true);
+    setPaymentPopupLoaded(false);
+    let keepProcessingState = false;
     try {
       const confirmationToken = getOrCreateSessionValue(tripSessionKey, "confirmation-token", randomToken);
       let bookingId = resumeBookingId;
@@ -336,17 +341,25 @@ export default function BookingCheckout({
       const paystack = new PaystackPop();
       let popupLoaded = false;
       let transaction: { id: string } | null = null;
+      keepProcessingState = true;
       transaction = paystack.resumeTransaction(payment.accessCode, {
         onLoad: () => {
           popupLoaded = true;
+          setPaymentPopupLoaded(true);
         },
         onSuccess: () => {
           router.push(`/booking/${bookingId}/confirmation`);
         },
         onCancel: () => {
+          keepProcessingState = false;
+          setIsPaying(false);
+          setPaymentPopupLoaded(false);
           setFormError("Payment was cancelled. Your dates are held for 10 minutes. Try again when you're ready.");
         },
         onError: () => {
+          keepProcessingState = false;
+          setIsPaying(false);
+          setPaymentPopupLoaded(false);
           setFormError("Payment couldn't be opened. Your dates are held for 10 minutes. Try again.");
         },
       });
@@ -356,9 +369,11 @@ export default function BookingCheckout({
         window.location.assign(payment.authorizationUrl);
       }, 10_000);
     } catch (error) {
+      setIsPaying(false);
+      setPaymentPopupLoaded(false);
       setFormError(error instanceof Error ? error.message : "We couldn't reach the payment service. Try again.");
     } finally {
-      setIsPaying(false);
+      if (!keepProcessingState) setIsPaying(false);
     }
   }
 
@@ -371,8 +386,8 @@ export default function BookingCheckout({
   }
 
   return (
-    <div className="mx-auto w-full max-w-xl px-4 pb-10 sm:px-6">
-      <section aria-labelledby="trip-summary-title" className="border-b border-[#E9E6DD] py-3">
+    <div className="mx-auto w-full max-w-xl rounded-xl bg-white px-4 py-4 pb-10 shadow-[0_4px_24px_rgba(31,41,55,0.08)] sm:px-6 sm:py-6">
+      <section aria-labelledby="trip-summary-title" className="border-b border-[#E9E6DD] py-2">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h2 id="trip-summary-title" className="font-semibold text-[#1B1A2E]">{listing.title}</h2>
@@ -404,6 +419,10 @@ export default function BookingCheckout({
                 minNights={listing.min_nights ?? 1}
                 initialCheckIn={tripCheckIn}
                 initialCheckOut={tripCheckOut}
+                onDatesClear={() => {
+                  setTripCheckIn("");
+                  setTripCheckOut("");
+                }}
                 onDateRangeSelect={(nextCheckIn, nextCheckOut) => {
                   const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
                   setTripCheckIn(dateKey(nextCheckIn));
@@ -478,18 +497,18 @@ export default function BookingCheckout({
 
       <section aria-labelledby="guest-details-title" className="border-b border-[#E9E6DD] py-3">
         <h2 id="guest-details-title" className="text-base font-semibold text-[#1B1A2E]">Your details</h2>
-        <div className="mt-4 grid gap-4">
-          <label className="text-sm font-medium text-[#3A3856]">
-            Name
-            <input value={fullName} onChange={(event) => setFullName(event.target.value)} autoComplete="name" className="mt-1 block min-h-12 w-full rounded-md border border-[#DDE0E4] bg-white px-3 text-base text-[#1B1A2E] shadow-[0_1px_3px_rgba(31,41,55,0.05)] transition-shadow focus:border-[#9BB9D2] focus:outline-none focus:ring-2 focus:ring-[#1769AA]/15" />
+        <div className="mt-3 grid gap-3 md:mt-4 md:gap-4">
+          <label className="block">
+            <span className="sr-only">Full name</span>
+            <input placeholder="Full name" value={fullName} onChange={(event) => setFullName(event.target.value)} autoComplete="name" className="block min-h-12 w-full rounded-md border border-[#DDE0E4] bg-white px-3 text-base text-[#1B1A2E] placeholder:text-[#6B6A78] shadow-[0_1px_3px_rgba(31,41,55,0.05)] transition-shadow focus:border-[#9BB9D2] focus:outline-none focus:ring-2 focus:ring-[#1769AA]/15" />
           </label>
-          <label className="text-sm font-medium text-[#3A3856]">
-            Phone
-            <input type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} autoComplete="tel" className="mt-1 block min-h-12 w-full rounded-md border border-[#DDE0E4] bg-white px-3 text-base text-[#1B1A2E] shadow-[0_1px_3px_rgba(31,41,55,0.05)] transition-shadow focus:border-[#9BB9D2] focus:outline-none focus:ring-2 focus:ring-[#1769AA]/15" />
+          <label className="block">
+            <span className="sr-only">Phone number</span>
+            <input type="tel" placeholder="Phone number" value={phone} onChange={(event) => setPhone(event.target.value)} autoComplete="tel" className="block min-h-12 w-full rounded-md border border-[#DDE0E4] bg-white px-3 text-base text-[#1B1A2E] placeholder:text-[#6B6A78] shadow-[0_1px_3px_rgba(31,41,55,0.05)] transition-shadow focus:border-[#9BB9D2] focus:outline-none focus:ring-2 focus:ring-[#1769AA]/15" />
           </label>
-          <label className="text-sm font-medium text-[#3A3856]">
-            Email
-            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" className="mt-1 block min-h-12 w-full rounded-md border border-[#DDE0E4] bg-white px-3 text-base text-[#1B1A2E] shadow-[0_1px_3px_rgba(31,41,55,0.05)] transition-shadow focus:border-[#9BB9D2] focus:outline-none focus:ring-2 focus:ring-[#1769AA]/15" />
+          <label className="block">
+            <span className="sr-only">Email address</span>
+            <input type="email" placeholder="Email address" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" className="block min-h-12 w-full rounded-md border border-[#DDE0E4] bg-white px-3 text-base text-[#1B1A2E] placeholder:text-[#6B6A78] shadow-[0_1px_3px_rgba(31,41,55,0.05)] transition-shadow focus:border-[#9BB9D2] focus:outline-none focus:ring-2 focus:ring-[#1769AA]/15" />
           </label>
         </div>
         {!userId && (
@@ -500,20 +519,45 @@ export default function BookingCheckout({
         )}
       </section>
 
-      <section aria-labelledby="payment-method-title" className="border-b border-[#E9E6DD] py-2">
+      <section aria-labelledby="payment-method-title" className="mt-4 py-2">
         <h2 id="payment-method-title" className="text-base font-semibold text-[#1B1A2E]">Pay with</h2>
         <div className="mt-3 grid grid-cols-2 gap-3">
           {(["mpesa", "card"] as const).map((method) => (
-            <label key={method} className={`flex min-h-14 cursor-pointer items-center gap-3 rounded-md border px-3 ${paymentMethod === method ? "border-[#1769AA] ring-1 ring-[#1769AA]" : "border-[#B8B7B2]"}`}>
-              <input type="radio" name="payment-method" value={method} checked={paymentMethod === method} onChange={() => setPaymentMethod(method)} className="size-5 accent-[#1769AA]" />
-              <span className="font-medium text-[#1B1A2E]">{method === "mpesa" ? "M-Pesa" : "Card"}</span>
+            <label
+              key={method}
+              className={`flex min-h-14 cursor-pointer items-center gap-3 rounded-md border px-3 transition-colors ${
+                method === "mpesa"
+                  ? paymentMethod === method
+                    ? "border-[#43B02A]/35 bg-[#43B02A]/[0.03] ring-1 ring-[#43B02A]/10"
+                    : "border-[#E4E8E1] hover:border-[#43B02A]/30"
+                  : paymentMethod === method
+                    ? "border-[#1769AA]/35 bg-[#1769AA]/[0.03] ring-1 ring-[#1769AA]/10"
+                    : "border-[#E4E8EF] hover:border-[#1769AA]/30"
+              }`}
+            >
+              <input
+                type="radio"
+                name="payment-method"
+                value={method}
+                checked={paymentMethod === method}
+                onChange={() => setPaymentMethod(method)}
+                className={`size-5 ${method === "mpesa" ? "accent-[#43B02A]" : "accent-[#1769AA]"}`}
+              />
+              {method === "mpesa" ? (
+                <Smartphone size={18} className="text-[#27821B]" aria-hidden="true" />
+              ) : (
+                <CreditCard size={18} className="text-[#1769AA]" aria-hidden="true" />
+              )}
+              <span className="font-medium text-[#1B1A2E]">
+                {method === "mpesa" ? "M-Pesa" : "Card"}
+              </span>
             </label>
           ))}
         </div>
         {paymentMethod === "mpesa" && <p className="mt-3 text-sm text-[#3A3856]">You&apos;ll enter your M-Pesa number next.</p>}
       </section>
 
-      <section className="py-5">
+      <section className="mt-3 border-t border-[#E9E6DD] pt-4">
         <label className="flex min-h-11 items-start gap-3 text-sm leading-5 text-[#3A3856]">
           <input type="checkbox" checked={agreed} onChange={(event) => { setAgreed(event.target.checked); setTermsError(false); }} className="mt-0.5 size-5 shrink-0 accent-[#1769AA]" />
           <span>
@@ -527,10 +571,21 @@ export default function BookingCheckout({
       </section>
 
       {formError && <p role="alert" className="mb-3 text-sm text-red-700">{formError}</p>}
-      <button type="button" onClick={() => void pay()} disabled={isPaying} className="min-h-14 w-full cursor-pointer rounded-4xl bg-[#d61a6b] px-4 py-3 text-base font-semibold text-white disabled:cursor-wait disabled:opacity-60">
-        {isPaying ? "Opening secure payment…" : `Pay ${formatMoney(price.total)}`}
+      <button type="button" onClick={() => void pay()} disabled={isPaying} className="inline-flex min-h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-4xl bg-[#d61a6b] px-4 py-3 text-base font-semibold text-white disabled:cursor-wait disabled:opacity-60">
+        {isPaying && <LoaderCircle size={18} className="animate-spin" aria-hidden="true" />}
+        {isPaying ? "Processing payment…" : `Pay ${formatMoney(price.total)}`}
       </button>
-      <p className="mt-3 text-center text-xs text-[#006400]">Secured by Paystack</p>
+      <p role="status" aria-live="polite" className="mt-3 text-center text-xs leading-5 text-[#3A3856]/75">
+        {isPaying
+          ? paymentPopupLoaded
+            ? "Complete payment in Paystack. Keep this page open while we confirm your booking."
+            : "Payment is starting. Keep this page open; don’t close this tab while we process your payment."
+          : "Keep this page open while Paystack processes your payment."}
+      </p>
+      <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-[#006400]">
+        <LockKeyhole size={13} aria-hidden="true" />
+        Secured by Paystack
+      </p>
 
       {signinOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4">

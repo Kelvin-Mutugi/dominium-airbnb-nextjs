@@ -53,6 +53,7 @@ export async function GET(
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+  let bookingStatus = booking.status;
 
   const requestedReference = url.searchParams.get("reference");
   if (
@@ -63,7 +64,51 @@ export async function GET(
   ) {
     try {
       const transaction = await verifyPaystackTransaction(requestedReference);
-      if (transaction.reference === requestedReference && ["failed", "abandoned"].includes(String(transaction.status))) {
+      if (transaction.reference === requestedReference && transaction.status === "success") {
+        const amountMinor = Number(transaction.amount);
+        let metadata = transaction.metadata as Record<string, unknown> | string | undefined;
+        if (typeof metadata === "string") {
+          try {
+            metadata = JSON.parse(metadata) as Record<string, unknown>;
+          } catch {
+            metadata = undefined;
+          }
+        }
+
+        if (
+          transaction.currency === "KES" &&
+          Number.isInteger(amountMinor) &&
+          String(metadata?.booking_id ?? "") === id
+        ) {
+          const { data: settlement, error: settlementError } = await admin.rpc(
+            "settle_paystack_attempt",
+            {
+              p_reference: requestedReference,
+              p_amount_minor: amountMinor,
+              p_currency: String(transaction.currency),
+              p_transaction_id: Number.isFinite(Number(transaction.id))
+                ? Number(transaction.id)
+                : null,
+              p_channel: String(transaction.channel ?? ""),
+              p_paid_at:
+                typeof transaction.paid_at === "string"
+                  ? transaction.paid_at
+                  : null,
+              p_raw_response: transaction,
+            },
+          );
+          if (settlementError) throw settlementError;
+
+          const result = Array.isArray(settlement) ? settlement[0] : settlement;
+          if (result?.booking_confirmed) {
+            bookingStatus = "confirmed";
+            attempt = { ...attempt, status: "paid" };
+          }
+        }
+      } else if (
+        transaction.reference === requestedReference &&
+        ["failed", "abandoned"].includes(String(transaction.status))
+      ) {
         await admin
           .from("paystack_payment_attempts")
           .update({ status: transaction.status, updated_at: new Date().toISOString(), raw_response: transaction })
@@ -85,7 +130,7 @@ export async function GET(
       .order("paid_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
-    booking.status === "confirmed"
+    bookingStatus === "confirmed" || bookingStatus === "completed"
       ? admin
           .from("listing_arrival_guides")
           .select("arrival_contact")
@@ -103,7 +148,7 @@ export async function GET(
     bookingId: booking.id,
     bookingReference: booking.booking_reference,
     listingId: booking.listing_id,
-    status: booking.status,
+    status: bookingStatus,
     paymentConfirmed: Boolean(payment),
     listingTitle: listing?.title ?? "Your stay",
     checkIn: booking.check_in,
@@ -131,6 +176,8 @@ export async function GET(
           reference: payment.provider_reference,
         }
       : null,
-    hostContact: booking.status === "confirmed" ? guide?.arrival_contact ?? null : null,
+    hostContact: bookingStatus === "confirmed" || bookingStatus === "completed"
+      ? guide?.arrival_contact ?? null
+      : null,
   }, { headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } });
 }
