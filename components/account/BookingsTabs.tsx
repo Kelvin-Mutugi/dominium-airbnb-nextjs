@@ -1,5 +1,4 @@
 // FILE LOCATION: components/account/BookingsTabs.tsx
-// Put this file at components/account/BookingsTabs.tsx in your project root (or src/components/account/BookingsTabs.tsx if your project has a src/ folder).
 
 'use client';
 
@@ -36,7 +35,11 @@ export function BookingsTabs({
 
   return (
     <div>
-      <div role="tablist" aria-label="Booking status" className="flex gap-6 border-b border-neutral-200">
+      <div
+        role="tablist"
+        aria-label="Booking status"
+        className="inline-flex gap-1 rounded-full bg-neutral-100 p-1"
+      >
         {tabs.map((t) => {
           const active = t.id === tab;
           return (
@@ -48,33 +51,32 @@ export function BookingsTabs({
               aria-selected={active}
               aria-controls="bookings-panel"
               onClick={() => setTab(t.id)}
-              className={`-mb-px border-b-2 pb-3 text-sm transition ${
+              className={`rounded-full px-4 py-2 text-sm transition ${
                 active
-                  ? 'border-[#E23E85] font-semibold text-[#1B1A2E]'
-                  : 'border-transparent text-neutral-500 hover:text-neutral-800'
+                  ? 'bg-white font-semibold text-[#1B1A2E] shadow-sm'
+                  : 'text-neutral-500 hover:text-neutral-800'
               } ${focusRing}`}
             >
-              {t.label} <span className="ml-1 text-neutral-400">{t.items.length}</span>
+              {t.label}
+              {t.items.length > 0 && <span className="ml-1.5 text-neutral-400">{t.items.length}</span>}
             </button>
           );
         })}
       </div>
 
-      <div role="tabpanel" id="bookings-panel" aria-labelledby={`bookings-tab-${current.id}`} className="mt-2">
+      <div role="tabpanel" id="bookings-panel" aria-labelledby={`bookings-tab-${current.id}`} className="mt-5">
         {current.items.length ? (
-          <div className="divide-y divide-neutral-200">
+          <div className="flex flex-col gap-4">
             {current.items.map((b) => (
               <BookingCard key={b.id} booking={b} />
             ))}
           </div>
         ) : (
-          <div className="mt-6">
-            <EmptyState
-              {...EMPTY[current.id]}
-              href={current.id === 'upcoming' ? routes.listings : undefined}
-              cta={current.id === 'upcoming' ? 'Browse stays' : undefined}
-            />
-          </div>
+          <EmptyState
+            {...EMPTY[current.id]}
+            href={current.id === 'upcoming' ? routes.listings : undefined}
+            cta={current.id === 'upcoming' ? 'Browse stays' : undefined}
+          />
         )}
       </div>
     </div>
