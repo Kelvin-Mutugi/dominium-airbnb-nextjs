@@ -35,8 +35,59 @@ export function dayOfMonth(value: string) {
 }
 
 /** Today as YYYY-MM-DD in Nairobi time, to compare against `date` columns. */
-export function todayISO() {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
+export function todayISO(now = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(now);
+}
+
+function checkoutMinutes(value: string | null | undefined) {
+  const match = value?.trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+  if (!match) return null;
+
+  let hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const meridiem = match[3]?.toUpperCase();
+  if (minutes > 59) return null;
+
+  if (meridiem) {
+    if (hours < 1 || hours > 12) return null;
+    hours = (hours % 12) + (meridiem === 'PM' ? 12 : 0);
+  } else if (hours > 23) {
+    return null;
+  }
+
+  return hours * 60 + minutes;
+}
+
+export function formatCheckoutTime(value: string | null | undefined) {
+  const totalMinutes = checkoutMinutes(value) ?? 11 * 60;
+  const hours24 = Math.floor(totalMinutes / 60);
+  const hours12 = hours24 % 12 || 12;
+  const minutes = String(totalMinutes % 60).padStart(2, '0');
+  return `${hours12}:${minutes} ${hours24 >= 12 ? 'PM' : 'AM'}`;
+}
+
+export function isCheckoutTimeReached(
+  checkOutDate: string,
+  checkOutTime: string | null | undefined,
+  now = new Date(),
+) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(checkOutDate)) return false;
+
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const localDate = `${values.year}-${values.month}-${values.day}`;
+  if (localDate !== checkOutDate) return localDate > checkOutDate;
+
+  const localMinutes = Number(values.hour) * 60 + Number(values.minute);
+  return localMinutes >= (checkoutMinutes(checkOutTime) ?? 11 * 60);
 }
 
 export function nightsBetween(checkIn: string, checkOut: string) {

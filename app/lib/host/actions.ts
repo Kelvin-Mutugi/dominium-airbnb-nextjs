@@ -22,8 +22,8 @@ import type {
 } from "./types";
 
 const MPESA_REGEX = /^0\d{9}$/;
-const HOST_BOOKING_FIELDS = "id, booking_reference, listing_id, host_id, check_in, check_out, nights, adults_count, children_count, pets_count, rooms_count, status, host_payout_amount, guest_name, guest_country, special_requests";
-const HOST_BOOKING_WITH_LISTING = `${HOST_BOOKING_FIELDS}, listing:listings(id, title, town, county)`;
+const HOST_BOOKING_FIELDS = "id, booking_reference, listing_id, host_id, check_in, check_out, nights, adults_count, children_count, pets_count, rooms_count, status, completed_at, completion_source, host_payout_amount, guest_name, guest_country, special_requests";
+const HOST_BOOKING_WITH_LISTING = `${HOST_BOOKING_FIELDS}, listing:listings(id, title, town, county, check_out_time)`;
 
 type HostUnreadThread = {
   booking_id: string;
@@ -276,19 +276,53 @@ export async function updateHostBookingStatus(id: string, status: BookingStatus,
   }
 
   const supabase = await createClient();
+  if (status === "completed") {
+    const { error } = await supabase.rpc("host_mark_booking_completed", {
+      p_booking_id: id,
+    });
+    if (error) {
+      if (error.message.includes("CHECKOUT_TIME_NOT_REACHED")) {
+        throw new Error("The listing's check-out time has not passed yet.");
+      }
+      if (error.message.includes("PENDING_GUEST_REQUEST")) {
+        throw new Error("Resolve the pending guest request before marking this stay completed.");
+      }
+      if (error.message.includes("BOOKING_NOT_CONFIRMED")) {
+        throw new Error("Only confirmed bookings can be marked completed.");
+      }
+      if (error.message.includes("BOOKING_NOT_FOUND")) throw new Error("Booking not found.");
+      console.error("Host booking completion RPC failed:", {
+        error: String(error),
+        ownProperties: Object.getOwnPropertyNames(error),
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+      throw new Error("We couldn't mark this stay as completed. Please try again. If it still fails, contact support.");
+    }
+
+    revalidatePath("/host/bookings");
+    revalidatePath("/host/payouts");
+    revalidatePath("/host");
+    revalidatePath("/account/bookings");
+    revalidatePath("/admin/bookings");
+    return;
+  }
+
   const { data: booking, error: lookupError } = await supabase
     .from("bookings")
-    .select("status, check_out")
+    .select("status")
     .eq("id", id)
     .eq("host_id", user.id)
     .maybeSingle();
   if (lookupError || !booking) throw new Error("Booking not found.");
 
-  const today = new Date().toISOString().slice(0, 10);
   const isAllowedTransition =
-    (booking.status === "pending" && (status === "confirmed" || status === "cancelled")) ||
-    (booking.status === "confirmed" && status === "completed" && booking.check_out <= today);
-  if (!isAllowedTransition) throw new Error("This booking can no longer be changed to that status.");
+    booking.status === "pending" && (status === "confirmed" || status === "cancelled");
+  if (!isAllowedTransition) {
+    throw new Error("This booking can no longer be changed to that status.");
+  }
 
   const { data: updated, error } = await supabase
     .from("bookings")
@@ -361,7 +395,7 @@ export async function getHostOverviewData() {
     supabase.from("listings").select("id", { count: "exact", head: true }).eq("host_id", user.id).in("status", ["draft", "published"]),
     supabase.from("bookings").select(HOST_BOOKING_WITH_LISTING).eq("host_id", user.id).eq("status", "confirmed").gte("check_in", today).order("check_in", { ascending: true }).limit(5),
     supabase.from("profiles").select("kyc_status, kyc_rejection_reason, host_verified_at").eq("id", user.id).maybeSingle(),
-    supabase.from("booking_change_requests").select("id, booking_id, request_type, current_check_in, current_check_out, requested_check_in, requested_check_out, quoted_total_amount, amount_paid, refund_percent, estimated_refund_amount, reason, created_at, booking:bookings!inner(guest_name, listing:listings(title))").eq("host_id", user.id).eq("status", "pending").order("created_at", { ascending: true }).limit(10),
+    supabase.from("booking_change_requests").select("id, booking_id, request_type, current_check_in, current_check_out, requested_check_in, requested_check_out, quoted_total_amount, amount_paid, refund_percent, estimated_refund_amount, reason, created_at, booking:bookings!inner(guest_name, listing:listings(title))").eq("host_id", user.id).eq("request_type", "date_change").eq("status", "pending").order("created_at", { ascending: true }).limit(10),
     getHostUnreadSupportCounts(user.id).catch(() => null),
   ]);
 
@@ -369,9 +403,33 @@ export async function getHostOverviewData() {
     throw new Error("Unable to load host dashboard.");
   }
 
-  const upcoming = (upcomingResult.data ?? []) as unknown as Booking[];
+  const upcomingRows = (upcomingResult.data ?? []) as unknown as Booking[];
   const changeRequests = changesResult.error ? null : (changesResult.data ?? []) as unknown as HostBookingChangeRequest[];
   const onboardingStatus = verificationResult.error ? null : verificationResult.data;
+
+  const upcomingBookingIds = upcomingRows.map((booking) => booking.id);
+  const dateChangesResult = upcomingBookingIds.length
+    ? await supabase
+        .from("booking_change_requests")
+        .select("id, booking_id, current_check_in, current_check_out, requested_check_in, requested_check_out, created_at")
+        .eq("host_id", user.id)
+        .eq("request_type", "date_change")
+        .eq("status", "approved")
+        .in("booking_id", upcomingBookingIds)
+        .order("created_at", { ascending: false })
+    : { data: [], error: null };
+  if (dateChangesResult.error) throw new Error("Unable to load booking date-change history.");
+
+  const dateChangesByBooking = new Map<string, NonNullable<Booking["dateChangeHistory"]>>();
+  for (const dateChange of dateChangesResult.data ?? []) {
+    const history = dateChangesByBooking.get(dateChange.booking_id) ?? [];
+    history.push(dateChange);
+    dateChangesByBooking.set(dateChange.booking_id, history);
+  }
+  const upcoming = upcomingRows.map((booking) => ({
+    ...booking,
+    dateChangeHistory: dateChangesByBooking.get(booking.id) ?? [],
+  }));
 
   const listingIds = [...new Set(upcoming.map((booking) => booking.listing_id))];
   const unreadBookingIds = Object.keys(unreadSupportCounts ?? {});
@@ -415,7 +473,7 @@ export async function getHostNavigationAttentionCount() {
   const supabase = await createClient();
   const [pendingBookingsResult, changesResult, unreadSupportCounts] = await Promise.all([
     supabase.from("bookings").select("id", { count: "exact", head: true }).eq("host_id", user.id).eq("status", "pending"),
-    supabase.from("booking_change_requests").select("id", { count: "exact", head: true }).eq("host_id", user.id).eq("status", "pending"),
+    supabase.from("booking_change_requests").select("id", { count: "exact", head: true }).eq("host_id", user.id).eq("request_type", "date_change").eq("status", "pending"),
     getHostUnreadSupportCounts(user.id),
   ]);
   if (pendingBookingsResult.error || changesResult.error) throw new Error("Unable to load host attention count.");
@@ -490,13 +548,47 @@ export async function getHostBookingsData(status: Exclude<BookingStatus, "pendin
   const { user } = await requireHost();
   const supabase = await createClient();
   const { data, error } = await supabase.from("bookings").select(HOST_BOOKING_WITH_LISTING).eq("host_id", user.id).eq("status", status).order("check_in", { ascending: true });
-  if (error) throw new Error("Unable to load bookings.");
+  if (error) {
+    console.error("Host bookings query failed:", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    const diagnostic = process.env.NODE_ENV === "production"
+      ? ""
+      : ` (${error.code}: ${error.message})`;
+    throw new Error(`Unable to load bookings.${diagnostic}`);
+  }
   const bookings = (data ?? []) as unknown as Booking[];
   if (!bookings.length) return bookings;
 
   const bookingIds = bookings.map((booking) => booking.id);
-  const unreadByBooking = await getHostUnreadSupportCounts(user.id, bookingIds);
-  return bookings.map((booking) => ({ ...booking, unreadSupportReplyCount: unreadByBooking[booking.id] ?? 0 }));
+  const [unreadByBooking, dateChangesResult] = await Promise.all([
+    getHostUnreadSupportCounts(user.id, bookingIds),
+    supabase
+      .from("booking_change_requests")
+      .select("id, booking_id, current_check_in, current_check_out, requested_check_in, requested_check_out, created_at")
+      .eq("host_id", user.id)
+      .eq("request_type", "date_change")
+      .eq("status", "approved")
+      .in("booking_id", bookingIds)
+      .order("created_at", { ascending: false }),
+  ]);
+  if (dateChangesResult.error) throw new Error("Unable to load booking date-change history.");
+
+  const dateChangesByBooking = new Map<string, NonNullable<Booking["dateChangeHistory"]>>();
+  for (const dateChange of dateChangesResult.data ?? []) {
+    const history = dateChangesByBooking.get(dateChange.booking_id) ?? [];
+    history.push(dateChange);
+    dateChangesByBooking.set(dateChange.booking_id, history);
+  }
+
+  return bookings.map((booking) => ({
+    ...booking,
+    unreadSupportReplyCount: unreadByBooking[booking.id] ?? 0,
+    dateChangeHistory: dateChangesByBooking.get(booking.id) ?? [],
+  }));
 }
 
 export async function getHostBookingChangeRequestsData() {
@@ -506,6 +598,7 @@ export async function getHostBookingChangeRequestsData() {
     .from('booking_change_requests')
     .select('id, booking_id, request_type, current_check_in, current_check_out, requested_check_in, requested_check_out, quoted_total_amount, amount_paid, refund_percent, estimated_refund_amount, reason, created_at, booking:bookings!inner(guest_name, listing:listings(title))')
     .eq('host_id', user.id)
+    .eq('request_type', 'date_change')
     .eq('status', 'pending')
     .order('created_at', { ascending: true });
   if (error) throw new Error('Unable to load booking change requests.');

@@ -14,7 +14,9 @@ import {
   Star,
   History,
   ClipboardList,
+  ClipboardCheck,
   MessageSquareText,
+  BadgeDollarSign,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -24,6 +26,8 @@ const NAV_ITEMS = [
   { href: "/admin/listings", label: "Listings", icon: Home },
   { href: "/admin/listing-requests", label: "Property Visit Requests", icon: ClipboardList },
   { href: "/admin/bookings", label: "Bookings", icon: CalendarCheck },
+  { href: "/admin/cancellation-requests", label: "Cancellation Requests", icon: ClipboardCheck },
+  { href: "/admin/refunds", label: "Refunds", icon: BadgeDollarSign },
   { href: "/admin/payouts", label: "Payments & Payouts", icon: Wallet },
   { href: "/admin/support", label: "Support Cases & Disputes", icon: LifeBuoy },
   { href: "/admin/customer-support", label: "Booking Messages", icon: MessageSquareText },

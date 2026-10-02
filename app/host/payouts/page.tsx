@@ -59,7 +59,6 @@ export default function HostPayoutsPage() {
   const processing = payouts.filter((p) => p.status === "processing").reduce((sum, p) => sum + Number(p.amount), 0);
   const paid = payouts.filter((p) => p.status === "paid").reduce((sum, p) => sum + Number(p.amount), 0);
   const owedCount = payouts.filter((p) => p.status === "owed").length;
-  const processingCount = payouts.filter((p) => p.status === "processing").length;
   const paidCount = payouts.filter((p) => p.status === "paid").length;
 
   return (
@@ -78,7 +77,7 @@ export default function HostPayoutsPage() {
           <p className="text-sm font-medium text-[#565c57]">Processing</p>
           <p className="mt-2 text-2xl font-semibold tabular-nums text-[#365d80]">KES {processing.toLocaleString("en-KE")}</p>
           <p className="mt-2 text-xs leading-5 text-[#747873]">
-            {processingCount} {processingCount === 1 ? "payout" : "payouts"} is being handled and is not marked paid yet.
+            Processing is a temporary hold, not a payment in progress. After 24 hours from checkout and once any support case or guest request is resolved, the payout moves to Owed (awaiting payment) at the next daily review.
           </p>
         </div>
         <div className="bg-white p-5">
@@ -149,6 +148,14 @@ export default function HostPayoutsPage() {
                       <tr className="bg-white">
                         <td colSpan={4} className="px-4 pb-4">
                           <div className="grid gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                            {p.status === "processing" && (
+                              <div className="rounded-md border border-[#365d80]/20 bg-[#edf4f8] p-3 sm:col-span-2 lg:col-span-3">
+                                <p className="font-semibold text-[#284c68]">What happens next</p>
+                                <p className="mt-1 text-sm leading-5 text-[#425d70]">
+                                  This payout is temporarily held after the host marked the stay complete. After 24 hours from the listing&apos;s scheduled check-out, the system checks that there are no unresolved booking support cases or guest requests. It then changes the status to <strong>Owed</strong> at the next daily review. Owed means awaiting transfer; it is not marked paid until the admin records the payment.
+                                </p>
+                              </div>
+                            )}
                             <div>
                               <p className="text-xs font-medium uppercase text-gray-500">Guest</p>
                               <Link

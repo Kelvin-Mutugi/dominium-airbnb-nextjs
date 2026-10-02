@@ -87,6 +87,9 @@ export interface BookingChangeRequest {
   refund_percent: number;
   estimated_refund_amount: number;
   refund_processing_status: string;
+  refund_admin_response: string | null;
+  actual_refund_amount: number | null;
+  refund_processed_at: string | null;
   host_response: string | null;
   created_at: string;
 }

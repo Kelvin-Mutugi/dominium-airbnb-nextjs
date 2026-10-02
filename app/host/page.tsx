@@ -213,7 +213,7 @@ export default function HostDashboardPage() {
                   <Link href={`/host/bookings?booking=${encodeURIComponent(request.booking_id)}`} className="flex items-center gap-3 px-4 py-4 transition hover:bg-[#fbf9f5] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#E23E85]/40 sm:px-5">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#fff0d8] text-[#9a5b00]"><CalendarDays className="h-4 w-4" aria-hidden="true" /></span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-[#12231d]">Guest {request.request_type === "cancellation" ? "cancellation" : "date change"} request</span>
+                      <span className="block truncate text-sm font-semibold text-[#12231d]">Guest date-change request</span>
                       <span className="mt-1 block truncate text-sm text-[#747873]">{request.booking.guest_name ?? "Guest"} · {request.booking.listing?.title ?? "Booking"}</span>
                     </span>
                     <span className="shrink-0 text-xs font-semibold text-[#9a5b00]">Review</span>
@@ -268,6 +268,7 @@ export default function HostDashboardPage() {
             <ul className="divide-y divide-[#12231d]/10">
               {upcoming.slice(0, 3).map((booking) => {
                 const urgency = getCheckInUrgency(booking.check_in);
+                const latestDateChange = booking.dateChangeHistory?.[0];
                 const guide = arrivalGuides?.[booking.listing_id];
                 const hasArrivalLocation = Boolean(guide?.arrival_address?.trim() || guide?.arrival_directions?.trim());
                 const hasCheckInSteps = Boolean(guide?.check_in_instructions?.trim());
@@ -290,6 +291,16 @@ export default function HostDashboardPage() {
                             <StatusBadge status={booking.status} />
                             {urgency && <span className="text-xs font-medium text-[#8a5a16]">Check-in {urgency.toLowerCase()}</span>}
                           </div>
+                          {latestDateChange && (
+                            <div className="mt-2 rounded-md border border-[#E23E85]/25 bg-[#FCE8F0] px-2.5 py-2">
+                              <p className="text-[11px] font-bold uppercase tracking-wide text-[#9C2454]">Dates updated</p>
+                              <p className="mt-0.5 text-xs text-[#5F2740]">
+                                {latestDateChange.current_check_in}–{latestDateChange.current_check_out}
+                                <span className="px-1.5" aria-hidden="true">→</span>
+                                <span className="font-semibold">{latestDateChange.requested_check_in}–{latestDateChange.requested_check_out}</span>
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
 

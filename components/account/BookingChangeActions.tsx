@@ -162,7 +162,7 @@ export function BookingChangeActions({
 
               <p className="mt-3 text-xs leading-5 text-neutral-500">
                 This is an estimate from the platform schedule and the payments on record. Property terms or processing
-                fees may change the final amount. The host has to approve the request, and refunds are processed by
+                fees may change the final amount. The admin team reviews the request, and refunds are processed by
                 hand.
               </p>
 
@@ -182,7 +182,7 @@ export function BookingChangeActions({
                   onChange={(event) => setAcknowledged(event.target.checked)}
                   className="mt-1 accent-[#E23E85]"
                 />
-                <span>I understand this sends a request to the host. The refund isn’t instant.</span>
+                <span>I understand this sends a request to the admin team. The refund isn’t instant.</span>
               </label>
             </>
           )}
