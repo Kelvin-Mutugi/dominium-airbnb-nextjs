@@ -1,0 +1,32 @@
+{
+  // ...
+  "name": "dominium-bnb",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    { "binding": "WORKER_SELF_REFERENCE", "service": "dominium-bnb" }
+  ],
+
+  "vars": {
+    "NEXT_PUBLIC_APP_URL": "https://dominium-bnb.dominiumbnb.workers.dev/",
+    "NEXT_PUBLIC_SITE_URL": "http://localhost:3000",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable__o1dwdmmVH6r_t8PkAnVag_2rAm6WJZ",
+    "NEXT_PUBLIC_SUPABASE_URL": "https://izgstlkcfugdbjyavevo.supabase.co"
+  },
+
+  "previews": {
+    // ...
+    "vars": {
+      "NEXT_PUBLIC_APP_URL": "https://dominium-bnb.dominiumbnb.workers.dev/",
+      "NEXT_PUBLIC_SITE_URL": "http://localhost:3000",
+      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable__o1dwdmmVH6r_t8PkAnVag_2rAm6WJZ",
+      "NEXT_PUBLIC_SUPABASE_URL": "https://izgstlkcfugdbjyavevo.supabase.co"
+    }
+    // ...
+  }
+}
