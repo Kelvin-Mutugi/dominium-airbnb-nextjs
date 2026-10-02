@@ -313,75 +313,86 @@ export default function HostBookingsPage() {
                   focusBookingId === b.id ? "outline outline-2 outline-offset-2 outline-[#E23E85]" : ""
                 }`}
               >
-                <div className="grid min-w-0 gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                <header className="flex flex-col gap-2 border-b border-[#1B1A2E]/10 pb-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <h3 className="font-semibold text-[#12231d]">
-                        {b.listing?.title}
-                      </h3>
-
-                      <StatusBadge status={b.status} />
-                      {b.status === "completed" && b.completion_source && (
-                        <span className="text-xs font-medium text-gray-500">
-                          Completed {b.completion_source === "system" ? "automatically" : "by host"}
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="text-sm text-gray-500">
-                      Booking reference: {b.booking_reference}
-                    </p>
-
-                    <p className="mt-1 break-words text-sm text-gray-600">{b.check_in} → {b.check_out} · {b.nights} {b.nights === 1 ? "night" : "nights"}</p>
-                    {latestDateChange && (
-                      <div className="mt-2 rounded-lg border border-[#E23E85]/25 bg-[#FCE8F0] px-3 py-2.5">
-                        <p className="text-xs font-bold uppercase tracking-wide text-[#9C2454]">
-                          Dates updated{(b.dateChangeHistory?.length ?? 0) > 1 ? ` · ${b.dateChangeHistory?.length} changes` : ""}
-                        </p>
-                        <p className="mt-1 text-sm text-[#5F2740]">
-                          <span className="font-medium">{latestDateChange.current_check_in} → {latestDateChange.current_check_out}</span>
-                          <span className="px-1.5" aria-hidden="true">→</span>
-                          <span className="font-semibold">{latestDateChange.requested_check_in} → {latestDateChange.requested_check_out}</span>
-                        </p>
-                        <p className="mt-1 text-xs text-[#795365]">Current stay dates above reflect this approved change.</p>
-                      </div>
-                    )}
-                    <p className="mt-1 break-words text-sm text-gray-600">Guest: {b.guest_name ?? "Guest"}{b.guest_country ? ` · ${b.guest_country}` : ""}</p>
-                    <p className="mt-1 break-words text-sm text-gray-600">{b.adults_count} {b.adults_count === 1 ? "adult" : "adults"} · {b.children_count} {b.children_count === 1 ? "child" : "children"} · {b.pets_count} {b.pets_count === 1 ? "pet" : "pets"} · {b.rooms_count} {b.rooms_count === 1 ? "room" : "rooms"}</p>
-
-                    {b.special_requests && (
-                      <p className="mt-1 text-sm italic text-gray-500">
-                        &quot;{b.special_requests}&quot;
-                      </p>
-                    )}
-                    <Link
-                      href={`/host/bookings/${b.id}`}
-                      className="mt-2 inline-flex max-w-full flex-wrap items-center gap-1.5 py-1 text-sm font-medium text-gray-600 transition hover:text-[#12231d] focus:outline-none focus:underline focus:underline-offset-2"
-                    >
-                      <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                      Chat with customer support
-                      {(b.unreadSupportReplyCount ?? 0) > 0 && (
-                        <span className="ml-1 inline-flex items-center gap-1 text-xs font-semibold text-[#9C2454]" aria-label={`${b.unreadSupportReplyCount} new customer support ${b.unreadSupportReplyCount === 1 ? 'reply' : 'replies'}`}>
-                          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[#E23E85]" />
-                          {b.unreadSupportReplyCount === 1 ? "New reply" : `${b.unreadSupportReplyCount} new replies`}
-                        </span>
-                      )}
-                    </Link>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Booking {b.booking_reference}</p>
+                    <h3 className="mt-1 break-words text-lg font-semibold leading-snug text-[#12231d]">
+                      {b.listing?.title ?? "Listing unavailable"}
+                    </h3>
                   </div>
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    <StatusBadge status={b.status} />
+                    {b.status === "completed" && b.completion_source && (
+                      <span className="text-xs font-medium text-gray-500">
+                        Completed {b.completion_source === "system" ? "automatically" : "by host"}
+                      </span>
+                    )}
+                  </div>
+                </header>
 
-                  <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl bg-[#f1f1f4] p-3 text-sm shadow-[inset_2px_2px_5px_rgba(27,26,46,0.06),inset_-2px_-2px_5px_rgba(255,255,255,0.9)] sm:block sm:min-w-44 sm:text-right">
+                <div className="grid gap-4 py-4 sm:grid-cols-2 lg:grid-cols-[1.1fr_1fr_0.8fr] lg:gap-6">
+                  <section aria-label="Stay dates" className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Stay</p>
+                    <p className="mt-1 font-semibold text-[#1B1A2E]">{b.check_in} <span className="text-gray-400" aria-hidden="true">→</span> {b.check_out}</p>
+                    <p className="mt-0.5 text-sm text-gray-600">{b.nights} {b.nights === 1 ? "night" : "nights"}</p>
+                  </section>
+
+                  <section aria-label="Guest details" className="min-w-0 border-t border-[#1B1A2E]/10 pt-3 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0 lg:pl-6">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Guest</p>
+                    <p className="mt-1 break-words font-semibold text-[#1B1A2E]">{b.guest_name ?? "Guest"}{b.guest_country ? ` · ${b.guest_country}` : ""}</p>
+                    <p className="mt-0.5 text-sm text-gray-600">
+                      {b.adults_count} {b.adults_count === 1 ? "adult" : "adults"} · {b.children_count} {b.children_count === 1 ? "child" : "children"} · {b.pets_count} {b.pets_count === 1 ? "pet" : "pets"} · {b.rooms_count} {b.rooms_count === 1 ? "room" : "rooms"}
+                    </p>
+                  </section>
+
+                  <section aria-label="Host payout" className="flex items-center justify-between gap-3 border-t border-[#1B1A2E]/10 pt-3 sm:col-span-2 lg:col-span-1 lg:block lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
                     <div>
-                      <p className="text-xs text-gray-500">Host payout</p>
-                      <p className="font-semibold text-[#12231d]">KES {b.host_payout_amount.toLocaleString()}</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Host payout</p>
+                      <p className="mt-1 text-lg font-semibold tabular-nums text-[#12231d]">KES {b.host_payout_amount.toLocaleString()}</p>
                     </div>
                     <Link
                       href={`/account/support?booking=${b.id}&category=host_guest_concern`}
-                      className="text-xs font-medium text-[#9C2454] underline underline-offset-2 sm:mt-2 sm:inline-block"
+                      className="shrink-0 text-xs font-medium text-[#9C2454] underline underline-offset-2 lg:mt-2 lg:inline-block"
                     >
-                      Report a problem or dispute
+                      Report an issue
                     </Link>
-                  </div>
+                  </section>
                 </div>
+
+                {latestDateChange && (
+                  <div className="mb-3 border-l-4 border-[#E23E85] bg-[#FCE8F0] px-3 py-2.5 sm:px-4">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#9C2454]">
+                      Dates updated{(b.dateChangeHistory?.length ?? 0) > 1 ? ` · ${b.dateChangeHistory?.length} changes` : ""}
+                    </p>
+                    <p className="mt-1 text-sm text-[#5F2740]">
+                      <span className="text-[#795365]">Previous: {latestDateChange.current_check_in} → {latestDateChange.current_check_out}</span>
+                      <span className="px-1.5" aria-hidden="true">|</span>
+                      <span className="font-semibold">Now: {latestDateChange.requested_check_in} → {latestDateChange.requested_check_out}</span>
+                    </p>
+                  </div>
+                )}
+
+                {b.special_requests && (
+                  <p className="mb-3 border-t border-[#1B1A2E]/10 pt-3 text-sm text-gray-600">
+                    <span className="font-medium text-gray-700">Guest note: </span>{b.special_requests}
+                  </p>
+                )}
+
+                <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-[#1B1A2E]/10 pt-3">
+                  <Link
+                    href={`/host/bookings/${b.id}`}
+                    className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium text-gray-600 transition hover:text-[#12231d] focus:outline-none focus:underline focus:underline-offset-2"
+                  >
+                    <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                    Booking support
+                    {(b.unreadSupportReplyCount ?? 0) > 0 && (
+                      <span className="ml-1 inline-flex items-center gap-1 text-xs font-semibold text-[#9C2454]">
+                        <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[#E23E85]" />
+                        {b.unreadSupportReplyCount === 1 ? "1 new reply" : `${b.unreadSupportReplyCount} new replies`}
+                      </span>
+                    )}
+                  </Link>
+                </footer>
 
                 {/* Complete action */}
                 {b.status === "confirmed" && (checkoutTimeReached || isCheckoutDateToday) && (

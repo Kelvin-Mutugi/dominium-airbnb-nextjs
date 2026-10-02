@@ -9,10 +9,8 @@ import {
 
 export function CancellationRequestActions({
   requestId,
-  estimatedRefund,
 }: {
   requestId: string;
-  estimatedRefund: number;
 }) {
   const router = useRouter();
   const [adminResponse, setAdminResponse] = useState("");
@@ -20,7 +18,7 @@ export function CancellationRequestActions({
   const [isPending, setIsPending] = useState(false);
 
   async function approve() {
-    if (!window.confirm(`Approve this cancellation? The estimated KES ${estimatedRefund.toLocaleString("en-KE")} refund must still be processed manually.`)) return;
+    if (!window.confirm(`Approve this cancellation? The booking will be cancelled. Any eligible refund will move to the separate Refunds queue for review; this action does not send money.`)) return;
     setError(null);
     setIsPending(true);
     try {

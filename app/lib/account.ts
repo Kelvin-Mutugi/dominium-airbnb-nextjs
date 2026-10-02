@@ -52,7 +52,7 @@ export const getGuestBookings = cache(async (userId: string) => {
     supabase.from('host_reviews').select('booking_id').eq('guest_id', userId),
     supabase
       .from('booking_change_requests')
-      .select('id, booking_id, request_type, status, current_check_in, current_check_out, requested_check_in, requested_check_out, quoted_total_amount, amount_paid, refund_percent, estimated_refund_amount, refund_processing_status, host_response, created_at')
+      .select('id, booking_id, request_type, status, current_check_in, current_check_out, requested_check_in, requested_check_out, quoted_total_amount, amount_paid, refund_percent, estimated_refund_amount, refund_processing_status, refund_admin_response, actual_refund_amount, refund_processed_at, host_response, created_at')
       .eq('guest_id', userId)
       .order('created_at', { ascending: false }),
   ]);

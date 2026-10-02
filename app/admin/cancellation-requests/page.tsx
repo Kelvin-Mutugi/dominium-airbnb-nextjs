@@ -40,7 +40,7 @@ export default async function AdminCancellationRequestsPage() {
       <header>
         <h1 className="text-2xl font-semibold text-[#E23E85]">Cancellation Requests</h1>
         <p className="mt-1 text-sm text-gray-600">
-          Review guest cancellation requests and decide whether to approve them. Refunds are processed manually.
+          Decide whether to cancel the booking. Eligible refund requests go to the separate Refunds section for review; approval here does not send money.
         </p>
       </header>
 
@@ -84,7 +84,6 @@ export default async function AdminCancellationRequestsPage() {
                 </div>
                 <CancellationRequestActions
                   requestId={request.id}
-                  estimatedRefund={Number(request.estimated_refund_amount)}
                 />
               </article>
             );

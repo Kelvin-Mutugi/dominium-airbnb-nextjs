@@ -96,11 +96,17 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
               </p>
               <p className="mt-1">
                 {cr.status === 'pending'
-                  ? 'Next: the admin team reviews your request. Your booking remains confirmed until it is approved. If approved, the booking will be cancelled and any eligible refund will be processed manually.'
+                  ? 'Next: the admin team reviews your cancellation request. Your booking remains confirmed until it is approved. If approved, the booking is cancelled and any eligible refund goes to a separate admin review; approving the cancellation alone does not send money.'
                   : cr.status === 'declined'
                     ? 'The admin team declined this request. Your booking remains confirmed, and no refund will be processed.'
+                    : cr.refund_processing_status === 'awaiting_admin_review'
+                      ? 'Your cancellation is approved and the booking is cancelled. The refund is now in a separate admin review; approval here does not send money. We will update this page after the refund decision.'
+                      : cr.refund_processing_status === 'declined'
+                        ? `Your booking is cancelled, but the refund request was declined. ${cr.refund_admin_response ?? 'No refund will be sent.'}`
+                        : cr.refund_processing_status === 'processed'
+                          ? `Refund sent: ${formatMoney(cr.actual_refund_amount ?? 0)}${cr.refund_processed_at ? ` on ${formatDate(cr.refund_processed_at, 'short')}` : ''}. Your bank or mobile-money provider may take additional time to post it.`
                     : cr.refund_processing_status === 'awaiting_manual_processing'
-                      ? 'Approved: your booking is cancelled, but the refund has not been sent yet. The admin team processes eligible refunds manually; allow 3–5 business days after approval.'
+                      ? `Refund approved: your booking is cancelled, but the money has not been sent yet. The admin team must process it manually. Allow 3–5 business days after it is sent.`
                       : cr.refund_processing_status === 'not_eligible'
                         ? 'Approved: your booking is cancelled. The estimated policy calculation indicates no refund is due.'
                         : 'Your cancellation request has been reviewed.'}
