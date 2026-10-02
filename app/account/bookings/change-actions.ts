@@ -122,7 +122,7 @@ export async function requestBookingCancellation(bookingId: string): Promise<{ o
   revalidatePath(`/account/bookings/${bookingId}`);
   revalidatePath('/host/bookings');
   revalidatePath(`/host/bookings/${bookingId}`);
-  return { ok: true, message: updateError ? 'Cancellation request sent. The trip timeline could not be updated; contact support if you need help.' : 'Cancellation request sent to the host for approval.' };
+  return { ok: true, message: updateError ? 'Cancellation request sent. The trip timeline could not be updated; contact support if you need help.' : 'Cancellation request sent to the admin team for review.' };
 }
 
 export async function previewBookingDateChange(input: {

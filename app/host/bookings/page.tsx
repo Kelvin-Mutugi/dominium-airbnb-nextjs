@@ -9,6 +9,7 @@ import {
   Loader2,
   MessageCircle,
 } from "lucide-react";
+import { formatCheckoutTime, isCheckoutTimeReached, todayISO } from "@/app/lib/format";
 import {
   getHostBookingChangeRequestsData,
   getHostBookingsData,
@@ -25,6 +26,7 @@ const FILTERS: { label: string; value: Exclude<BookingStatus, "pending"> }[] = [
 ];
 
 export default function HostBookingsPage() {
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [changeRequests, setChangeRequests] = useState<HostBookingChangeRequest[]>([]);
   const [filter, setFilter] = useState<Exclude<BookingStatus, "pending">>("confirmed");
@@ -47,6 +49,13 @@ export default function HostBookingsPage() {
 
   // Success message shown briefly after an action
   const [success, setSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    const updateClock = () => setCurrentTime(new Date());
+    updateClock();
+    const intervalId = window.setInterval(updateClock, 30_000);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   async function load(
     showLoader = false,
@@ -117,9 +126,7 @@ export default function HostBookingsPage() {
       }, 3000);
     } catch (err) {
       console.error("Failed to update booking:", err);
-      setError(
-        "We couldn't update this booking. Please try again."
-      );
+      setError(err instanceof Error ? err.message : "We couldn't update this booking. Please try again.");
     } finally {
       setUpdatingId(null);
       setUpdatingStatus(null);
@@ -129,15 +136,7 @@ export default function HostBookingsPage() {
   async function handleRequestResponse(
     requestId: string,
     approve: boolean,
-    requestType: "cancellation" | "date_change",
-    estimatedRefundAmount: number,
   ) {
-    if (
-      approve &&
-      requestType === "cancellation" &&
-      !window.confirm(`Approve this cancellation? The booking will be cancelled now. The estimated KES ${estimatedRefundAmount.toLocaleString("en-KE")} refund will still need manual processing.`)
-    ) return;
-
     if (updatingRequestId) return;
     setUpdatingRequestId(requestId);
     setError(null);
@@ -145,7 +144,7 @@ export default function HostBookingsPage() {
     try {
       await respondToBookingChangeRequest(requestId, approve);
       await load(false, filter);
-      setSuccess(approve ? "Guest request approved." : "Guest request declined.");
+      setSuccess(approve ? "Date-change request approved." : "Date-change request declined.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "We couldn't update this request.");
     } finally {
@@ -231,8 +230,8 @@ export default function HostBookingsPage() {
       {changeRequests.length > 0 && (
         <section aria-labelledby="booking-change-requests-heading" className="space-y-3">
           <div>
-            <h2 id="booking-change-requests-heading" className="text-lg font-semibold text-[#12231d]">Guest change requests</h2>
-            <p className="text-sm text-gray-500">Review requested dates or cancellation before updating the booking.</p>
+            <h2 id="booking-change-requests-heading" className="text-lg font-semibold text-[#12231d]">Guest date-change requests</h2>
+            <p className="text-sm text-gray-500">Review requested dates before updating a booking. Cancellation requests are reviewed by an administrator.</p>
           </div>
           {changeRequests.map((request) => {
             const isUpdatingRequest = updatingRequestId === request.id;
@@ -241,14 +240,11 @@ export default function HostBookingsPage() {
               <article key={request.id} className="rounded-xl border border-gray-200 bg-white p-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="font-semibold text-[#12231d]">{request.request_type === "cancellation" ? "Cancellation" : "Date change"} · {listing?.title ?? "Booking"}</p>
+                    <p className="font-semibold text-[#12231d]">Date change · {listing?.title ?? "Booking"}</p>
                     <p className="mt-1 text-sm text-gray-600">Guest: {request.booking.guest_name ?? "Guest"}</p>
                     <p className="mt-1 text-sm text-gray-600">Current: {request.current_check_in} to {request.current_check_out}</p>
                     {request.request_type === "date_change" && request.requested_check_in && request.requested_check_out && (
                       <p className="mt-1 text-sm font-medium text-[#12231d]">Requested: {request.requested_check_in} to {request.requested_check_out}</p>
-                    )}
-                    {request.request_type === "cancellation" && (
-                      <p className="mt-1 text-sm text-gray-600">Estimated refund: KES {Number(request.estimated_refund_amount).toLocaleString("en-KE")} ({request.refund_percent}% of KES {Number(request.amount_paid).toLocaleString("en-KE")}); manual processing after approval.</p>
                     )}
                     {request.request_type === "date_change" && request.quoted_total_amount != null && (
                       <p className="mt-1 text-sm text-gray-600">Estimated revised total: KES {Number(request.quoted_total_amount).toLocaleString("en-KE")}. Approval is available only when the total is unchanged.</p>
@@ -256,8 +252,8 @@ export default function HostBookingsPage() {
                     {request.reason && <p className="mt-2 whitespace-pre-wrap text-sm text-gray-500">Guest note: {request.reason}</p>}
                   </div>
                   <div className="flex shrink-0 gap-2">
-                    <button type="button" disabled={isUpdatingRequest} onClick={() => handleRequestResponse(request.id, false, request.request_type, Number(request.estimated_refund_amount ?? 0))} className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 disabled:opacity-50">Decline</button>
-                    <button type="button" disabled={isUpdatingRequest} onClick={() => handleRequestResponse(request.id, true, request.request_type, Number(request.estimated_refund_amount ?? 0))} className="rounded-md bg-[#12231d] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">{isUpdatingRequest ? "Saving…" : request.request_type === "cancellation" ? "Approve cancellation" : "Approve date change"}</button>
+                    <button type="button" disabled={isUpdatingRequest} onClick={() => handleRequestResponse(request.id, false)} className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 disabled:opacity-50">Decline</button>
+                    <button type="button" disabled={isUpdatingRequest} onClick={() => handleRequestResponse(request.id, true)} className="rounded-md bg-[#12231d] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">{isUpdatingRequest ? "Saving…" : "Approve date change"}</button>
                   </div>
                 </div>
               </article>
@@ -301,34 +297,57 @@ export default function HostBookingsPage() {
         <div className="space-y-3">
           {visible.map((b) => {
             const isUpdating = updatingId === b.id;
+            const latestDateChange = b.dateChangeHistory?.[0];
+            const checkoutTime = formatCheckoutTime(b.listing?.check_out_time);
+            const checkoutTimeReached = currentTime !== null && isCheckoutTimeReached(b.check_out, b.listing?.check_out_time, currentTime);
+            const isCheckoutDateToday = currentTime !== null && b.check_out === todayISO(currentTime);
+            const canMarkCompleted = b.status === "confirmed" && checkoutTimeReached;
 
             return (
               <div
                 key={b.id}
                 id={`host-booking-${b.id}`}
-                className={`rounded-2xl bg-white p-4 shadow-sm transition-opacity ${
+                className={`rounded-2xl bg-[#f5f5f7] p-4 shadow-[4px_4px_10px_rgba(27,26,46,0.08),-4px_-4px_10px_rgba(255,255,255,0.9)] transition-opacity sm:p-5 ${
                   isUpdating ? "opacity-70" : ""
                 } ${
                   focusBookingId === b.id ? "outline outline-2 outline-offset-2 outline-[#E23E85]" : ""
                 }`}
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
+                <div className="grid min-w-0 gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <h3 className="font-semibold text-[#12231d]">
                         {b.listing?.title}
                       </h3>
 
                       <StatusBadge status={b.status} />
+                      {b.status === "completed" && b.completion_source && (
+                        <span className="text-xs font-medium text-gray-500">
+                          Completed {b.completion_source === "system" ? "automatically" : "by host"}
+                        </span>
+                      )}
                     </div>
 
                     <p className="text-sm text-gray-500">
                       Booking reference: {b.booking_reference}
                     </p>
 
-                    <p className="mt-1 text-sm text-gray-600">{b.check_in} → {b.check_out} · {b.nights} {b.nights === 1 ? "night" : "nights"}</p>
-                    <p className="mt-1 text-sm text-gray-600">Guest: {b.guest_name ?? "Guest"}{b.guest_country ? ` · ${b.guest_country}` : ""}</p>
-                    <p className="mt-1 text-sm text-gray-600">{b.adults_count} {b.adults_count === 1 ? "adult" : "adults"} · {b.children_count} {b.children_count === 1 ? "child" : "children"} · {b.pets_count} {b.pets_count === 1 ? "pet" : "pets"} · {b.rooms_count} {b.rooms_count === 1 ? "room" : "rooms"}</p>
+                    <p className="mt-1 break-words text-sm text-gray-600">{b.check_in} → {b.check_out} · {b.nights} {b.nights === 1 ? "night" : "nights"}</p>
+                    {latestDateChange && (
+                      <div className="mt-2 rounded-lg border border-[#E23E85]/25 bg-[#FCE8F0] px-3 py-2.5">
+                        <p className="text-xs font-bold uppercase tracking-wide text-[#9C2454]">
+                          Dates updated{(b.dateChangeHistory?.length ?? 0) > 1 ? ` · ${b.dateChangeHistory?.length} changes` : ""}
+                        </p>
+                        <p className="mt-1 text-sm text-[#5F2740]">
+                          <span className="font-medium">{latestDateChange.current_check_in} → {latestDateChange.current_check_out}</span>
+                          <span className="px-1.5" aria-hidden="true">→</span>
+                          <span className="font-semibold">{latestDateChange.requested_check_in} → {latestDateChange.requested_check_out}</span>
+                        </p>
+                        <p className="mt-1 text-xs text-[#795365]">Current stay dates above reflect this approved change.</p>
+                      </div>
+                    )}
+                    <p className="mt-1 break-words text-sm text-gray-600">Guest: {b.guest_name ?? "Guest"}{b.guest_country ? ` · ${b.guest_country}` : ""}</p>
+                    <p className="mt-1 break-words text-sm text-gray-600">{b.adults_count} {b.adults_count === 1 ? "adult" : "adults"} · {b.children_count} {b.children_count === 1 ? "child" : "children"} · {b.pets_count} {b.pets_count === 1 ? "pet" : "pets"} · {b.rooms_count} {b.rooms_count === 1 ? "room" : "rooms"}</p>
 
                     {b.special_requests && (
                       <p className="mt-1 text-sm italic text-gray-500">
@@ -337,7 +356,7 @@ export default function HostBookingsPage() {
                     )}
                     <Link
                       href={`/host/bookings/${b.id}`}
-                      className="mt-2 inline-flex items-center gap-1.5 py-1 text-sm font-medium text-gray-600 transition hover:text-[#12231d] focus:outline-none focus:underline focus:underline-offset-2"
+                      className="mt-2 inline-flex max-w-full flex-wrap items-center gap-1.5 py-1 text-sm font-medium text-gray-600 transition hover:text-[#12231d] focus:outline-none focus:underline focus:underline-offset-2"
                     >
                       <MessageCircle className="h-4 w-4" aria-hidden="true" />
                       Chat with customer support
@@ -350,12 +369,14 @@ export default function HostBookingsPage() {
                     </Link>
                   </div>
 
-                  <div className="text-right text-sm">
-                    <p className="text-xs text-gray-500">Host payout</p>
-                    <p className="font-semibold text-[#12231d]">KES {b.host_payout_amount.toLocaleString()}</p>
+                  <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl bg-[#f1f1f4] p-3 text-sm shadow-[inset_2px_2px_5px_rgba(27,26,46,0.06),inset_-2px_-2px_5px_rgba(255,255,255,0.9)] sm:block sm:min-w-44 sm:text-right">
+                    <div>
+                      <p className="text-xs text-gray-500">Host payout</p>
+                      <p className="font-semibold text-[#12231d]">KES {b.host_payout_amount.toLocaleString()}</p>
+                    </div>
                     <Link
                       href={`/account/support?booking=${b.id}&category=host_guest_concern`}
-                      className="mt-2 inline-block text-xs font-medium text-[#9C2454] underline underline-offset-2"
+                      className="text-xs font-medium text-[#9C2454] underline underline-offset-2 sm:mt-2 sm:inline-block"
                     >
                       Report a problem or dispute
                     </Link>
@@ -363,8 +384,18 @@ export default function HostBookingsPage() {
                 </div>
 
                 {/* Complete action */}
-                {b.status === "confirmed" &&
-                  new Date(b.check_out) < new Date() && (
+                {b.status === "confirmed" && (checkoutTimeReached || isCheckoutDateToday) && (
+                  <p
+                    role="status"
+                    className={`mt-3 rounded-lg px-3 py-2 text-sm ${checkoutTimeReached ? "bg-emerald-50 font-medium text-emerald-800" : "bg-amber-50 text-amber-900"}`}
+                  >
+                    {checkoutTimeReached
+                      ? `Scheduled check-out time (${checkoutTime} EAT) has passed. This stay is ready to complete.`
+                      : `Scheduled check-out is ${checkoutTime} EAT. Completion becomes available after this time.`}
+                  </p>
+                )}
+
+                {canMarkCompleted && (
                     <div className="mt-3">
                       {completingBookingId !== b.id ? (
                         <button
@@ -381,7 +412,7 @@ export default function HostBookingsPage() {
                           <div>
                             <h4 id={`complete-heading-${b.id}`} className="text-sm font-semibold text-amber-950">Confirm stay completion</h4>
                             <p className="mt-1 text-sm text-amber-900">
-                              Mark {b.guest_name ?? "The guest"}&apos;s stay at {b.listing?.title ?? "this listing"} as completed? Check-out was {new Date(`${b.check_out}T00:00:00`).toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" })}. Only continue if the guest has checked out and the stay has ended. This records the completed stay in your payout history.
+                              Mark {b.guest_name ?? "The guest"}&apos;s stay at {b.listing?.title ?? "this listing"} as completed? The scheduled check-out time ({checkoutTime} EAT) has passed. The payout remains on hold until 24 hours after check-out and while any support case or guest request is unresolved.
                             </p>
                           </div>
                           <div className="flex flex-wrap gap-2">
@@ -396,6 +427,7 @@ export default function HostBookingsPage() {
                       )}
                     </div>
                   )}
+
               </div>
             );
           })}

@@ -4,7 +4,7 @@
 
 import Link from 'next/link';
 import { BookOpenText, ChevronDown, MessageCircle } from 'lucide-react';
-import { coverImage, formatDate, formatMoney, humanize, nightsBetween } from '@/app/lib/format';
+import { coverImage, formatDate, formatMoney, humanize, nightsBetween, todayISO } from '@/app/lib/format';
 import { routes } from '@/app/lib/routes';
 import type { BookingView } from '@/types/account';
 import { CancelBookingButton, HostReviewButton, ReviewButton } from './BookingActions';
@@ -20,7 +20,8 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
   const nights = nightsBetween(b.check_in, b.check_out);
   const image = coverImage(listing?.listing_images);
   const canCancel = b.phase === 'upcoming' && b.status === 'pending';
-  const canChangeConfirmedBooking = b.phase === 'upcoming' && b.status === 'confirmed';
+  const canChangeConfirmedBooking = b.phase === 'upcoming' && b.status === 'confirmed' && b.check_in > todayISO();
+  const stayInProgress = b.status === 'confirmed' && b.check_in <= todayISO() && b.check_out > todayISO();
   const canReview = b.phase === 'past' && b.status === 'completed' && !b.reviewed;
   const canReviewHost = b.phase === 'past' && b.status === 'completed' && !b.hostReviewed;
   const hasArrivalGuide = b.status === 'confirmed' || b.status === 'completed';
@@ -71,6 +72,11 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
             {pets}
             {rooms}
           </p>
+          {stayInProgress && (
+            <p className="mt-2 inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
+              Stay in progress · changes close after check-in
+            </p>
+          )}
         </div>
 
         <p className="font-serif text-xl text-neutral-900 md:ml-auto md:text-right">{formatMoney(b.total_amount)}</p>
@@ -83,22 +89,37 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
             {humanize(cr.request_type)} request {humanize(cr.status).toLowerCase()}
           </p>
           {cr.request_type === 'cancellation' && (
-            <p className="mt-1">
-              Estimated refund: {formatMoney(cr.estimated_refund_amount)} ({cr.refund_percent}% of{' '}
-              {formatMoney(cr.amount_paid)} paid).
-              {cr.refund_processing_status === 'awaiting_manual_processing'
-                ? ' Approved; manual processing is pending. Allow 3–5 business days after management approval.'
-                : cr.refund_processing_status === 'not_eligible'
-                  ? ' No refund is due under the estimated policy window.'
+            <>
+              <p className="mt-1">
+                Estimated refund: {formatMoney(cr.estimated_refund_amount)} ({cr.refund_percent}% of{' '}
+                {formatMoney(cr.amount_paid)} paid). This amount is an estimate and may change under the property cancellation terms.
+              </p>
+              <p className="mt-1">
+                {cr.status === 'pending'
+                  ? 'Next: the admin team reviews your request. Your booking remains confirmed until it is approved. If approved, the booking will be cancelled and any eligible refund will be processed manually.'
                   : cr.status === 'declined'
-                    ? ' The request was declined; no refund will be processed.'
-                    : ' This is an estimate; the host has not approved the request yet.'}
-            </p>
+                    ? 'The admin team declined this request. Your booking remains confirmed, and no refund will be processed.'
+                    : cr.refund_processing_status === 'awaiting_manual_processing'
+                      ? 'Approved: your booking is cancelled, but the refund has not been sent yet. The admin team processes eligible refunds manually; allow 3–5 business days after approval.'
+                      : cr.refund_processing_status === 'not_eligible'
+                        ? 'Approved: your booking is cancelled. The estimated policy calculation indicates no refund is due.'
+                        : 'Your cancellation request has been reviewed.'}
+              </p>
+            </>
           )}
           {cr.request_type === 'date_change' && cr.requested_check_in && cr.requested_check_out && (
-            <p className="mt-1">
-              Requested dates: {formatDate(cr.requested_check_in, 'noYear')} to {formatDate(cr.requested_check_out, 'short')}
-            </p>
+            <>
+              <p className="mt-1">
+                Requested dates: {formatDate(cr.requested_check_in, 'noYear')} to {formatDate(cr.requested_check_out, 'short')}
+              </p>
+              <p className="mt-1">
+                {cr.status === 'pending'
+                  ? 'Your current dates stay in place until the host reviews the request.'
+                  : cr.status === 'approved'
+                    ? 'Approved: your booking now uses the requested dates shown above.'
+                    : 'The host declined this request, so your original booking dates remain unchanged.'}
+              </p>
+            </>
           )}
           {cr.host_response && <p className="mt-1">Host note: {cr.host_response}</p>}
         </div>

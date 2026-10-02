@@ -132,6 +132,8 @@ export interface Booking {
   pets_count: number;
   rooms_count: number;
   status: BookingStatus;
+  completed_at?: string | null;
+  completion_source?: "host" | "system" | null;
   total_amount: number;
   commission_amount: number;
   host_payout_amount: number;
@@ -142,8 +144,18 @@ export interface Booking {
   special_requests: string | null;
   created_at: string;
   unreadSupportReplyCount?: number;
+  dateChangeHistory?: BookingDateChange[];
   // joined
-  listing?: Pick<Listing, "id" | "title" | "town" | "county">;
+  listing?: Pick<Listing, "id" | "title" | "town" | "county" | "check_out_time">;
+}
+
+export interface BookingDateChange {
+  id: string;
+  current_check_in: string;
+  current_check_out: string;
+  requested_check_in: string;
+  requested_check_out: string;
+  created_at: string;
 }
 
 export interface HostBookingChangeRequest {

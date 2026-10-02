@@ -55,26 +55,43 @@ function DestinationCard({
   image: string;
 }) {
   return (
-    <article className="group relative h-[145px] w-[145px] shrink-0 overflow-hidden rounded-2xl bg-gray-200 sm:w-[235px]">
-      <img
-        src={image}
-        alt={name}
-        loading="lazy"
-        draggable={false}
-        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-      />
+    <article
+      className="
+        group relative h-[145px] w-[145px] shrink-0
+        overflow-hidden rounded-2xl
+        bg-[#F5F5F5]
+        p-[5px]
+        shadow-[6px_6px_14px_rgba(0,0,0,0.12),-6px_-6px_14px_rgba(255,255,255,0.95)]
+        transition-all duration-300
+        hover:shadow-[8px_8px_18px_rgba(0,0,0,0.15),-8px_-8px_18px_rgba(255,255,255,1)]
+        sm:w-[235px]
+      "
+    >
+      <div className="relative h-full w-full overflow-hidden rounded-[13px]">
+        <img
+          src={image}
+          alt={name}
+          loading="lazy"
+          draggable={false}
+          className="
+            absolute inset-0 h-full w-full object-cover
+            transition-transform duration-700
+            group-hover:scale-105
+          "
+        />
 
-      {/* Dark cinematic overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+        {/* Dark cinematic overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
 
-      <div className="absolute inset-x-0 bottom-0 p-4">
-        <h3 className="text-[15px] font-semibold text-white">
-          {name}
-        </h3>
+        <div className="absolute inset-x-0 bottom-0 p-3.5">
+          <h3 className="text-[15px] font-semibold text-white">
+            {name}
+          </h3>
 
-        <p className="mt-0.5 text-xs text-white/75">
-          {subtitle}
-        </p>
+          <p className="mt-0.5 text-xs text-white/75">
+            {subtitle}
+          </p>
+        </div>
       </div>
     </article>
   );
@@ -82,14 +99,14 @@ function DestinationCard({
 
 export default function MagicalKenya() {
   return (
-    <section className="overflow-hidden  py-7 bg-[#F5F5F5]/80">
+    <section className="overflow-hidden bg-[#F5F5F5]/80 py-7">
       {/* Heading */}
       <div className="mx-auto mb-4 max-w-[1480px] px-6 lg:px-8">
         <div className="flex items-end justify-center">
           <div>
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#E23E85] text-center">
+            {/* <p className="mb-1 text-[11px] font-semibold text-[#E23E85] text-center">
               Discover Kenya
-            </p>
+            </p> */}
 
             {/* <h2 className="text-2xl font-bold tracking-tight text-[#1B1A2E]">
               Magical Kenya
@@ -105,9 +122,9 @@ export default function MagicalKenya() {
       {/* Infinite marquee */}
       <div className="relative overflow-hidden">
         {/* Soft edge fade */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-white to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-[#F5F5F5] to-transparent" />
 
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-white to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-[#F5F5F5] to-transparent" />
 
         <div className="marquee-track flex w-max gap-3">
           {/* First set */}
