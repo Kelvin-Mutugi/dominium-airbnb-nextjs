@@ -1,5 +1,13 @@
 {
   // ...
+  "name": "dominium-bnb",
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "dominium-bnb"   // was probably "my-app"
+    }
+  ],
+  
   "vars": {
     "NEXT_PUBLIC_APP_URL": "https://dominium-bnb.dominiumbnb.workers.dev/",
     "NEXT_PUBLIC_SITE_URL": "http://localhost:3000",
