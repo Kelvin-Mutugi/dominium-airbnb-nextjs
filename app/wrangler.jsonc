@@ -1,0 +1,8 @@
+{
+  // ...
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6Z3N0bGtjZnVnZGJqeWF2ZXZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MTgxNDIsImV4cCI6MjEwNDA5NDE0Mn0.bWLdY8jiAvkXFtGvTJ-AcLY_4gVdpuNNoQiyoEghGKQ",
+    "NEXT_PUBLIC_SUPABASE_URL": "https://izgstlkcfugdbjyavevo.supabase.co"
+  },
+  // ...
+}
