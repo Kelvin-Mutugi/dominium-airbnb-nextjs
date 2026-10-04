@@ -1,6 +1,8 @@
 // FILE LOCATION: types/account.ts
 // Put this file at types/account.ts in your project root (or src/types/account.ts if your project has a src/ folder).
 
+import type { RefundProgress } from './refunds';
+
 /**
  * Enum columns come through as plain strings. The values below are what this
  * code assumes; adjust the comparisons if your Postgres enums differ:
@@ -72,6 +74,7 @@ export interface BookingView extends BookingRow {
   hostReviewed: boolean;
   changeRequest: BookingChangeRequest | null;
   unreadSupportReplyCount: number;
+  refundRequests?: RefundProgress[];
 }
 
 export interface BookingChangeRequest {
@@ -91,6 +94,8 @@ export interface BookingChangeRequest {
   actual_refund_amount: number | null;
   refund_processed_at: string | null;
   host_response: string | null;
+  auto_decision_at?: string | null;
+  decision_source?: 'host' | 'system' | null;
   created_at: string;
 }
 

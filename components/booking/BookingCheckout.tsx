@@ -122,6 +122,16 @@ export default function BookingCheckout({
   const policiesUrl = `/apartments/${listingId}`;
   const sessionKey = checkoutStorageKey(listingId, checkIn, checkOut);
   const tripSessionKey = checkoutStorageKey(listingId, tripCheckIn, tripCheckOut);
+  const checkoutParams = new URLSearchParams({
+    checkIn: tripCheckIn,
+    checkOut: tripCheckOut,
+    guests: String(tripGuests),
+    children: String(tripKids),
+    pets: String(tripPets),
+  });
+  if (resumeBookingId) checkoutParams.set("bookingId", resumeBookingId);
+  const checkoutReturnUrl = `/booking/${encodeURIComponent(listingId)}?${checkoutParams.toString()}`;
+  const signupUrl = `/signup?redirectTo=${encodeURIComponent(checkoutReturnUrl)}`;
 
   useEffect(() => {
     let alive = true;
@@ -255,7 +265,7 @@ export default function BookingCheckout({
     event.preventDefault();
     setSigninLoading(true);
     setSigninError(null);
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: signinEmail.trim(),
       password: signinPassword,
     });
@@ -264,6 +274,15 @@ export default function BookingCheckout({
       setSigninError("We couldn't sign you in. Check your details and try again.");
       return;
     }
+    setUserId(data.user.id);
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name, phone")
+      .eq("id", data.user.id)
+      .maybeSingle();
+    if (profile?.full_name) setFullName(profile.full_name);
+    if (profile?.phone) setPhone(profile.phone);
+    if (data.user.email) setEmail(data.user.email);
     setSigninPassword("");
     setSigninOpen(false);
   }
@@ -271,6 +290,12 @@ export default function BookingCheckout({
   async function pay() {
     setTermsError(!agreed);
     setFormError(null);
+    if (!userId) {
+      setFormError("Sign in or create an account before booking.");
+      setSigninEmail(email);
+      setSigninOpen(true);
+      return;
+    }
     if (!agreed) return;
     if (!listing || !price || !tripCheckIn || !tripCheckOut || nights < (listing.min_nights ?? 1)) {
       setFormError("Choose valid dates for this stay.");
@@ -512,10 +537,14 @@ export default function BookingCheckout({
           </label>
         </div>
         {!userId && (
-          <p className="mt-3 text-sm text-[#3A3856]">
-            Already have an account?{" "}
-            <button type="button" onClick={() => { setSigninEmail(email); setSigninOpen(true); }} className="min-h-11 font-semibold text-[#1769AA] underline underline-offset-2">Sign in</button>
-          </p>
+          <div className="mt-4 rounded-md border border-[#DDE0E4] bg-[#F7F8F8] p-3">
+            <p className="text-sm font-semibold text-[#1B1A2E]">An account is required to book</p>
+            <p className="mt-1 text-xs leading-5 text-[#3A3856]">Sign in or create an account. Your selected stay details will be kept for checkout.</p>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              <button type="button" onClick={() => { setSigninEmail(email); setSigninOpen(true); }} className="min-h-10 font-semibold text-[#1769AA] underline underline-offset-2">Sign in</button>
+              <Link href={signupUrl} className="inline-flex min-h-10 items-center font-semibold text-[#1769AA] underline underline-offset-2">Create account</Link>
+            </div>
+          </div>
         )}
       </section>
 
@@ -571,9 +600,9 @@ export default function BookingCheckout({
       </section>
 
       {formError && <p role="alert" className="mb-3 text-sm text-red-700">{formError}</p>}
-      <button type="button" onClick={() => void pay()} disabled={isPaying} className="inline-flex min-h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-4xl bg-[#d61a6b] px-4 py-3 text-base font-semibold text-white disabled:cursor-wait disabled:opacity-60">
+      <button type="button" onClick={() => void pay()} disabled={isPaying || !userId} className="inline-flex min-h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-4xl bg-[#d61a6b] px-4 py-3 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
         {isPaying && <LoaderCircle size={18} className="animate-spin" aria-hidden="true" />}
-        {isPaying ? "Processing payment…" : `Pay ${formatMoney(price.total)}`}
+        {isPaying ? "Processing payment…" : userId ? `Pay ${formatMoney(price.total)}` : "Sign in or create an account to pay"}
       </button>
       <p role="status" aria-live="polite" className="mt-3 text-center text-xs leading-5 text-[#3A3856]/75">
         {isPaying
@@ -597,7 +626,8 @@ export default function BookingCheckout({
               <label className="block text-sm font-medium text-[#3A3856]">Password<input type="password" required value={signinPassword} onChange={(event) => setSigninPassword(event.target.value)} autoComplete="current-password" className="mt-1 block min-h-12 w-full rounded-md border border-[#DDE0E4] bg-white px-3 text-base shadow-[0_1px_3px_rgba(31,41,55,0.05)] transition-shadow focus:border-[#9BB9D2] focus:outline-none focus:ring-2 focus:ring-[#1769AA]/15" /></label>
               {signinError && <p role="alert" className="text-sm text-red-700">{signinError}</p>}
               <button type="submit" disabled={signinLoading} className="min-h-12 w-full rounded-md bg-[#1B1A2E] px-4 font-semibold text-white">{signinLoading ? "Signing in…" : "Sign in"}</button>
-              <button type="button" onClick={() => setSigninOpen(false)} className="min-h-12 w-full rounded-md border border-[#B8B7B2] px-4 font-medium text-[#1B1A2E]">Continue as guest</button>
+              <p className="text-center text-sm text-[#3A3856]">New to Dominium? <Link href={signupUrl} className="font-semibold text-[#1769AA] underline underline-offset-2">Create an account</Link></p>
+              <button type="button" onClick={() => setSigninOpen(false)} className="min-h-12 w-full rounded-md border border-[#B8B7B2] px-4 font-medium text-[#1B1A2E]">Back to checkout</button>
             </form>
           </section>
         </div>

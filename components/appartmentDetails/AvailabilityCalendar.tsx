@@ -1,5 +1,5 @@
 // appartmentDetails/AvailabilityCalendar.tsx
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, RotateCcw, X } from "lucide-react";
 import { rangesOverlap, type DateRange } from "@/app/lib/booking/availability";
 
@@ -66,6 +66,7 @@ export function AvailabilityCalendar({
 }: AvailabilityCalendarProps) {
   const initialStart = parseDateKey(initialCheckIn);
   const initialEnd = parseDateKey(initialCheckOut);
+  const rootRef = useRef<HTMLDivElement>(null);
   const [viewDate, setViewDate] = useState(() => {
     const selected = initialStart ?? new Date();
     return new Date(selected.getFullYear(), selected.getMonth(), 1);
@@ -75,6 +76,14 @@ export function AvailabilityCalendar({
   const [expanded, setExpanded] = useState(false);
   const [selecting, setSelecting] = useState<"checkIn" | "checkOut">("checkIn");
   const calendarOpen = expanded;
+
+  // On phones, keep the opened calendar in view (clear of the sticky price bar).
+  useEffect(() => {
+    if (!expanded) return;
+    if (typeof window === "undefined") return;
+    if (!window.matchMedia("(max-width: 1023px)").matches) return;
+    rootRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [expanded]);
 
   const days = useMemo(() => {
     const year = viewDate.getFullYear();
@@ -135,13 +144,14 @@ export function AvailabilityCalendar({
 
   return (
     <div
+      ref={rootRef}
       id="availability-calendar"
       tabIndex={-1}
-      className={`w-full min-w-0 max-w-full overflow-hidden rounded-lg border outline-none transition-colors ${
+      className={`w-full min-w-0 max-w-full scroll-mb-28 overflow-hidden rounded-lg border outline-none transition-colors ${
         prompt ? "border-[#E23E85]/50 ring-2 ring-[#E23E85]/10" : "border-[#F0EEE9]"
       }`}
     >
-      <div className="grid grid-cols-2 gap-2 p-2">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2 p-2">
         <button
           type="button"
           id="check-in-date-trigger"
@@ -152,10 +162,10 @@ export function AvailabilityCalendar({
             setExpanded(true);
             onDateSelectionStart?.();
           }}
-          className={`min-h-12 rounded-md border border-transparent bg-[#FAF9F7] px-3 py-2 text-left transition-colors ${calendarOpen && selecting === "checkIn" ? "border-[#1769AA]/50 bg-white ring-1 ring-[#1769AA]/25" : "hover:bg-[#F4F3F0]"}`}
+          className={`min-h-12 min-w-0 rounded-md border border-transparent bg-[#FAF9F7] px-3 py-2 text-left transition-colors ${calendarOpen && selecting === "checkIn" ? "border-[#1769AA]/50 bg-white ring-1 ring-[#1769AA]/25" : "hover:bg-[#F4F3F0]"}`}
         >
           <span className="block text-[11px] font-semibold uppercase text-[#6B6A78]">Check-in</span>
-          <span className="mt-0.5 block text-sm font-medium text-[#1B1A2E]">{formatDateLabel(checkIn)}</span>
+          <span className="mt-0.5 block truncate text-sm font-medium text-[#1B1A2E]">{formatDateLabel(checkIn)}</span>
         </button>
         <button
           type="button"
@@ -165,15 +175,15 @@ export function AvailabilityCalendar({
             setSelecting(checkIn ? "checkOut" : "checkIn");
             setExpanded(true);
           }}
-          className={`min-h-12 rounded-md border border-transparent bg-[#FAF9F7] px-3 py-2 text-left transition-colors ${calendarOpen && selecting === "checkOut" ? "border-[#1769AA]/50 bg-white ring-1 ring-[#1769AA]/25" : "hover:bg-[#F4F3F0]"}`}
+          className={`min-h-12 min-w-0 rounded-md border border-transparent bg-[#FAF9F7] px-3 py-2 text-left transition-colors ${calendarOpen && selecting === "checkOut" ? "border-[#1769AA]/50 bg-white ring-1 ring-[#1769AA]/25" : "hover:bg-[#F4F3F0]"}`}
         >
           <span className="block text-[11px] font-semibold uppercase text-[#6B6A78]">Check-out</span>
-          <span className="mt-0.5 block text-sm font-medium text-[#1B1A2E]">{formatDateLabel(checkOut)}</span>
+          <span className="mt-0.5 block truncate text-sm font-medium text-[#1B1A2E]">{formatDateLabel(checkOut)}</span>
         </button>
       </div>
 
-      {calendarOpen && <div className="max-w-full overflow-x-auto overscroll-x-contain border-t border-[#E9E6DD] p-3">
-      <div className="mb-3 flex items-center justify-between gap-3">
+      {calendarOpen && <div className="max-w-full overflow-x-auto overscroll-x-contain border-t border-[#E9E6DD] p-2 sm:p-3">
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
         <p className="text-sm font-medium text-[#3A3856]">
           {availabilityUnavailable
             ? "Availability is temporarily unavailable."
@@ -181,7 +191,7 @@ export function AvailabilityCalendar({
               ? "Select your check-in date"
               : `Select your check-out date${minNights > 1 ? ` · min ${minNights} nights` : ""}`}
         </p>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center justify-end gap-1">
           {(checkIn || checkOut) && (
             <button
               type="button"
@@ -213,7 +223,7 @@ export function AvailabilityCalendar({
             setViewDate((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))
           }
           aria-label="Previous month"
-          className="flex size-11 items-center justify-center rounded-full hover:bg-[#FAF9F6]"
+          className="flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-[#FAF9F6]"
         >
           <ChevronLeft size={18} />
         </button>
@@ -226,19 +236,19 @@ export function AvailabilityCalendar({
             setViewDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))
           }
           aria-label="Next month"
-          className="flex size-11 items-center justify-center rounded-full hover:bg-[#FAF9F6]"
+          className="flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-[#FAF9F6]"
         >
           <ChevronRight size={18} />
         </button>
       </div>
 
-      <div className="grid min-w-[308px] grid-cols-7 text-center text-[12px] text-[#3A3856]/60">
+      <div className="grid min-w-0 grid-cols-7 text-center text-[12px] text-[#3A3856]/60 lg:min-w-[308px]">
         {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
           <div key={i}>{d}</div>
         ))}
       </div>
 
-      <div className="mt-1 grid min-w-[308px] grid-cols-7">
+      <div className="mt-1 grid min-w-0 grid-cols-7 lg:min-w-[308px]">
         {days.map((day, i) => {
           if (!day) return <div key={i} />;
 
@@ -260,7 +270,7 @@ export function AvailabilityCalendar({
               type="button"
               disabled={availabilityUnavailable || disabled}
               onClick={() => handleDayClick(day)}
-              className={`aspect-square min-h-11 min-w-11 text-[13px] transition-colors ${
+              className={`aspect-square w-full min-w-0 text-[13px] transition-colors lg:min-h-11 lg:min-w-11 ${
                 (booked && !choosingCheckout) || past || beforeCheckIn || checkoutOverlap || tooShortCheckout
                   ? "cursor-not-allowed text-[#3A3856]/25 line-through"
                   : isCheckIn || isCheckOut

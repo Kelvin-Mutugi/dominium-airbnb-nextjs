@@ -14,12 +14,14 @@ import type {
   HostDashboardStats,
   HostArrivalGuideDetails,
   HostBookingChangeRequest,
+  HostDateChangeRecord,
   HostListingRequest,
   Listing,
   ListingFormValues,
   ListingImage,
   Payout,
 } from "./types";
+import type { RefundListItem, RefundProgress } from "@/types/refunds";
 
 const MPESA_REGEX = /^0\d{9}$/;
 const HOST_BOOKING_FIELDS = "id, booking_reference, listing_id, host_id, check_in, check_out, nights, adults_count, children_count, pets_count, rooms_count, status, completed_at, completion_source, host_payout_amount, guest_name, guest_country, special_requests";
@@ -564,7 +566,8 @@ export async function getHostBookingsData(status: Exclude<BookingStatus, "pendin
   if (!bookings.length) return bookings;
 
   const bookingIds = bookings.map((booking) => booking.id);
-  const [unreadByBooking, dateChangesResult] = await Promise.all([
+  const admin = getSupabaseAdmin();
+  const [unreadByBooking, dateChangesResult, refundRequestsResult, cancellationRefundsResult] = await Promise.all([
     getHostUnreadSupportCounts(user.id, bookingIds),
     supabase
       .from("booking_change_requests")
@@ -574,8 +577,28 @@ export async function getHostBookingsData(status: Exclude<BookingStatus, "pendin
       .eq("status", "approved")
       .in("booking_id", bookingIds)
       .order("created_at", { ascending: false }),
+    admin
+      .from("payment_refund_requests")
+      .select("id, payment_id, booking_id, status, amount_paid, actual_refund_amount, created_at, updated_at, processed_at")
+      .in("booking_id", bookingIds)
+      .order("created_at", { ascending: false }),
+    admin
+      .from("booking_change_requests")
+      .select("id, booking_id, amount_paid, estimated_refund_amount, refund_processing_status, actual_refund_amount, created_at, responded_at, refund_decided_at, refund_processed_at")
+      .eq("host_id", user.id)
+      .eq("request_type", "cancellation")
+      .eq("status", "approved")
+      .in("booking_id", bookingIds)
+      .in("refund_processing_status", ["awaiting_admin_review", "awaiting_manual_processing", "declined", "processed", "not_eligible"])
+      .order("created_at", { ascending: false }),
   ]);
   if (dateChangesResult.error) throw new Error("Unable to load booking date-change history.");
+  if (refundRequestsResult.error) {
+    console.error("Unable to load host refund progress:", refundRequestsResult.error);
+  }
+  if (cancellationRefundsResult.error) {
+    console.error("Unable to load host cancellation refund progress:", cancellationRefundsResult.error);
+  }
 
   const dateChangesByBooking = new Map<string, NonNullable<Booking["dateChangeHistory"]>>();
   for (const dateChange of dateChangesResult.data ?? []) {
@@ -583,12 +606,101 @@ export async function getHostBookingsData(status: Exclude<BookingStatus, "pendin
     history.push(dateChange);
     dateChangesByBooking.set(dateChange.booking_id, history);
   }
+  const refundRequestsByBooking = new Map<string, NonNullable<Booking["refundRequests"]>>();
+  for (const refund of refundRequestsResult.error ? [] : refundRequestsResult.data ?? []) {
+    const requests = refundRequestsByBooking.get(refund.booking_id) ?? [];
+    requests.push({ ...refund, source: 'payment' });
+    refundRequestsByBooking.set(refund.booking_id, requests);
+  }
+  for (const refund of cancellationRefundsResult.error ? [] : cancellationRefundsResult.data ?? []) {
+    const requests = refundRequestsByBooking.get(refund.booking_id) ?? [];
+    requests.push({
+      id: refund.id,
+      booking_id: refund.booking_id,
+      payment_id: null,
+      source: 'cancellation',
+      status: refund.refund_processing_status,
+      amount_paid: refund.amount_paid,
+      estimated_refund_amount: refund.estimated_refund_amount,
+      actual_refund_amount: refund.actual_refund_amount,
+      created_at: refund.created_at,
+      updated_at: refund.refund_processed_at ?? refund.refund_decided_at ?? refund.responded_at ?? refund.created_at,
+      processed_at: refund.refund_processed_at,
+    });
+    refundRequestsByBooking.set(refund.booking_id, requests);
+  }
 
   return bookings.map((booking) => ({
     ...booking,
     unreadSupportReplyCount: unreadByBooking[booking.id] ?? 0,
     dateChangeHistory: dateChangesByBooking.get(booking.id) ?? [],
+    refundRequests: refundRequestsByBooking.get(booking.id) ?? [],
   }));
+}
+
+export async function getHostRefundsData(): Promise<RefundListItem[]> {
+  const { user } = await requireHost();
+  const supabase = await createClient();
+  const { data: bookings, error: bookingError } = await supabase
+    .from('bookings')
+    .select('id, booking_reference, listing:listings(title)')
+    .eq('host_id', user.id);
+  if (bookingError) throw new Error('Unable to load bookings for your refunds.');
+  const bookingDetails = (bookings ?? []) as unknown as Array<{
+    id: string;
+    booking_reference: string;
+    listing: { title: string } | Array<{ title: string }> | null;
+  }>;
+  if (!bookingDetails.length) return [];
+
+  const bookingIds = bookingDetails.map((booking) => booking.id);
+  const admin = getSupabaseAdmin();
+  const [paymentResult, cancellationResult] = await Promise.all([
+    admin
+      .from('payment_refund_requests')
+      .select('id, payment_id, booking_id, status, amount_paid, actual_refund_amount, created_at, updated_at, processed_at')
+      .in('booking_id', bookingIds)
+      .order('created_at', { ascending: false }),
+    admin
+      .from('booking_change_requests')
+      .select('id, booking_id, amount_paid, estimated_refund_amount, refund_processing_status, actual_refund_amount, created_at, responded_at, refund_decided_at, refund_processed_at')
+      .eq('host_id', user.id)
+      .eq('request_type', 'cancellation')
+      .eq('status', 'approved')
+      .in('refund_processing_status', ['awaiting_admin_review', 'awaiting_manual_processing', 'declined', 'processed', 'not_eligible'])
+      .in('booking_id', bookingIds)
+      .order('created_at', { ascending: false }),
+  ]);
+  if (paymentResult.error || cancellationResult.error) {
+    console.error('Unable to load host refund section:', paymentResult.error ?? cancellationResult.error);
+    throw new Error('Unable to load refunds for your bookings. Please try again.');
+  }
+
+  const refunds: RefundProgress[] = [
+    ...((paymentResult.data ?? []) as RefundProgress[]).map((refund) => ({ ...refund, source: 'payment' as const })),
+    ...(cancellationResult.data ?? []).map((refund) => ({
+      id: refund.id,
+      booking_id: refund.booking_id,
+      payment_id: null,
+      source: 'cancellation' as const,
+      status: refund.refund_processing_status as RefundProgress['status'],
+      amount_paid: refund.amount_paid,
+      estimated_refund_amount: refund.estimated_refund_amount,
+      actual_refund_amount: refund.actual_refund_amount,
+      created_at: refund.created_at,
+      updated_at: refund.refund_processed_at ?? refund.refund_decided_at ?? refund.responded_at ?? refund.created_at,
+      processed_at: refund.refund_processed_at,
+    })),
+  ];
+  const bookingById = new Map(bookingDetails.map((booking) => {
+    const listing = Array.isArray(booking.listing) ? booking.listing[0] : booking.listing;
+    return [booking.id, { booking_reference: booking.booking_reference, listing_title: listing?.title ?? null }];
+  }));
+
+  return refunds
+    .map((refund) => ({ ...refund, ...bookingById.get(refund.booking_id) }))
+    .filter((refund): refund is RefundListItem => Boolean(refund.booking_reference))
+    .sort((first, second) => Date.parse(second.updated_at ?? second.created_at) - Date.parse(first.updated_at ?? first.created_at));
 }
 
 export async function getHostBookingChangeRequestsData() {
@@ -596,7 +708,7 @@ export async function getHostBookingChangeRequestsData() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('booking_change_requests')
-    .select('id, booking_id, request_type, current_check_in, current_check_out, requested_check_in, requested_check_out, quoted_total_amount, amount_paid, refund_percent, estimated_refund_amount, reason, created_at, booking:bookings!inner(guest_name, listing:listings(title))')
+    .select('id, booking_id, request_type, current_check_in, current_check_out, requested_check_in, requested_check_out, quoted_total_amount, amount_paid, refund_percent, estimated_refund_amount, reason, created_at, auto_decision_at, booking:bookings!inner(guest_name, listing:listings(title))')
     .eq('host_id', user.id)
     .eq('request_type', 'date_change')
     .eq('status', 'pending')
@@ -605,13 +717,31 @@ export async function getHostBookingChangeRequestsData() {
   return (data ?? []) as unknown as HostBookingChangeRequest[];
 }
 
-export async function respondToBookingChangeRequest(requestId: string, approve: boolean) {
+export async function getHostDateChangeHistoryData(): Promise<HostDateChangeRecord[]> {
+  const { user } = await requireHost();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('booking_change_requests')
+    .select('id, booking_id, status, current_check_in, current_check_out, requested_check_in, requested_check_out, quoted_total_amount, reason, created_at, responded_at, host_response, auto_decision_at, decision_source, booking:bookings!inner(booking_reference, guest_name, listing:listings(title))')
+    .eq('host_id', user.id)
+    .eq('request_type', 'date_change')
+    .order('created_at', { ascending: false })
+    .limit(200);
+  if (error) throw new Error('Unable to load date-change requests.');
+  return (data ?? []) as unknown as HostDateChangeRecord[];
+}
+
+export async function respondToBookingChangeRequest(requestId: string, approve: boolean, hostResponse = '') {
+  const response = hostResponse.trim();
+  if (!approve && (response.length < 5 || response.length > 1000)) {
+    throw new Error('Add a decline reason between 5 and 1000 characters. The guest will see it.');
+  }
   await requireHost();
   const supabase = await createClient();
   const { error } = await supabase.rpc('respond_to_booking_change_request', {
     p_request_id: requestId,
     p_approve: approve,
-    p_host_response: null,
+    p_host_response: response || null,
   });
   if (error) {
     if (error.message.includes('PRICE_CHANGE_REQUIRES_SUPPORT')) {
@@ -621,9 +751,12 @@ export async function respondToBookingChangeRequest(requestId: string, approve: 
       throw new Error('Those dates are no longer available. Decline the request and ask the guest to choose other dates.');
     }
     if (error.message.includes('REQUEST_ALREADY_HANDLED')) throw new Error('This request has already been handled.');
+    if (error.message.includes('DECLINE_REASON_REQUIRED')) throw new Error('Add a decline reason between 5 and 1000 characters. The guest will see it.');
+    if (error.message.includes('RESPONSE_WINDOW_EXPIRED')) throw new Error('The response window has expired. The system is processing this request automatically.');
     throw new Error('Unable to update this booking request.');
   }
   revalidatePath('/host/bookings');
+  revalidatePath('/host/date-changes');
   revalidatePath('/account/bookings');
   revalidatePath('/host/payouts');
 }

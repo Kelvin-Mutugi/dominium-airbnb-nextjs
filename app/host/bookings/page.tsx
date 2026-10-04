@@ -9,7 +9,7 @@ import {
   Loader2,
   MessageCircle,
 } from "lucide-react";
-import { formatCheckoutTime, isCheckoutTimeReached, todayISO } from "@/app/lib/format";
+import { formatCheckoutTime, formatDate, isCheckoutTimeReached, todayISO } from "@/app/lib/format";
 import {
   getHostBookingChangeRequestsData,
   getHostBookingsData,
@@ -18,6 +18,7 @@ import {
 } from "@/app/lib/host/actions";
 import type { Booking, BookingStatus, HostBookingChangeRequest } from "@/app/lib/host/types";
 import StatusBadge from "@/components/host/StatusBadge";
+import { RefundProgressPanel } from "@/components/refunds/RefundProgressPanel";
 
 const FILTERS: { label: string; value: Exclude<BookingStatus, "pending"> }[] = [
   { label: "Confirmed", value: "confirmed" },
@@ -43,6 +44,7 @@ export default function HostBookingsPage() {
     useState<BookingStatus | null>(null);
   const [completingBookingId, setCompletingBookingId] = useState<string | null>(null);
   const [updatingRequestId, setUpdatingRequestId] = useState<string | null>(null);
+  const [dateChangeDeclineReasons, setDateChangeDeclineReasons] = useState<Record<string, string>>({});
 
   // Error message shown to the host
   const [error, setError] = useState<string | null>(null);
@@ -136,15 +138,17 @@ export default function HostBookingsPage() {
   async function handleRequestResponse(
     requestId: string,
     approve: boolean,
+    declineReason = '',
   ) {
     if (updatingRequestId) return;
     setUpdatingRequestId(requestId);
     setError(null);
     setSuccess(null);
     try {
-      await respondToBookingChangeRequest(requestId, approve);
+      await respondToBookingChangeRequest(requestId, approve, approve ? '' : declineReason);
       await load(false, filter);
       setSuccess(approve ? "Date-change request approved." : "Date-change request declined.");
+      setDateChangeDeclineReasons((current) => ({ ...current, [requestId]: '' }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "We couldn't update this request.");
     } finally {
@@ -203,6 +207,14 @@ export default function HostBookingsPage() {
         <h1 className="text-2xl font-bold text-[#12231d]">
           Bookings
         </h1>
+        <Link href="/host/date-changes" className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#E23E85]/30 bg-white px-3 py-2 text-sm font-semibold text-[#9C2454] hover:bg-[#FDF0F5]">
+          Date changes
+          {changeRequests.length > 0 && (
+            <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[#E23E85] px-1.5 py-0.5 text-xs font-bold text-white">
+              {changeRequests.length}
+            </span>
+          )}
+        </Link>
       </div>
 
       {/* Success message */}
@@ -231,7 +243,7 @@ export default function HostBookingsPage() {
         <section aria-labelledby="booking-change-requests-heading" className="space-y-3">
           <div>
             <h2 id="booking-change-requests-heading" className="text-lg font-semibold text-[#12231d]">Guest date-change requests</h2>
-            <p className="text-sm text-gray-500">Review requested dates before updating a booking. Cancellation requests are reviewed by an administrator.</p>
+            <p className="text-sm text-gray-500">Review requested dates before updating a booking. If no decision is made by the deadline, the system may approve after checking availability and price, or decline with an explanation.</p>
           </div>
           {changeRequests.map((request) => {
             const isUpdatingRequest = updatingRequestId === request.id;
@@ -249,10 +261,15 @@ export default function HostBookingsPage() {
                     {request.request_type === "date_change" && request.quoted_total_amount != null && (
                       <p className="mt-1 text-sm text-gray-600">Estimated revised total: KES {Number(request.quoted_total_amount).toLocaleString("en-KE")}. Approval is available only when the total is unchanged.</p>
                     )}
+                    {request.auto_decision_at && <p className="mt-1 text-xs font-medium text-amber-800">Decision deadline: {formatDate(request.auto_decision_at, "long")}. The system will check availability and total before deciding.</p>}
                     {request.reason && <p className="mt-2 whitespace-pre-wrap text-sm text-gray-500">Guest note: {request.reason}</p>}
+                    <label htmlFor={`embedded-date-change-reason-${request.id}`} className="mt-3 block max-w-lg text-xs font-medium text-gray-600">
+                      Reason if declining <span className="font-normal">(required; visible to guest)</span>
+                      <textarea id={`embedded-date-change-reason-${request.id}`} value={dateChangeDeclineReasons[request.id] ?? ''} onChange={(event) => setDateChangeDeclineReasons((current) => ({ ...current, [request.id]: event.target.value }))} minLength={5} maxLength={1000} rows={2} className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" />
+                    </label>
                   </div>
                   <div className="flex shrink-0 gap-2">
-                    <button type="button" disabled={isUpdatingRequest} onClick={() => handleRequestResponse(request.id, false)} className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 disabled:opacity-50">Decline</button>
+                    <button type="button" disabled={isUpdatingRequest || (dateChangeDeclineReasons[request.id] ?? '').trim().length < 5} onClick={() => handleRequestResponse(request.id, false, dateChangeDeclineReasons[request.id] ?? '')} className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 disabled:opacity-50">Decline</button>
                     <button type="button" disabled={isUpdatingRequest} onClick={() => handleRequestResponse(request.id, true)} className="rounded-md bg-[#12231d] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">{isUpdatingRequest ? "Saving…" : "Approve date change"}</button>
                   </div>
                 </div>
@@ -371,6 +388,8 @@ export default function HostBookingsPage() {
                     </p>
                   </div>
                 )}
+
+                <RefundProgressPanel requests={b.refundRequests ?? []} audience="host" />
 
                 {b.special_requests && (
                   <p className="mb-3 border-t border-[#1B1A2E]/10 pt-3 text-sm text-gray-600">

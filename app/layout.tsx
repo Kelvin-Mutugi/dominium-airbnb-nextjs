@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { anton, fraunces, plex } from "./fonts";
 import "./globals.css";
+import "leaflet/dist/leaflet.css";
 import SiteFooter from "@/components/SiteFooter";
 
 export const metadata: Metadata = {

@@ -1,8 +1,3 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron/complete-stays",
-      "schedule": "0 0 * * *"
-    }
-  ]
+  "crons": []
 }

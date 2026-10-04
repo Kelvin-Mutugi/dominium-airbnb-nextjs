@@ -17,6 +17,14 @@ type CaseRow = {
   updated_at: string;
 };
 
+type CaseMessageRow = {
+  id: string;
+  case_id: string;
+  sender_role: 'requester' | 'support';
+  body: string;
+  created_at: string;
+};
+
 type RelatedBooking = {
   id: string;
   booking_reference: string;
@@ -64,11 +72,26 @@ export default async function AdminSupportPage({
   const { data, error } = await admin
     .from('support_cases')
     .select('id, user_id, booking_id, category, subject, message, status, public_reply, admin_notes, created_at, updated_at')
-    .order('created_at', { ascending: false })
+    .order('updated_at', { ascending: false })
     .limit(200);
   if (error) throw new Error('Unable to load support cases. Apply the support_cases migration and try again.');
 
   const cases = (data ?? []) as CaseRow[];
+  const caseIds = cases.map((item) => item.id);
+  const { data: caseMessages, error: messagesError } = caseIds.length
+    ? await admin
+      .from('support_case_messages')
+      .select('id, case_id, sender_role, body, created_at')
+      .in('case_id', caseIds)
+      .order('created_at', { ascending: true })
+    : { data: [], error: null };
+  if (messagesError) throw new Error('Unable to load support case conversations. Apply the support case messages migration and try again.');
+  const messagesByCase = new Map<string, CaseMessageRow[]>();
+  for (const message of (caseMessages ?? []) as CaseMessageRow[]) {
+    const messages = messagesByCase.get(message.case_id) ?? [];
+    messages.push(message);
+    messagesByCase.set(message.case_id, messages);
+  }
   const userIds = [...new Set(cases.map((item) => item.user_id).filter(Boolean))];
   const bookingIds = [...new Set(cases.map((item) => item.booking_id).filter((id): id is string => Boolean(id)))];
   const [{ data: profiles, error: profileError }, { data: bookings, error: bookingError }] = await Promise.all([
@@ -185,12 +208,27 @@ export default async function AdminSupportPage({
                     </p>
                   )}
                   <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-gray-700">{item.message}</p>
-                  {item.public_reply && (
-                    <div className="mt-4 border-l-2 border-[#E23E85] bg-[#FDF0F5] px-3 py-2">
-                      <p className="text-xs font-semibold text-[#9C2454]">Reply visible to requester</p>
-                      <p className="mt-1 whitespace-pre-wrap text-sm text-[#4B2637]">{item.public_reply}</p>
-                    </div>
-                  )}
+                  <ol aria-label={`Conversation for ${item.subject}`} className="mt-4 space-y-3">
+                    {(messagesByCase.get(item.id) ?? []).map((message) => (
+                      <li key={message.id} className={`flex ${message.sender_role === 'requester' ? 'justify-end' : 'justify-start'}`}>
+                        <article className={`max-w-[min(92%,38rem)] rounded-xl px-3 py-2.5 ${message.sender_role === 'requester' ? 'bg-[#1B1A2E] text-white' : 'border-l-2 border-[#E23E85] bg-[#FDF0F5] text-[#4B2637]'}`}>
+                          <p className={`mb-1 text-[11px] font-semibold uppercase ${message.sender_role === 'requester' ? 'text-white/65' : 'text-[#9C2454]'}`}>{message.sender_role === 'requester' ? 'Requester' : 'Support'}</p>
+                          <p className="whitespace-pre-wrap text-sm leading-6">{message.body}</p>
+                          <time dateTime={message.created_at} className={`mt-2 block text-right text-[11px] ${message.sender_role === 'requester' ? 'text-white/65' : 'text-gray-500'}`}>
+                            {formatDate(message.created_at, 'long')}
+                          </time>
+                        </article>
+                      </li>
+                    ))}
+                    {(messagesByCase.get(item.id) ?? []).length === 0 && item.public_reply && (
+                      <li className="flex justify-start">
+                        <article className="max-w-[min(92%,38rem)] border-l-2 border-[#E23E85] bg-[#FDF0F5] px-3 py-2 text-[#4B2637]">
+                          <p className="text-xs font-semibold text-[#9C2454]">Reply visible to requester</p>
+                          <p className="mt-1 whitespace-pre-wrap text-sm">{item.public_reply}</p>
+                        </article>
+                      </li>
+                    )}
+                  </ol>
                   <p className="mt-4 text-[11px] text-gray-400">Case {item.id} · updated {formatDate(item.updated_at, 'long')}</p>
                 </div>
 

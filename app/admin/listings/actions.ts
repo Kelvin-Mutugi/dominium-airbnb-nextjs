@@ -14,6 +14,8 @@ function listingPayload(values: Partial<ListingFormValues>) {
     county: String(values.county ?? "").trim(),
     town: String(values.town ?? "").trim(),
     address: String(values.address ?? "").trim() || null,
+    latitude: values.latitude == null ? null : Number(values.latitude),
+    longitude: values.longitude == null ? null : Number(values.longitude),
     property_type: String(values.property_type ?? "").trim(),
     price_per_night: Number(values.price_per_night),
     platform_fee_per_night: Number(values.platform_fee_per_night),
@@ -39,7 +41,7 @@ function listingPayload(values: Partial<ListingFormValues>) {
   };
 }
 
-function validateListing(values: ReturnType<typeof listingPayload>) {
+function validateListing(values: ReturnType<typeof listingPayload>, requireMapPin = false) {
   if (!values.title || !values.property_type || !values.county || !values.town) {
     throw new Error("Title, property type, county, and town are required.");
   }
@@ -49,6 +51,14 @@ function validateListing(values: ReturnType<typeof listingPayload>) {
   }
   if (!Number.isFinite(values.platform_fee_per_night) || values.platform_fee_per_night < 0) {
     throw new Error("Platform fee per night must be zero or more.");
+  }
+  const hasLatitude = values.latitude !== null && Number.isFinite(values.latitude);
+  const hasLongitude = values.longitude !== null && Number.isFinite(values.longitude);
+  if (hasLatitude !== hasLongitude || (requireMapPin && (!hasLatitude || !hasLongitude))) {
+    throw new Error("Pin the listing location on the map before saving.");
+  }
+  if (hasLatitude && hasLongitude && (Math.abs(values.latitude as number) > 90 || Math.abs(values.longitude as number) > 180)) {
+    throw new Error("Choose a valid map location.");
   }
   if (!Number.isInteger(values.max_guests) || values.max_guests < 1) {
     throw new Error("Maximum guests must be at least one.");
@@ -67,7 +77,7 @@ export async function createAdminListing(hostId: string, values: ListingFormValu
   if (!normalizedHostId) throw new Error("A host must be selected before creating a listing.");
 
   const payload = listingPayload(values);
-  validateListing(payload);
+  validateListing(payload, true);
 
   const admin = getSupabaseAdmin();
   const slug = `${payload.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}-${crypto.randomUUID().slice(0, 6)}`;

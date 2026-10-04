@@ -22,7 +22,7 @@ export default async function ArrivalGuidePage({ params }: { params: Promise<{ i
     .select(`
       id, booking_reference, guest_id, status, check_in, check_out,
       listing:listings (
-        id, title, town, county, check_in_time, check_out_time
+        id, title, town, county, latitude, longitude, check_in_time, check_out_time
       )
     `)
     .eq('id', id)
@@ -44,6 +44,8 @@ export default async function ArrivalGuidePage({ params }: { params: Promise<{ i
     listingTitle: listing.title,
     dates: `${formatDate(booking.check_in, 'long')} to ${formatDate(booking.check_out, 'long')}`,
     address: address || null,
+    latitude: listing.latitude == null ? null : Number(listing.latitude),
+    longitude: listing.longitude == null ? null : Number(listing.longitude),
     checkInTime: listing.check_in_time,
     checkOutTime: listing.check_out_time,
     directions: arrivalGuide?.arrival_directions ?? null,
@@ -53,6 +55,17 @@ export default async function ArrivalGuidePage({ params }: { params: Promise<{ i
     localTips: arrivalGuide?.local_tips ?? null,
   };
   const hasGuideDetails = [guide.address, guide.directions, guide.checkInInstructions, guide.wifiName, guide.wifiPassword, guide.localTips].some(Boolean);
+  const hasPinnedLocation = guide.latitude !== null && guide.longitude !== null;
+  const mapDelta = 0.003;
+  const mapBounds = hasPinnedLocation
+    ? [guide.longitude! - mapDelta, guide.latitude! - mapDelta, guide.longitude! + mapDelta, guide.latitude! + mapDelta].join(',')
+    : '';
+  const mapEmbedUrl = hasPinnedLocation
+    ? `https://www.openstreetmap.org/export/embed.html?bbox=${mapBounds}&layer=mapnik&marker=${guide.latitude},${guide.longitude}`
+    : null;
+  const directionsUrl = hasPinnedLocation
+    ? `https://www.google.com/maps/dir/?api=1&destination=${guide.latitude},${guide.longitude}`
+    : null;
 
   return (
     <main className="mx-auto max-w-3xl px-5 py-8 text-neutral-900 sm:px-8 print:max-w-none print:px-0 print:py-0">
@@ -69,6 +82,19 @@ export default async function ArrivalGuidePage({ params }: { params: Promise<{ i
           {`Check-in: ${guide.checkInTime || 'Contact customer support for the check-in time'}\nCheck-out: ${guide.checkOutTime || 'Contact customer support for the check-out time'}`}
         </GuideSection>
         {guide.address && <GuideSection title="Address">{guide.address}</GuideSection>}
+        {mapEmbedUrl && directionsUrl && (
+          <section className="account-neu-surface rounded-2xl p-4 sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold text-neutral-600">Pinned location</h2>
+              <a href={directionsUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center rounded-full bg-[#1B1A2E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#302F43]">
+                Open directions
+              </a>
+            </div>
+            <div className="mt-3 overflow-hidden rounded-xl border border-neutral-200">
+              <iframe title={`Exact arrival location for ${listing.title}`} src={mapEmbedUrl} className="h-[320px] w-full" loading="lazy" />
+            </div>
+          </section>
+        )}
         {guide.directions && <GuideSection title="Directions">{guide.directions}</GuideSection>}
         {guide.checkInInstructions && <GuideSection title="Check-in steps">{guide.checkInInstructions}</GuideSection>}
         {(guide.wifiName || guide.wifiPassword) && (

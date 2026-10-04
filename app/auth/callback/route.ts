@@ -41,7 +41,7 @@ export async function GET(request: Request) {
     .single();
 
   if (!profile?.phone) {
-    return NextResponse.redirect(`${origin}/complete-profile`);
+    return NextResponse.redirect(`${origin}/complete-profile?redirectTo=${encodeURIComponent(next)}`);
   }
 
   return NextResponse.redirect(`${origin}${next}`);

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 import { formatDate, formatMoney, humanize } from "@/app/lib/format";
 import { RefundDecisionActions } from "@/components/admin/refunds/refund-decision-actions";
+import { PaymentRefundDecisionActions } from "@/components/admin/refunds/payment-refund-decision-actions";
 
 const VIEWS = [
   { value: "review", label: "Needs decision", statuses: ["awaiting_admin_review"] },
@@ -60,6 +61,21 @@ type Profile = {
   business_name: string | null;
 };
 
+type PaymentRefundRequest = {
+  id: string;
+  payment_id: string;
+  booking_id: string;
+  guest_id: string | null;
+  amount_paid: number | string;
+  reason: string;
+  status: string;
+  admin_response: string | null;
+  actual_refund_amount: number | string | null;
+  transaction_reference: string | null;
+  processed_at: string | null;
+  created_at: string;
+};
+
 function oneLine(value: string | null | undefined) {
   return value?.trim() || "Not provided";
 }
@@ -72,18 +88,30 @@ export default async function AdminRefundsPage({
   const params = await searchParams;
   const activeView = VIEWS.find((view) => view.value === params.view) ?? VIEWS[0];
   const admin = getSupabaseAdmin();
-  const { data, error } = await admin
-    .from("booking_change_requests")
-    .select("id, booking_id, guest_id, host_id, amount_paid, refund_percent, estimated_refund_amount, reason, created_at, responded_at, refund_processing_status, refund_admin_response, refund_decided_at, actual_refund_amount, refund_processed_at, refund_transaction_reference")
-    .eq("request_type", "cancellation")
-    .eq("status", "approved")
-    .in("refund_processing_status", [...activeView.statuses])
-    .order("created_at", { ascending: activeView.value === "review" });
+  const [
+    { data, error },
+    { data: paymentRefundData, error: paymentRefundError },
+  ] = await Promise.all([
+    admin
+      .from("booking_change_requests")
+      .select("id, booking_id, guest_id, host_id, amount_paid, refund_percent, estimated_refund_amount, reason, created_at, responded_at, refund_processing_status, refund_admin_response, refund_decided_at, actual_refund_amount, refund_processed_at, refund_transaction_reference")
+      .eq("request_type", "cancellation")
+      .eq("status", "approved")
+      .in("refund_processing_status", [...activeView.statuses])
+      .order("created_at", { ascending: activeView.value === "review" }),
+    admin
+      .from("payment_refund_requests")
+      .select("id, payment_id, booking_id, guest_id, amount_paid, reason, status, admin_response, actual_refund_amount, transaction_reference, processed_at, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100),
+  ]);
   if (error) throw new Error("Unable to load refund requests.");
+  if (paymentRefundError) throw new Error("Unable to load guest payment refund requests. Apply the payment refund request migration and try again.");
   const requests = (data ?? []) as unknown as RefundRequest[];
+  const paymentRefundRequests = (paymentRefundData ?? []) as unknown as PaymentRefundRequest[];
 
-  const bookingIds = [...new Set(requests.map((request) => request.booking_id))];
-  const userIds = [...new Set(requests.flatMap((request) => [request.guest_id, request.host_id]))];
+  const bookingIds = [...new Set([...requests.map((request) => request.booking_id), ...paymentRefundRequests.map((request) => request.booking_id)])];
+  const userIds = [...new Set([...requests.flatMap((request) => [request.guest_id, request.host_id]), ...paymentRefundRequests.map((request) => request.guest_id).filter((id): id is string => Boolean(id))])];
   const listingIds = new Set<string>();
   const [bookingsResult, profilesResult, paymentsResult] = await Promise.all([
     bookingIds.length
@@ -93,14 +121,24 @@ export default async function AdminRefundsPage({
       ? admin.from("profiles").select("id, full_name, business_name").in("id", userIds)
       : Promise.resolve({ data: [], error: null }),
     bookingIds.length
-      ? admin.from("payments").select("id, booking_id, amount, status, method, payment_channel, provider, provider_reference, paid_at").in("booking_id", bookingIds).in("status", ["paid", "success", "refunded"])
+      ? admin.from("payments").select("id, booking_id, amount, status, method, payment_channel, provider, provider_reference, paid_at").in("booking_id", bookingIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
-  if (bookingsResult.error || profilesResult.error || paymentsResult.error) {
-    throw new Error("Unable to load linked refund details.");
+  const linkedDataWarnings: string[] = [];
+  if (bookingsResult.error) {
+    console.error("Unable to load booking details for refund review:", bookingsResult.error);
+    linkedDataWarnings.push("Booking details");
+  }
+  if (profilesResult.error) {
+    console.error("Unable to load guest or host profiles for refund review:", profilesResult.error);
+    linkedDataWarnings.push("Guest or host details");
+  }
+  if (paymentsResult.error) {
+    console.error("Unable to load payment records for refund review:", paymentsResult.error);
+    linkedDataWarnings.push("Payment details");
   }
 
-  const bookings = (bookingsResult.data ?? []) as unknown as Booking[];
+  const bookings = (bookingsResult.error ? [] : bookingsResult.data ?? []) as unknown as Booking[];
   bookings.forEach((booking) => listingIds.add(booking.listing_id));
   const { data: listingData, error: listingError } = listingIds.size
     ? await admin.from("listings").select("id, title, cancellation_policy, refund_policy").in("id", [...listingIds])
@@ -108,10 +146,11 @@ export default async function AdminRefundsPage({
   if (listingError) throw new Error("Unable to load refund policy details.");
 
   const bookingById = new Map(bookings.map((booking) => [booking.id, booking]));
-  const profileById = new Map(((profilesResult.data ?? []) as unknown as Profile[]).map((profile) => [profile.id, profile]));
+  const profileById = new Map(((profilesResult.error ? [] : profilesResult.data ?? []) as unknown as Profile[]).map((profile) => [profile.id, profile]));
   const listingById = new Map((listingData ?? []).map((listing) => [listing.id, listing]));
   const paymentsByBooking = new Map<string, Payment[]>();
-  for (const payment of (paymentsResult.data ?? []) as unknown as Payment[]) {
+  for (const payment of (paymentsResult.error ? [] : paymentsResult.data ?? []) as unknown as Payment[]) {
+    if (!["paid", "success", "refunded"].includes(payment.status)) continue;
     const paymentList = paymentsByBooking.get(payment.booking_id) ?? [];
     paymentList.push(payment);
     paymentsByBooking.set(payment.booking_id, paymentList);
@@ -138,6 +177,12 @@ export default async function AdminRefundsPage({
         </p>
       </header>
 
+      {linkedDataWarnings.length > 0 && (
+        <p role="status" className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Some related {linkedDataWarnings.join(", ").toLowerCase()} could not be loaded. Refund requests remain available for review; missing details are recorded in the server log.
+        </p>
+      )}
+
       <nav aria-label="Refund request views" className="flex flex-wrap gap-2 border-b border-gray-200 pb-3">
         {VIEWS.map((view) => (
           <Link
@@ -150,6 +195,56 @@ export default async function AdminRefundsPage({
           </Link>
         ))}
       </nav>
+
+      <section aria-labelledby="payment-refund-requests-heading" className="space-y-3">
+        <header className="flex flex-wrap items-baseline justify-between gap-2">
+          <div>
+            <h2 id="payment-refund-requests-heading" className="text-lg font-semibold text-[#1B1A2E]">Guest payment refund requests</h2>
+            <p className="mt-1 text-sm text-gray-600">Refund reviews submitted from the guest payment ledger. Approval authorizes manual processing; it does not send money.</p>
+          </div>
+          <span className="text-xs text-gray-500">Latest {paymentRefundRequests.length}</span>
+        </header>
+        {paymentRefundRequests.length === 0 ? (
+          <p className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500">No guest payment refund requests have been submitted.</p>
+        ) : (
+          <div className="divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white">
+            {paymentRefundRequests.map((request) => {
+              const booking = bookingById.get(request.booking_id);
+              const listing = booking ? listingById.get(booking.listing_id) : null;
+              const guest = request.guest_id ? profileById.get(request.guest_id) : null;
+              const payment = (paymentsByBooking.get(request.booking_id) ?? []).find((item) => item.id === request.payment_id);
+              return (
+                <article key={request.id} className="grid gap-4 p-4 sm:p-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
+                  <div className="min-w-0 space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link href={`/admin/bookings/${request.booking_id}`} className="font-semibold text-[#1B1A2E] hover:text-[#CF2F74]">
+                        {listing?.title ?? "Listing"} · {booking?.booking_reference ?? request.booking_id.slice(0, 8)}
+                      </Link>
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${request.status === "awaiting_admin_review" ? "bg-amber-50 text-amber-800" : request.status === "awaiting_manual_processing" ? "bg-sky-50 text-sky-800" : request.status === "processed" ? "bg-emerald-50 text-emerald-800" : "bg-gray-100 text-gray-700"}`}>
+                        {humanize(request.status)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      Guest: {booking?.guest_name ?? guest?.full_name ?? "Guest"}{booking?.guest_email ? ` · ${booking.guest_email}` : ""}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Payment: {formatMoney(payment?.amount ?? request.amount_paid)} · {humanize(payment?.provider ?? payment?.payment_channel ?? payment?.method ?? "payment method unavailable")}
+                      {payment?.provider_reference ? ` · Ref ${payment.provider_reference}` : ""}
+                    </p>
+                    <p className="whitespace-pre-wrap rounded-md bg-gray-50 p-3 text-sm text-gray-700">{request.reason}</p>
+                    <p className="text-xs text-gray-500">Requested {formatDate(request.created_at, "long")}</p>
+                    {request.admin_response && <p className="text-sm text-gray-600">Decision note: {request.admin_response}</p>}
+                    {request.status === "processed" && request.processed_at && (
+                      <p className="text-sm text-emerald-800">Refund sent: {formatMoney(request.actual_refund_amount ?? 0)} on {formatDate(request.processed_at)} · Reference {request.transaction_reference}</p>
+                    )}
+                  </div>
+                  <PaymentRefundDecisionActions requestId={request.id} status={request.status} amountPaid={Number(request.amount_paid)} />
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       {requests.length === 0 ? (
         <p className="rounded-lg border border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-500">

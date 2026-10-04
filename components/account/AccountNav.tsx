@@ -28,6 +28,7 @@ const MAIN_ITEMS = [
 ];
 
 const MORE_ITEMS = [
+  { href: '/account/refunds', label: 'Refunds', icon: Banknote },
   { href: '/account/payments', label: 'Payments', icon: Banknote },
   { href: '/account/reviews', label: 'Reviews', icon: MessageSquareQuote },
   { href: '/account/notifications', label: 'Notifications', icon: Bell },

@@ -11,6 +11,7 @@ import { CancelBookingButton, HostReviewButton, ReviewButton } from './BookingAc
 import { BookingChangeActions } from './BookingChangeActions';
 import { StatusBadge, focusRing } from './ui';
 import { inkBtn, menuRow } from './bookingStyles';
+import { RefundProgressPanel } from '@/components/refunds/RefundProgressPanel';
 
 const menuItem = menuRow;
 const quietPill = `inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 ${focusRing}`;
@@ -120,16 +121,22 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
               </p>
               <p className="mt-1">
                 {cr.status === 'pending'
-                  ? 'Your current dates stay in place until the host reviews the request.'
+                  ? `Your current dates stay in place until a decision is made. The host has until ${cr.auto_decision_at ? formatDate(cr.auto_decision_at, 'long') : 'the response deadline'} to respond. After that, the system will approve if availability and price still pass its checks; otherwise it will close the request with an explanation.`
                   : cr.status === 'approved'
-                    ? 'Approved: your booking now uses the requested dates shown above.'
-                    : 'The host declined this request, so your original booking dates remain unchanged.'}
+                    ? cr.decision_source === 'system'
+                      ? 'Automatically approved by the system after the host response window expired. Your booking now uses the requested dates shown above.'
+                      : 'Approved by the host: your booking now uses the requested dates shown above.'
+                    : cr.decision_source === 'system'
+                      ? 'The system could not safely approve the requested dates, so the booking remains unchanged.'
+                      : 'The host declined this request, so your original booking dates remain unchanged.'}
               </p>
             </>
           )}
-          {cr.host_response && <p className="mt-1">Host note: {cr.host_response}</p>}
+          {cr.host_response && <p className="mt-1">{cr.decision_source === 'system' ? 'System update:' : 'Host note:'} {cr.host_response}</p>}
         </div>
       )}
+
+      <RefundProgressPanel requests={b.refundRequests ?? []} audience="guest" />
 
       {/* The few things most people actually want */}
       <div className="account-neu-inset mt-4 flex flex-wrap items-center gap-2 rounded-2xl p-3">

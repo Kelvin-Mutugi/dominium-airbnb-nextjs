@@ -1,6 +1,8 @@
 // lib/host/types.ts
 // Mirrors the Supabase schema (+ the additions in sql/001_host_panel_schema.sql)
 
+import type { RefundProgress } from '@/types/refunds';
+
 export type ListingStatus = "draft" | "published" | "suspended" | "archived";
 export type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
 export type PayoutStatus = "owed" | "paid" | "processing";
@@ -145,6 +147,7 @@ export interface Booking {
   created_at: string;
   unreadSupportReplyCount?: number;
   dateChangeHistory?: BookingDateChange[];
+  refundRequests?: RefundProgress[];
   // joined
   listing?: Pick<Listing, "id" | "title" | "town" | "county" | "check_out_time">;
 }
@@ -172,7 +175,30 @@ export interface HostBookingChangeRequest {
   estimated_refund_amount: number;
   reason: string | null;
   created_at: string;
+  auto_decision_at?: string | null;
   booking: {
+    guest_name: string | null;
+    listing: { title: string } | null;
+  };
+}
+
+export interface HostDateChangeRecord {
+  id: string;
+  booking_id: string;
+  status: 'pending' | 'approved' | 'declined';
+  current_check_in: string;
+  current_check_out: string;
+  requested_check_in: string;
+  requested_check_out: string;
+  quoted_total_amount: number | null;
+  reason: string | null;
+  created_at: string;
+  responded_at: string | null;
+  host_response: string | null;
+  auto_decision_at: string | null;
+  decision_source: 'host' | 'system' | null;
+  booking: {
+    booking_reference: string;
     guest_name: string | null;
     listing: { title: string } | null;
   };
@@ -224,6 +250,8 @@ export interface ListingFormValues {
   county: string;
   town: string;
   address: string;
+  latitude: number | null;
+  longitude: number | null;
   property_type: string;
   price_per_night: number;
   platform_fee_per_night: number;

@@ -2,7 +2,13 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import type { ListingAdditionalCharge, ListingFormValues } from "@/app/lib/host/types";
+
+const ListingMapPicker = dynamic(
+  () => import("@/components/admin/listings/ListingMapPicker").then((module) => module.ListingMapPicker),
+  { ssr: false, loading: () => <div className="h-[340px] animate-pulse rounded-xl bg-gray-100" /> },
+);
 
 const AMENITY_OPTIONS = [
   "WiFi", "Kitchen", "Free parking", "Pool", "Air conditioning", "Washer",
@@ -15,6 +21,8 @@ const DEFAULTS: ListingFormValues = {
   county: "",
   town: "",
   address: "",
+  latitude: null,
+  longitude: null,
   property_type: "",
   price_per_night: 0,
   platform_fee_per_night: 0,
@@ -43,10 +51,12 @@ export default function ListingForm({
   initialValues,
   onSubmit,
   submitLabel = "Save",
+  requireMapPin = false,
 }: {
   initialValues?: Partial<ListingFormValues>;
   onSubmit: (values: ListingFormValues) => Promise<void>;
   submitLabel?: string;
+  requireMapPin?: boolean;
 }) {
   const [values, setValues] = useState<ListingFormValues>({ ...DEFAULTS, ...initialValues });
   const [houseRuleInput, setHouseRuleInput] = useState("");
@@ -95,6 +105,16 @@ export default function ListingForm({
     setError(null);
     if (!values.title || !values.county || !values.town || !values.property_type.trim() || values.price_per_night <= 0 || values.platform_fee_per_night < 0) {
       setError("Title, property type, county, town, and a valid price and platform fee are required.");
+      return;
+    }
+    const hasLatitude = values.latitude !== null && Number.isFinite(values.latitude);
+    const hasLongitude = values.longitude !== null && Number.isFinite(values.longitude);
+    if (hasLatitude !== hasLongitude || (requireMapPin && (!hasLatitude || !hasLongitude))) {
+      setError("Pin the listing location on the map before saving.");
+      return;
+    }
+    if (hasLatitude && hasLongitude && (Math.abs(values.latitude as number) > 90 || Math.abs(values.longitude as number) > 180)) {
+      setError("Choose a valid map location.");
       return;
     }
     if (values.additional_charges.some((charge) => !charge.name.trim() || !Number.isFinite(charge.amount) || charge.amount <= 0 || !["per_night", "per_booking"].includes(charge.frequency))) {
@@ -157,6 +177,24 @@ export default function ListingForm({
         <div>
           <label className={labelClass}>Address (optional, not shown publicly)</label>
           <input className={inputClass} value={values.address} onChange={(e) => set("address", e.target.value)} />
+        </div>
+        <div className="space-y-2 border-t border-gray-100 pt-4">
+          <div>
+            <h3 className="text-sm font-semibold text-[#12231d]">Property location pin</h3>
+            <p className="mt-1 text-xs leading-5 text-gray-500">Click the map or drag the pin to the exact entrance. The exact pin is shared with confirmed guests in their private arrival guide; public listing maps remain approximate.</p>
+          </div>
+          <ListingMapPicker
+            latitude={values.latitude}
+            longitude={values.longitude}
+            onChange={(latitude, longitude) => setValues((current) => ({ ...current, latitude, longitude }))}
+          />
+          {values.latitude !== null && values.longitude !== null ? (
+            <p className="text-xs text-gray-600">Pinned coordinates: {values.latitude.toFixed(6)}, {values.longitude.toFixed(6)}</p>
+          ) : (
+            <p className={`text-xs ${requireMapPin ? "font-medium text-amber-800" : "text-gray-500"}`}>
+              {requireMapPin ? "A map pin is required for new listings." : "No precise map pin saved yet."}
+            </p>
+          )}
         </div>
       </section>
 

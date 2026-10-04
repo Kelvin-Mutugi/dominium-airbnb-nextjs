@@ -34,6 +34,8 @@ export default async function AdminEditListingPage({
     county: listing.county ?? "",
     town: listing.town ?? "",
     address: listing.address ?? "",
+    latitude: listing.latitude == null ? null : Number(listing.latitude),
+    longitude: listing.longitude == null ? null : Number(listing.longitude),
     property_type: listing.property_type ?? "",
     price_per_night: Number(listing.price_per_night ?? 0),
     platform_fee_per_night: Number(

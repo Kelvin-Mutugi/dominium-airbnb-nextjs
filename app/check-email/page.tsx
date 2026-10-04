@@ -1,6 +1,16 @@
 import Link from "next/link";
 
-export default function CheckEmailPage() {
+export default async function CheckEmailPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ redirectTo?: string }>;
+}) {
+  const params = await searchParams;
+  const redirectTo = params.redirectTo?.startsWith('/') && !params.redirectTo.startsWith('//')
+    ? params.redirectTo
+    : '/';
+  const encodedRedirectTo = encodeURIComponent(redirectTo);
+
   return (
     <main className="min-h-screen flex items-center justify-center bg-[#f3efe9] px-6 py-16">
       <div className="w-full max-w-md rounded-[18px] border border-[#ece8e2] bg-white p-8 shadow-[0_20px_50px_rgba(18,35,29,0.06)] text-center">
@@ -19,14 +29,14 @@ export default function CheckEmailPage() {
 
         <div className="mt-8 space-y-3">
           <Link
-            href="/signin"
+            href={`/signin?redirectTo=${encodedRedirectTo}`}
             className="inline-flex w-full items-center justify-center rounded-[3px] bg-[#12231d] px-4 py-3 text-[15px] font-medium text-[#f6f4ee] no-underline transition hover:bg-[#1b2d29]"
           >
             Go to sign in
           </Link>
 
           <Link
-            href="/signup"
+            href={`/signup?redirectTo=${encodedRedirectTo}`}
             className="inline-flex w-full items-center justify-center rounded-[3px] border border-[#cfd3c9] bg-white px-4 py-3 text-[15px] font-medium text-[#12231d] no-underline transition hover:border-[#ec1561]/50 hover:shadow-[0_6px_16px_rgba(236,21,97,0.12)]"
           >
             Back to sign up

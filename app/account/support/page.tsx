@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getAccountContext } from '@/app/lib/account';
 import { formatDate, humanize } from '@/app/lib/format';
 import { SupportSubmitButton } from '@/components/account/SupportSubmitButton';
+import { SupportCaseReplyForm } from '@/components/account/SupportCaseReplyForm';
 import { focusRing, inputClass, PageHeader } from '@/components/account/ui';
 import { submitSupportCase } from './actions';
 
@@ -13,6 +14,14 @@ type SupportCase = {
   message: string;
   status: string;
   public_reply: string | null;
+  created_at: string;
+};
+
+type SupportCaseMessage = {
+  id: string;
+  case_id: string;
+  sender_role: 'requester' | 'support';
+  body: string;
   created_at: string;
 };
 
@@ -48,6 +57,22 @@ export default async function AccountSupportPage({
 
   if (caseError) throw new Error('Unable to load your support requests.');
   if (bookingError) throw new Error('Unable to load your bookings.');
+
+  const caseIds = (cases ?? []).map((supportCase) => supportCase.id);
+  const { data: caseMessages, error: messageError } = caseIds.length
+    ? await supabase
+      .from('support_case_messages')
+      .select('id, case_id, sender_role, body, created_at')
+      .in('case_id', caseIds)
+      .order('created_at', { ascending: true })
+    : { data: [], error: null };
+  if (messageError) throw new Error('Unable to load support request replies. Apply the support case messages migration and try again.');
+  const messagesByCase = new Map<string, SupportCaseMessage[]>();
+  for (const message of (caseMessages ?? []) as SupportCaseMessage[]) {
+    const messages = messagesByCase.get(message.case_id) ?? [];
+    messages.push(message);
+    messagesByCase.set(message.case_id, messages);
+  }
 
   const bookingOptions = (bookings ?? []) as unknown as Array<{
     id: string;
@@ -138,12 +163,31 @@ export default async function AccountSupportPage({
                   <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${CASE_STATUSES[supportCase.status] ?? CASE_STATUSES.new}`}>{humanize(supportCase.status)}</span>
                 </div>
                 <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#4B4A5A]">{supportCase.message}</p>
-                {supportCase.public_reply && (
-                  <div className="mt-4 rounded-xl bg-[#FCE8F0] px-3 py-2.5">
-                    <p className="text-xs font-semibold text-[#9C2454]">Response from support</p>
-                    <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-[#4B2637]">{supportCase.public_reply}</p>
-                  </div>
-                )}
+                <ol aria-label={`Conversation for ${supportCase.subject}`} className="mt-4 space-y-3">
+                  {(messagesByCase.get(supportCase.id) ?? []).map((message) => {
+                    const requesterMessage = message.sender_role === 'requester';
+                    return (
+                      <li key={message.id} className={`flex ${requesterMessage ? 'justify-end' : 'justify-start'}`}>
+                        <article className={`max-w-[min(92%,38rem)] rounded-2xl px-3.5 py-3 ${requesterMessage ? 'bg-[#1B1A2E] text-white' : 'bg-[#FCE8F0] text-[#4B2637]'}`}>
+                          <p className={`mb-1 text-[11px] font-semibold uppercase ${requesterMessage ? 'text-white/65' : 'text-[#9C2454]'}`}>{requesterMessage ? 'You' : 'Support'}</p>
+                          <p className="whitespace-pre-wrap text-sm leading-6">{message.body}</p>
+                          <time dateTime={message.created_at} className={`mt-2 block text-right text-[11px] ${requesterMessage ? 'text-white/65' : 'text-[#795A66]'}`}>
+                            {formatDate(message.created_at, 'long')}
+                          </time>
+                        </article>
+                      </li>
+                    );
+                  })}
+                  {(messagesByCase.get(supportCase.id) ?? []).length === 0 && supportCase.public_reply && (
+                    <li className="flex justify-start">
+                      <article className="max-w-[min(92%,38rem)] rounded-2xl bg-[#FCE8F0] px-3.5 py-3 text-[#4B2637]">
+                        <p className="mb-1 text-[11px] font-semibold uppercase text-[#9C2454]">Support</p>
+                        <p className="whitespace-pre-wrap text-sm leading-6">{supportCase.public_reply}</p>
+                      </article>
+                    </li>
+                  )}
+                </ol>
+                <SupportCaseReplyForm caseId={supportCase.id} />
                 {supportCase.booking_id && <Link href={`/account/bookings`} className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-[#9C2454] hover:underline">Booking {bookingReferenceById.get(supportCase.booking_id) ?? 'details'}</Link>}
               </li>
             ))}

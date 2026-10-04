@@ -233,5 +233,5 @@ export async function requestBookingDateChange(input: {
   revalidatePath(`/account/bookings/${booking.id}`);
   revalidatePath('/host/bookings');
   revalidatePath(`/host/bookings/${booking.id}`);
-  return { ok: true, message: updateError ? 'Date-change request sent. The trip timeline could not be updated; contact support if you need help.' : 'Date-change request sent to the host for approval.' };
+  return { ok: true, message: updateError ? 'Date-change request sent. The trip timeline could not be updated; contact support if you need help.' : 'Date-change request sent. The host has a response window; if they do not respond, the system will decide when the deadline passes.' };
 }

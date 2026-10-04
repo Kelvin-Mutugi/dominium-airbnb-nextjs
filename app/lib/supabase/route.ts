@@ -17,7 +17,6 @@ interface BookingRequestBody {
   agreedToTerms?: unknown;
   paymentMethod?: unknown;
   idempotencyKey?: unknown;
-  confirmationToken?: unknown;
 }
 
 function badRequest(message: string) {
@@ -48,7 +47,6 @@ export async function POST(request: NextRequest) {
     !Number.isInteger(body.children) ||
     !Number.isInteger(body.pets) ||
     typeof body.idempotencyKey !== "string" ||
-    typeof body.confirmationToken !== "string" ||
     (body.paymentMethod !== "mpesa" && body.paymentMethod !== "card") ||
     body.agreedToTerms !== true
   ) {
@@ -61,6 +59,9 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
+    if (!user || !user.email) {
+      return NextResponse.json({ error: "Sign in or create an account before booking." }, { status: 401 });
+    }
     const booking = await createBooking({
       listingId: body.listingId,
       checkIn: body.checkIn,
@@ -76,21 +77,11 @@ export async function POST(request: NextRequest) {
       agreedToTerms: true,
       paymentMethod: body.paymentMethod,
       idempotencyKey: body.idempotencyKey,
-      confirmationToken: body.confirmationToken,
-      guestId: user?.id ?? null,
-      accountEmail: user?.email ?? null,
+      guestId: user.id,
+      accountEmail: user.email,
     });
 
     const response = NextResponse.json(booking, { status: 201 });
-    if (booking.isGuestBooking) {
-      response.cookies.set(`booking-confirmation-${booking.bookingId}`, body.confirmationToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: `/api/bookings/${booking.bookingId}`,
-        maxAge: 60 * 60 * 24 * 7,
-      });
-    }
     return response;
   } catch (error) {
     if (error instanceof BookingRequestError) {
