@@ -5,6 +5,14 @@ import Footer from "@/components/footer";
 
 export default function SiteFooter() {
   const pathname = usePathname();
-  if (pathname === "/admin" || pathname.startsWith("/admin/")) return null;
+  const hideOnStandaloneScreens = [
+    "/signin",
+    "/signup",
+    "/complete-profile",
+    "/check-email",
+    "/forgot-password",
+    "/reset-password",
+  ].some((route) => pathname === route || pathname.startsWith(`${route}/`));
+  if (pathname === "/admin" || pathname.startsWith("/admin/") || hideOnStandaloneScreens) return null;
   return <Footer />;
 }

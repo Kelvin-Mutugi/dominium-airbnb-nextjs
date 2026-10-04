@@ -27,6 +27,11 @@ export default function CompleteProfilePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function getRedirectTo() {
+    const requested = new URLSearchParams(window.location.search).get("redirectTo");
+    return requested?.startsWith("/") && !requested.startsWith("//") ? requested : "/";
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -63,7 +68,7 @@ export default function CompleteProfilePage() {
       return;
     }
 
-    router.push(wantsToHost ? "/host/onboarding" : "/");
+    router.push(wantsToHost ? "/host/onboarding" : getRedirectTo());
   }
 
   return (

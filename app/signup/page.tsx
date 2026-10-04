@@ -28,6 +28,11 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function getRedirectTo() {
+    const requested = new URLSearchParams(window.location.search).get("redirectTo");
+    return requested?.startsWith("/") && !requested.startsWith("//") ? requested : "/";
+  }
+
   async function handleEmailSignup(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
@@ -38,12 +43,13 @@ export default function SignupPage() {
     }
 
     setLoading(true);
+    const redirectTo = getRedirectTo();
 
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
       },
     });
 
@@ -55,21 +61,22 @@ export default function SignupPage() {
     }
 
     if (data.user && !data.session) {
-      router.push("/check-email");
+      router.push(`/check-email?redirectTo=${encodeURIComponent(redirectTo)}`);
       return;
     }
 
-    router.push("/complete-profile");
+    router.push(`/complete-profile?redirectTo=${encodeURIComponent(redirectTo)}`);
   }
 
   async function handleGoogleSignup() {
     setError(null);
     setLoading(true);
+    const redirectTo = getRedirectTo();
 
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
       },
     });
 

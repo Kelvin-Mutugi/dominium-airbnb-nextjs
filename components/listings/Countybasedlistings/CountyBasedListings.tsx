@@ -16,8 +16,10 @@ import ResultsToolbar, {
   type SortOption,
   type ViewMode,
 } from "@/components/listings/Resultstoolbar";
+import ViewAllCard from "@/components/listings/ViewAllCard";
 
 import { DEFAULT_FILTERS, type FilterState, type Listing } from "@/types/types";
+import ViewAllTile from "../ViewAllTile";
 
 type ListingsClientProps = {
   county: string;
@@ -150,6 +152,13 @@ export default function CountyBasedListings({
     page * pageSize,
   );
 
+  const showViewAll =
+  view !== "map" &&
+  listings.length > 0 &&
+  page === totalPages &&
+  !hasMore &&
+  !isLoadingMore;
+
   const updateFilters = (patch: Partial<FilterState>) => {
     setFilters((current) => ({
       ...current,
@@ -254,58 +263,60 @@ export default function CountyBasedListings({
     });
   };
 
-  return (
-    <>
-      <Navbar />
 
-      <main className="mx-auto max-w-7xl px-5 pb-16 md:px-8">
-        <PageHeading
-          title={`Stays in ${county}`}
-          resultCount={listings.length}
+return (
+  <>
+    <Navbar />
+
+    <main className="mx-auto max-w-7xl px-5 pb-16 md:px-8">
+      <PageHeading
+        title={`Stays in ${county}`}
+        resultCount={listings.length}
+      />
+
+      <ActiveFilterChips
+        filters={activeFilters}
+        onRemove={removeFilter}
+        onClearAll={resetFilters}
+      />
+
+      <div className="grid grid-cols-1 gap-9 md:grid-cols-[260px_1fr]">
+        <FilterSidebar
+          filters={filters}
+          amenityOptions={amenityOptions}
+          verifiedCount={databaseListings.length}
+          instantBookingCount={0}
+          onChange={updateFilters}
+          onReset={resetFilters}
         />
 
-        <ActiveFilterChips
-          filters={activeFilters}
-          onRemove={removeFilter}
-          onClearAll={resetFilters}
-        />
-
-        <div className="grid grid-cols-1 gap-9 md:grid-cols-[260px_1fr]">
-          <FilterSidebar
-            filters={filters}
-            amenityOptions={amenityOptions}
-            verifiedCount={databaseListings.length}
-            instantBookingCount={0}
-            onChange={updateFilters}
-            onReset={resetFilters}
+        <section>
+          <ResultsToolbar
+            sort={sort}
+            view={view}
+            onSortChange={(nextSort) => {
+              setSort(nextSort);
+              setPage(1);
+            }}
+            onViewChange={setView}
           />
 
-          <section>
-            <ResultsToolbar
-              sort={sort}
-              view={view}
-              onSortChange={(nextSort) => {
-                setSort(nextSort);
-                setPage(1);
-              }}
-              onViewChange={setView}
-            />
+          {view === "map" ? (
+            <div className="flex min-h-[420px] items-center justify-center border border-[#E9E6DD] bg-[#F7F7F7] p-8 text-center text-[#36454F]">
+              <div>
+                <h2 className="text-lg font-semibold">
+                  Map view coming soon
+                </h2>
 
-            {view === "map" ? (
-              <div className="flex min-h-[420px] items-center justify-center border border-[#E9E6DD] bg-[#F7F7F7] p-8 text-center text-[#36454F]">
-                <div>
-                  <h2 className="text-lg font-semibold">
-                    Map view coming soon
-                  </h2>
-
-                  <p className="mt-2 text-sm">
-                    Switch back to list view to browse available stays.
-                  </p>
-                </div>
+                <p className="mt-2 text-sm">
+                  Switch back to list view to browse available stays.
+                </p>
               </div>
-            ) : visibleListings.length === 0 ? (
-              <EmptyState onResetFilters={resetFilters} />
-            ) : (
+            </div>
+          ) : visibleListings.length === 0 ? (
+            <EmptyState onResetFilters={resetFilters} />
+          ) : (
+            <>
               <div
                 className={
                   view === "list"
@@ -320,22 +331,27 @@ export default function CountyBasedListings({
                     onView={(id) => router.push(`/apartments/${id}`)}
                   />
                 ))}
+                <ViewAllTile location={county} />
               </div>
-            )}
 
-            {listings.length > 0 && (
-              <Pagination
-                currentPage={page}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-                onLoadMore={() => void handleNextPage()}
-                hasMore={hasMore}
-                isLoadingMore={isLoadingMore}
-              />
-            )}
-          </section>
-        </div>
-      </main>
-    </>
-  );
-}
+              {showViewAll && (
+                <ViewAllCard location={county} total={listings.length} />
+              )}
+            </>
+          )}
+
+          {listings.length > 0 && (
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              onLoadMore={() => void handleNextPage()}
+              hasMore={hasMore}
+              isLoadingMore={isLoadingMore}
+            />
+          )}
+        </section>
+      </div>
+    </main>
+  </>
+);

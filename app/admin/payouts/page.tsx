@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 import { formatDate, formatMoney, humanize } from "@/app/lib/format";
+import { PaymentRefundRequestButton } from "@/components/admin/refunds/payment-refund-request-button";
 
 type View = "payments" | "payouts";
 
@@ -65,6 +66,7 @@ type LedgerRecord = {
   currency?: string | null;
   hostName?: string | null;
   payoutDestination?: string | null;
+  refundRequestStatus?: string;
 };
 
 const PAYMENT_STATUSES = ["all", "pending", "paid", "failed", "refunded"];
@@ -181,6 +183,7 @@ export default async function AdminPaymentsPayoutsPage({
     if (error) throw new Error("Unable to load payment records.");
 
     const payments = (data ?? []) as unknown as PaymentRecord[];
+    const paymentIds = [...new Set(payments.map((payment) => payment.id).filter(Boolean))];
     const bookingIds = [...new Set(payments.map((payment) => payment.booking_id).filter(Boolean))];
     const { data: bookingData, error: bookingError } = bookingIds.length
       ? await admin
@@ -206,6 +209,15 @@ export default async function AdminPaymentsPayoutsPage({
     const bookingById = new Map(bookings.map((booking) => [booking.id, booking]));
     const listingById = new Map((listingResult.data ?? []).map((listing) => [listing.id, listing.title]));
     const guestById = new Map((guestResult.data ?? []).map((guest) => [guest.id, guest.full_name]));
+    const { data: refundRequests, error: refundRequestError } = paymentIds.length
+      ? await admin
+        .from("payment_refund_requests")
+        .select("payment_id, status")
+        .in("payment_id", paymentIds)
+      : { data: [], error: null };
+    if (refundRequestError) throw new Error("Unable to load payment refund request statuses. Apply the payment refund request migration and try again.");
+    const refundStatusByPayment = new Map((refundRequests ?? []).map((request) => [request.payment_id, request.status]));
+
     records = payments.map((payment) => {
       const booking = bookingById.get(payment.booking_id);
       return {
@@ -224,6 +236,7 @@ export default async function AdminPaymentsPayoutsPage({
         reference: payment.provider_reference,
         method: payment.payment_channel ?? payment.method,
         currency: payment.currency,
+        refundRequestStatus: refundStatusByPayment.get(payment.id),
       };
     });
   } else {
@@ -297,17 +310,19 @@ export default async function AdminPaymentsPayoutsPage({
     records
       .filter((record) => statuses.includes(record.status))
       .reduce((sum, record) => sum + Number(record.amount), 0);
-  const viewTabs: { value: View; label: string }[] = [
-    { value: "payments", label: "Payments" },
-    { value: "payouts", label: "Payouts" },
-  ];
   const statuses = view === "payments" ? PAYMENT_STATUSES : PAYOUT_STATUSES;
 
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold text-[#E23E85]">Payments &amp; Payouts</h1>
-        <p className="mt-1 text-sm text-gray-600">Review payment activity and host balances. Showing the latest 100 records.</p>
+        <h1 className="text-2xl font-semibold text-[#E23E85]">
+          {view === "payments" ? "Guest Booking Payments" : "Host Payouts"}
+        </h1>
+        <p className="mt-1 text-sm text-gray-600">
+          {view === "payments"
+            ? "Payments collected from guests for their bookings. Showing the latest 100 records."
+            : "Payouts owed and sent to hosts for completed bookings. Showing the latest 100 records."}
+        </p>
       </header>
 
       <dl className="grid grid-cols-1 divide-y border-y sm:grid-cols-3 sm:divide-x sm:divide-y-0">
@@ -325,23 +340,6 @@ export default async function AdminPaymentsPayoutsPage({
           </>
         )}
       </dl>
-
-      <nav aria-label="Ledger type" className="flex gap-6 border-b">
-        {viewTabs.map((tab) => (
-          <Link
-            key={tab.value}
-            href={makeHref(tab.value, "all", "", bookingId)}
-            aria-current={view === tab.value ? "page" : undefined}
-            className={`border-b-2 px-1 py-3 text-sm font-medium ${
-              view === tab.value
-                ? "border-[#E23E85] text-[#1B1A2E]"
-                : "border-transparent text-gray-500 hover:text-gray-800"
-            }`}
-          >
-            {tab.label}
-          </Link>
-        ))}
-      </nav>
 
       <div className="flex flex-wrap items-end justify-between gap-4">
         <nav aria-label="Record status" className="flex flex-wrap gap-1">
@@ -394,7 +392,7 @@ export default async function AdminPaymentsPayoutsPage({
 
       <div className="overflow-x-auto border-y bg-white">
         {view === "payments" ? (
-          <table className="w-full min-w-[850px] text-left text-sm">
+          <table className="w-full min-w-[980px] text-left text-sm">
             <thead className="bg-gray-50 text-xs font-medium uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-4 py-3">Payment / Booking</th>
@@ -404,6 +402,7 @@ export default async function AdminPaymentsPayoutsPage({
                 <th className="px-4 py-3 text-right">Amount</th>
                 <th className="px-4 py-3">Paid</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Refund review</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -428,10 +427,15 @@ export default async function AdminPaymentsPayoutsPage({
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-gray-600">{record.paidAt ? formatDate(record.paidAt, "short") : "—"}</td>
                   <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
+                  <td className="px-4 py-3">
+                    {record.status === "paid" || record.status === "success"
+                      ? <PaymentRefundRequestButton paymentId={record.id} requestStatus={record.refundRequestStatus} />
+                      : <span className="text-xs text-gray-400">Available for paid payments</span>}
+                  </td>
                 </tr>
               ))}
               {filteredRecords.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-500">No payments match these filters.</td></tr>
+                <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-gray-500">No payments match these filters.</td></tr>
               )}
             </tbody>
           </table>

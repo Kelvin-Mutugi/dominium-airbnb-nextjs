@@ -36,7 +36,7 @@ export async function updateSupportCase(formData: FormData) {
 
   const { data: previousCase, error: lookupError } = await admin
     .from('support_cases')
-    .select('status')
+    .select('status, public_reply')
     .eq('id', caseId)
     .maybeSingle();
   if (lookupError || !previousCase) throw new Error('Support case not found.');
@@ -55,6 +55,16 @@ export async function updateSupportCase(formData: FormData) {
     .maybeSingle();
   if (error) throw new Error('Unable to update this support case.');
   if (!updatedCase) throw new Error('Support case changed. Refresh and try again.');
+
+  if (publicReply && publicReply !== (previousCase.public_reply ?? '')) {
+    const { error: messageError } = await admin.from('support_case_messages').insert({
+      case_id: caseId,
+      sender_id: user.id,
+      sender_role: 'support',
+      body: publicReply,
+    });
+    if (messageError) throw new Error('Support case was updated, but the reply was not added to its conversation.');
+  }
 
   await recordAdminAuditEvent({
     actorId: user.id,

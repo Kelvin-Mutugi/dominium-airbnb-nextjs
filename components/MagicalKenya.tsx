@@ -57,17 +57,17 @@ function DestinationCard({
   return (
     <article
       className="
-        group relative h-[145px] w-[145px] shrink-0
-        overflow-hidden rounded-2xl
+        group relative h-[110px] w-[110px] shrink-0
+        overflow-hidden rounded-xl
         bg-[#F5F5F5]
-        p-[5px]
-        shadow-[6px_6px_14px_rgba(0,0,0,0.12),-6px_-6px_14px_rgba(255,255,255,0.95)]
+        p-[4px]
+        shadow-[4px_4px_10px_rgba(0,0,0,0.12),-4px_-4px_10px_rgba(255,255,255,0.95)]
         transition-all duration-300
-        hover:shadow-[8px_8px_18px_rgba(0,0,0,0.15),-8px_-8px_18px_rgba(255,255,255,1)]
-        sm:w-[235px]
+        hover:shadow-[6px_6px_14px_rgba(0,0,0,0.15),-6px_-6px_14px_rgba(255,255,255,1)]
+        sm:h-[160px] sm:w-[160px]
       "
     >
-      <div className="relative h-full w-full overflow-hidden rounded-[13px]">
+      <div className="relative h-full w-full overflow-hidden rounded-[9px]">
         <img
           src={image}
           alt={name}
@@ -83,12 +83,12 @@ function DestinationCard({
         {/* Dark cinematic overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
 
-        <div className="absolute inset-x-0 bottom-0 p-3.5">
-          <h3 className="text-[15px] font-semibold text-white">
+        <div className="absolute inset-x-0 bottom-0 p-2.5">
+          <h3 className="text-[12px] font-semibold leading-tight text-white sm:text-[14px]">
             {name}
           </h3>
 
-          <p className="mt-0.5 text-xs text-white/75">
+          <p className="mt-0.5 truncate text-[10px] text-white/75 sm:text-[11px]">
             {subtitle}
           </p>
         </div>
@@ -100,24 +100,6 @@ function DestinationCard({
 export default function MagicalKenya() {
   return (
     <section className="overflow-hidden bg-[#F5F5F5]/80 py-7">
-      {/* Heading */}
-      <div className="mx-auto mb-4 max-w-[1480px] px-6 lg:px-8">
-        <div className="flex items-end justify-center">
-          <div>
-            {/* <p className="mb-1 text-[11px] font-semibold text-[#E23E85] text-center">
-              Discover Kenya
-            </p> */}
-
-            {/* <h2 className="text-2xl font-bold tracking-tight text-[#1B1A2E]">
-              Magical Kenya
-            </h2> */}
-          </div>
-
-          {/* <p className="hidden text-sm text-gray-500 sm:block">
-            From the wild to the coast
-          </p> */}
-        </div>
-      </div>
 
       {/* Infinite marquee */}
       <div className="relative overflow-hidden">

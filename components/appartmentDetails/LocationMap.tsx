@@ -8,23 +8,25 @@ interface LocationMapProps {
 }
 
 export function LocationMap({ latitude, longitude, loc }: LocationMapProps) {
-  if (!latitude || !longitude) return null;
+  if (latitude == null || longitude == null || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
 
-  const delta = 0.01; // rough radius so exact pin isn't pinpointed
+  const approximateLatitude = Math.round(latitude * 100) / 100;
+  const approximateLongitude = Math.round(longitude * 100) / 100;
+  const delta = 0.02;
   const bbox = [
-    longitude - delta,
-    latitude - delta,
-    longitude + delta,
-    latitude + delta,
+    approximateLongitude - delta,
+    approximateLatitude - delta,
+    approximateLongitude + delta,
+    approximateLatitude + delta,
   ].join(",");
 
-  const src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&marker=${latitude},${longitude}`;
+  const src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik`;
 
   return (
     <div className="mt-8">
       <h3 className="mb-4 flex items-center gap-2 text-[18px] font-semibold text-[#1B1A2E]">
         <MapPin size={18} />
-        Where you'll be
+        Where you&apos;ll be
       </h3>
       <div className="overflow-hidden rounded-2xl border border-[#EDEBE4]">
         <iframe

@@ -179,6 +179,7 @@ export function AdminNewListingForm({
 
       <ListingForm
         onSubmit={handleSubmit}
+        requireMapPin
         submitLabel={submitting ? "Saving..." : "Create listing for review"}
       />
     </div>

@@ -113,7 +113,7 @@ export function BookingChangeActions({
         }}
       >
         Change dates
-        <span className={menuHint}>Ask the host to move your stay. Nothing changes until they agree.</span>
+        <span className={menuHint}>Request different dates. The host can respond before the automatic decision deadline.</span>
       </button>
 
       <button type="button" onClick={openCancellation} disabled={pending} className={menuRow}>
@@ -275,7 +275,7 @@ export function BookingChangeActions({
               )}
               {datePreview.priceDifference === 0 && (
                 <p className="mt-2 text-xs text-neutral-500">
-                  The host still has to approve, and we’ll re-check availability first.
+                  The host has 24 hours to respond, or 5 hours if your requested check-in is today or tomorrow. If there is no response, the system will approve only if the dates remain available at the same total; otherwise it will decline with an explanation.
                 </p>
               )}
             </div>

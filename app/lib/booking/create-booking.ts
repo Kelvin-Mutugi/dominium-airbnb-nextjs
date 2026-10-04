@@ -1,6 +1,5 @@
 import "server-only";
 
-import { createHash } from "node:crypto";
 import { calculateBookingPrice } from "@/app/lib/booking/pricing";
 import { getStayNights, isISODate } from "@/app/lib/booking/availability";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
@@ -21,9 +20,8 @@ export interface CreateBookingInput {
   agreedToTerms: boolean;
   paymentMethod: BookingPaymentMethod;
   idempotencyKey: string;
-  confirmationToken: string;
-  guestId: string | null;
-  accountEmail: string | null;
+  guestId: string;
+  accountEmail: string;
 }
 
 export class BookingRequestError extends Error {
@@ -39,7 +37,6 @@ export class BookingRequestError extends Error {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^\+?[\d][\d\s()-]{6,19}$/;
-const SECRET_RE = /^[A-Za-z0-9_-]{43,100}$/;
 
 interface ListingForBooking {
   id: string;
@@ -64,6 +61,9 @@ interface CreatedBookingRow {
 }
 
 export async function createBooking(input: CreateBookingInput) {
+  if (!input.guestId || !input.accountEmail) {
+    throw new BookingRequestError("Sign in or create an account before booking.", 401, "AUTH_REQUIRED");
+  }
   if (!UUID_RE.test(input.listingId)) throw new BookingRequestError("Listing not found.", 404);
   if (!isISODate(input.checkIn) || !isISODate(input.checkOut)) {
     throw new BookingRequestError("Choose valid check-in and check-out dates.", 422, "INVALID_DATES");
@@ -87,11 +87,7 @@ export async function createBooking(input: CreateBookingInput) {
   if (input.idempotencyKey.length < 32 || input.idempotencyKey.length > 128) {
     throw new BookingRequestError("Refresh checkout and try again.", 400, "INVALID_IDEMPOTENCY_KEY");
   }
-  if (!SECRET_RE.test(input.confirmationToken)) {
-    throw new BookingRequestError("Refresh checkout and try again.", 400, "INVALID_CONFIRMATION_TOKEN");
-  }
-
-  const email = input.guestId ? input.accountEmail : input.email.trim().toLowerCase();
+  const email = input.accountEmail;
   if (!email || !EMAIL_RE.test(email)) {
     throw new BookingRequestError("A valid email address is required.", 422, "INVALID_GUEST_DETAILS");
   }
@@ -124,7 +120,6 @@ export async function createBooking(input: CreateBookingInput) {
   });
   if (price.total <= 0) throw new BookingRequestError("This booking has an invalid total.", 422);
 
-  const confirmationTokenHash = createHash("sha256").update(input.confirmationToken).digest("hex");
   const { data, error } = await admin.rpc("create_booking_hold", {
     p_listing_id: input.listingId,
     p_guest_id: input.guestId,
@@ -140,7 +135,7 @@ export async function createBooking(input: CreateBookingInput) {
     p_special_requests: input.specialRequests?.trim() || null,
     p_payment_method: input.paymentMethod,
     p_idempotency_key: input.idempotencyKey,
-    p_confirmation_token_hash: input.guestId ? null : confirmationTokenHash,
+    p_confirmation_token_hash: null,
     p_subtotal: price.subtotal,
     p_service_fee: price.serviceFee,
     p_additional_fees: price.additionalFees,
@@ -172,6 +167,6 @@ export async function createBooking(input: CreateBookingInput) {
     status: booking.status,
     totalAmount: Number(booking.total_amount),
     holdExpiresAt: booking.hold_expires_at,
-    isGuestBooking: !input.guestId,
+    isGuestBooking: false,
   };
 }

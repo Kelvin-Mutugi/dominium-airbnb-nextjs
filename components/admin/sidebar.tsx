@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
@@ -17,6 +17,7 @@ import {
   ClipboardCheck,
   MessageSquareText,
   BadgeDollarSign,
+  CreditCard,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -28,7 +29,8 @@ const NAV_ITEMS = [
   { href: "/admin/bookings", label: "Bookings", icon: CalendarCheck },
   { href: "/admin/cancellation-requests", label: "Cancellation Requests", icon: ClipboardCheck },
   { href: "/admin/refunds", label: "Refunds", icon: BadgeDollarSign },
-  { href: "/admin/payouts", label: "Payments & Payouts", icon: Wallet },
+  { href: "/admin/payouts?view=payments", label: "Guest Payments", icon: CreditCard, ledgerView: "payments" },
+  { href: "/admin/payouts?view=payouts", label: "Host Payouts", icon: Wallet, ledgerView: "payouts" },
   { href: "/admin/support", label: "Support Cases & Disputes", icon: LifeBuoy },
   { href: "/admin/customer-support", label: "Booking Messages", icon: MessageSquareText },
   { href: "/admin/reviews", label: "Reviews Moderation", icon: Star },
@@ -37,6 +39,7 @@ const NAV_ITEMS = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col overflow-y-auto border-r bg-white">
@@ -45,10 +48,12 @@ export function AdminSidebar() {
       </div>
 
       <nav className="flex-1 p-3 space-y-1">
-        {NAV_ITEMS.map(({ href, label, icon: Icon, exact }) => {
-          const isActive = exact
-            ? pathname === href
-            : pathname === href || pathname.startsWith(href + "/");
+        {NAV_ITEMS.map(({ href, label, icon: Icon, exact, ledgerView }) => {
+          const isActive = ledgerView
+            ? pathname === "/admin/payouts" && (searchParams.get("view") ?? "payments") === ledgerView
+            : exact
+              ? pathname === href
+              : pathname === href || pathname.startsWith(href + "/");
 
           return (
             <Link
