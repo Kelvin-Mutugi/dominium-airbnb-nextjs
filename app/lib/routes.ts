@@ -5,7 +5,7 @@
 export const routes = {
   home: '/',
   login: '/login',
-  listings: '/listings',
+  listings: '/allListings',
   listing: (slug: string) => `/listings/${slug}`,
   becomeHost: '/host/apply', // TODO: your host onboarding route
 } as const;
