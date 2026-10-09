@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "node:crypto";
 import { requireHost } from "@/app/lib/host-auth";
-import { hashCalendarToken, syncCalendarConnection, syncStaleCalendarConnectionsForListing, validateExternalCalendarUrl } from "@/app/lib/host/calendar-sync";
+import {
+  hashCalendarToken,
+  syncCalendarConnection,
+  syncStaleCalendarConnectionsForListing,
+  validateExternalCalendarUrl,
+} from "@/app/lib/host/calendar-sync";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 import { createClient } from "@/app/lib/supabase/server";
 import { todayISO } from "@/app/lib/format";
@@ -24,7 +29,8 @@ import type {
 import type { RefundListItem, RefundProgress } from "@/types/refunds";
 
 const MPESA_REGEX = /^0\d{9}$/;
-const HOST_BOOKING_FIELDS = "id, booking_reference, listing_id, host_id, check_in, check_out, nights, adults_count, children_count, pets_count, rooms_count, status, completed_at, completion_source, host_payout_amount, guest_name, guest_country, special_requests";
+const HOST_BOOKING_FIELDS =
+  "id, booking_reference, listing_id, host_id, check_in, check_out, nights, adults_count, children_count, pets_count, rooms_count, status, completed_at, completion_source, host_payout_amount, guest_name, guest_country, special_requests";
 const HOST_BOOKING_WITH_LISTING = `${HOST_BOOKING_FIELDS}, listing:listings(id, title, town, county, check_out_time)`;
 
 type HostUnreadThread = {
@@ -33,21 +39,40 @@ type HostUnreadThread = {
   messages: { created_at: string; sender_role: string }[];
 };
 
-async function getHostUnreadSupportCounts(userId: string, bookingIds?: string[]) {
-  if (bookingIds && bookingIds.length === 0) return {} as Record<string, number>;
+async function getHostUnreadSupportCounts(
+  userId: string,
+  bookingIds?: string[],
+) {
+  if (bookingIds && bookingIds.length === 0)
+    return {} as Record<string, number>;
 
   const admin = getSupabaseAdmin();
-  const select = "booking_id, requester_last_read_at, messages:customer_support_messages!inner(created_at, sender_role)";
+  const select =
+    "booking_id, requester_last_read_at, messages:customer_support_messages!inner(created_at, sender_role)";
   const result = bookingIds
-    ? await admin.from("customer_support_threads").select(select).eq("requester_id", userId).eq("status", "waiting_on_requester").eq("messages.sender_role", "admin").in("booking_id", bookingIds)
-    : await admin.from("customer_support_threads").select(select).eq("requester_id", userId).eq("status", "waiting_on_requester").eq("messages.sender_role", "admin");
+    ? await admin
+        .from("customer_support_threads")
+        .select(select)
+        .eq("requester_id", userId)
+        .eq("status", "waiting_on_requester")
+        .eq("messages.sender_role", "admin")
+        .in("booking_id", bookingIds)
+    : await admin
+        .from("customer_support_threads")
+        .select(select)
+        .eq("requester_id", userId)
+        .eq("status", "waiting_on_requester")
+        .eq("messages.sender_role", "admin");
 
   if (result.error) throw new Error("Unable to load customer support replies.");
 
   const counts: Record<string, number> = {};
   for (const thread of (result.data ?? []) as unknown as HostUnreadThread[]) {
     for (const message of thread.messages) {
-      if (Date.parse(message.created_at) > Date.parse(thread.requester_last_read_at)) {
+      if (
+        Date.parse(message.created_at) >
+        Date.parse(thread.requester_last_read_at)
+      ) {
         counts[thread.booking_id] = (counts[thread.booking_id] ?? 0) + 1;
       }
     }
@@ -75,46 +100,60 @@ export async function submitHostOnboarding(formData: FormData) {
   const phone = String(formData.get("phone") ?? "").trim();
   const alternatePhone = String(formData.get("alternatePhone") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
-  const hostType = String(formData.get("hostType") ?? "individual") as "individual" | "company";
+  const hostType = String(formData.get("hostType") ?? "individual") as
+    | "individual"
+    | "company";
   const businessName = String(formData.get("businessName") ?? "").trim();
-  const idType = String(formData.get("idType") ?? "national_id") as "national_id" | "passport";
+  const idType = String(formData.get("idType") ?? "national_id") as
+    | "national_id"
+    | "passport";
   const idNumber = String(formData.get("idNumber") ?? "").trim();
   const dateOfBirth = String(formData.get("dateOfBirth") ?? "");
   const county = String(formData.get("county") ?? "").trim();
-  const residentialAddress = String(formData.get("residentialAddress") ?? "").trim();
-  const payoutMethod = String(formData.get("payoutMethod") ?? "mpesa") as "mpesa" | "bank";
+  const residentialAddress = String(
+    formData.get("residentialAddress") ?? "",
+  ).trim();
+  const payoutMethod = String(formData.get("payoutMethod") ?? "mpesa");
   const mpesaNumber = String(formData.get("mpesaNumber") ?? "").trim();
-  const bankName = String(formData.get("bankName") ?? "").trim();
-  const bankAccount = String(formData.get("bankAccount") ?? "").trim();
   const hostBio = String(formData.get("hostBio") ?? "").trim();
   const agreedToHostTerms = formData.get("agreedToHostTerms") === "true";
   const idDocument = formData.get("idDocument") as File | null;
 
   if (!fullName) throw new Error("Full legal name is required.");
-  if (!MPESA_REGEX.test(phone)) throw new Error("Enter a valid phone number, e.g. 0712345678.");
+  if (!MPESA_REGEX.test(phone))
+    throw new Error("Enter a valid phone number, e.g. 0712345678.");
   if (!email.includes("@")) throw new Error("Enter a valid email address.");
   if (!idNumber) throw new Error("National ID / passport number is required.");
   if (!dateOfBirth) throw new Error("Date of birth is required.");
-  if (!isAdult(dateOfBirth)) throw new Error("You must be at least 18 years old to host.");
+  if (!isAdult(dateOfBirth))
+    throw new Error("You must be at least 18 years old to host.");
   if (!county) throw new Error("County of residence is required.");
   if (!residentialAddress) throw new Error("Residential address is required.");
-  if (hostType === "company" && !businessName) throw new Error("Company name is required for company hosts.");
-  if (!idDocument || idDocument.size === 0) throw new Error("Please upload a copy of your ID or passport.");
-  if (payoutMethod === "mpesa" && !MPESA_REGEX.test(mpesaNumber)) {
+  if (hostType === "company" && !businessName)
+    throw new Error("Company name is required for company hosts.");
+  if (!idDocument || idDocument.size === 0)
+    throw new Error("Please upload a copy of your ID or passport.");
+  if (payoutMethod !== "mpesa") {
+    throw new Error("Host payouts are currently sent to M-Pesa numbers.");
+  }
+  if (!MPESA_REGEX.test(mpesaNumber)) {
     throw new Error("Enter a valid M-Pesa number, e.g. 0712345678.");
   }
-  if (payoutMethod === "bank" && (!bankName || !bankAccount)) {
-    throw new Error("Bank name and account number are both required.");
-  }
-  if (!agreedToHostTerms) throw new Error("You must accept the Host Listing Agreement and Terms of Service.");
+  if (!agreedToHostTerms)
+    throw new Error(
+      "You must accept the Host Listing Agreement and Terms of Service.",
+    );
 
   // ---- upload the ID document to a private bucket, folder-scoped per user ----
   const extension = idDocument.name.split(".").pop() ?? "jpg";
   const path = `${user.id}/id-document-${Date.now()}.${extension}`;
-  const { error: uploadError } = await supabase.storage.from("host-documents").upload(path, idDocument, {
-    upsert: true,
-  });
-  if (uploadError) throw new Error(`Could not upload ID document: ${uploadError.message}`);
+  const { error: uploadError } = await supabase.storage
+    .from("host-documents")
+    .upload(path, idDocument, {
+      upsert: true,
+    });
+  if (uploadError)
+    throw new Error(`Could not upload ID document: ${uploadError.message}`);
 
   // ---- upsert the profile row ----
   const { error: upsertError } = await supabase.from("profiles").upsert({
@@ -133,8 +172,7 @@ export async function submitHostOnboarding(formData: FormData) {
     county,
     residential_address: residentialAddress,
     payout_method: payoutMethod,
-    payout_details:
-      payoutMethod === "mpesa" ? { mpesa_number: mpesaNumber } : { bank_name: bankName, account_number: bankAccount },
+    payout_details: { mpesa_number: mpesaNumber },
     host_bio: hostBio || null,
     kyc_status: "pending",
     kyc_submitted_at: new Date().toISOString(),
@@ -143,7 +181,8 @@ export async function submitHostOnboarding(formData: FormData) {
     kyc_rejection_reason: null,
     host_verified_at: null,
   });
-  if (upsertError) throw new Error(`Could not save your host details: ${upsertError.message}`);
+  if (upsertError)
+    throw new Error(`Could not save your host details: ${upsertError.message}`);
 }
 
 export async function getHostOnboardingStatus() {
@@ -157,7 +196,9 @@ export async function getHostOnboardingStatus() {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("role, kyc_status, kyc_submitted_at, host_verified_at, kyc_rejection_reason, full_name, phone, alternate_phone, email, host_type, business_name, id_document_type, id_number, date_of_birth, county, residential_address, payout_method, payout_details, host_bio")
+    .select(
+      "role, kyc_status, kyc_submitted_at, host_verified_at, kyc_rejection_reason, full_name, phone, alternate_phone, email, host_type, business_name, id_document_type, id_number, date_of_birth, county, residential_address, payout_method, payout_details, host_bio",
+    )
     .eq("id", user.id)
     .maybeSingle();
 
@@ -212,17 +253,27 @@ function validateListing(values: ReturnType<typeof listingPayload>) {
   }
 }
 
-type ArrivalGuideInput = Partial<Record<keyof HostArrivalGuideDetails, string | null>> & {
+type ArrivalGuideInput = Partial<
+  Record<keyof HostArrivalGuideDetails, string | null>
+> & {
   address?: string | null;
 };
 
-function arrivalGuidePayload(listingId: string, hostId: string, values: ArrivalGuideInput) {
+function arrivalGuidePayload(
+  listingId: string,
+  hostId: string,
+  values: ArrivalGuideInput,
+) {
   return {
     listing_id: listingId,
     host_id: hostId,
-    arrival_address: String(values.arrival_address ?? "").trim() || String(values.address ?? "").trim() || null,
+    arrival_address:
+      String(values.arrival_address ?? "").trim() ||
+      String(values.address ?? "").trim() ||
+      null,
     arrival_directions: String(values.arrival_directions ?? "").trim() || null,
-    check_in_instructions: String(values.check_in_instructions ?? "").trim() || null,
+    check_in_instructions:
+      String(values.check_in_instructions ?? "").trim() || null,
     wifi_name: String(values.wifi_name ?? "").trim() || null,
     wifi_password: String(values.wifi_password ?? "").trim() || null,
     arrival_contact: String(values.arrival_contact ?? "").trim() || null,
@@ -231,47 +282,79 @@ function arrivalGuidePayload(listingId: string, hostId: string, values: ArrivalG
 }
 
 function validateArrivalGuide(values: ArrivalGuideInput) {
-  if ((values.arrival_directions ?? "").length > 5000) throw new Error("Arrival directions must be 5000 characters or fewer.");
-  if ((values.arrival_address ?? "").length > 1000) throw new Error("Arrival address must be 1000 characters or fewer.");
-  if ((values.check_in_instructions ?? "").length > 5000) throw new Error("Check-in instructions must be 5000 characters or fewer.");
-  if ((values.wifi_name ?? "").length > 120) throw new Error("Wi-Fi name must be 120 characters or fewer.");
-  if ((values.wifi_password ?? "").length > 200) throw new Error("Wi-Fi password must be 200 characters or fewer.");
-  if ((values.arrival_contact ?? "").length > 500) throw new Error("Arrival contact must be 500 characters or fewer.");
-  if ((values.local_tips ?? "").length > 5000) throw new Error("Local tips must be 5000 characters or fewer.");
+  if ((values.arrival_directions ?? "").length > 5000)
+    throw new Error("Arrival directions must be 5000 characters or fewer.");
+  if ((values.arrival_address ?? "").length > 1000)
+    throw new Error("Arrival address must be 1000 characters or fewer.");
+  if ((values.check_in_instructions ?? "").length > 5000)
+    throw new Error("Check-in instructions must be 5000 characters or fewer.");
+  if ((values.wifi_name ?? "").length > 120)
+    throw new Error("Wi-Fi name must be 120 characters or fewer.");
+  if ((values.wifi_password ?? "").length > 200)
+    throw new Error("Wi-Fi password must be 200 characters or fewer.");
+  if ((values.arrival_contact ?? "").length > 500)
+    throw new Error("Arrival contact must be 500 characters or fewer.");
+  if ((values.local_tips ?? "").length > 5000)
+    throw new Error("Local tips must be 5000 characters or fewer.");
 }
 
-async function saveArrivalGuide(listingId: string, hostId: string, values: ArrivalGuideInput) {
+async function saveArrivalGuide(
+  listingId: string,
+  hostId: string,
+  values: ArrivalGuideInput,
+) {
   validateArrivalGuide(values);
   const supabase = await createClient();
   const { error } = await supabase
     .from("listing_arrival_guides")
-    .upsert(arrivalGuidePayload(listingId, hostId, values), { onConflict: "listing_id" });
+    .upsert(arrivalGuidePayload(listingId, hostId, values), {
+      onConflict: "listing_id",
+    });
   if (error) throw new Error("Unable to save arrival guide details.");
 }
 
 export async function createHostListing(values: ListingFormValues) {
   await requireHost();
-  throw new Error("Listing creation is managed by the admin team. Hosts can view listings only while the site is in its verification phase.");
+  throw new Error(
+    "Listing creation is managed by the admin team. Hosts can view listings only while the site is in its verification phase.",
+  );
 }
 
-export async function updateHostListing(id: string, values: Partial<ListingFormValues>) {
+export async function updateHostListing(
+  id: string,
+  values: Partial<ListingFormValues>,
+) {
   await requireHost();
-  throw new Error("Listing edits are disabled for hosts. The admin team reviews and manages listings on your behalf.");
+  throw new Error(
+    "Listing edits are disabled for hosts. The admin team reviews and manages listings on your behalf.",
+  );
 }
 
-export async function setHostListingStatus(id: string, status: "draft" | "published") {
+export async function setHostListingStatus(
+  id: string,
+  status: "draft" | "published",
+) {
   await requireHost();
-  throw new Error("Host publishing is disabled. Listings are reviewed and published by the admin team.");
+  throw new Error(
+    "Host publishing is disabled. Listings are reviewed and published by the admin team.",
+  );
 }
 
 export async function deleteHostListing(id: string) {
   await requireHost();
-  throw new Error("Host deletion is disabled. Listing removal is handled by the admin team.");
+  throw new Error(
+    "Host deletion is disabled. Listing removal is handled by the admin team.",
+  );
 }
 
-export async function updateHostBookingStatus(id: string, status: BookingStatus, declineReason = "") {
+export async function updateHostBookingStatus(
+  id: string,
+  status: BookingStatus,
+  declineReason = "",
+) {
   const { user } = await requireHost();
-  if (!["confirmed", "cancelled", "completed"].includes(status)) throw new Error("Invalid booking status.");
+  if (!["confirmed", "cancelled", "completed"].includes(status))
+    throw new Error("Invalid booking status.");
   const normalizedReason = declineReason.trim();
   if (status === "cancelled" && normalizedReason.length > 500) {
     throw new Error("Decline reason must be 500 characters or fewer.");
@@ -287,12 +370,15 @@ export async function updateHostBookingStatus(id: string, status: BookingStatus,
         throw new Error("The listing's check-out time has not passed yet.");
       }
       if (error.message.includes("PENDING_GUEST_REQUEST")) {
-        throw new Error("Resolve the pending guest request before marking this stay completed.");
+        throw new Error(
+          "Resolve the pending guest request before marking this stay completed.",
+        );
       }
       if (error.message.includes("BOOKING_NOT_CONFIRMED")) {
         throw new Error("Only confirmed bookings can be marked completed.");
       }
-      if (error.message.includes("BOOKING_NOT_FOUND")) throw new Error("Booking not found.");
+      if (error.message.includes("BOOKING_NOT_FOUND"))
+        throw new Error("Booking not found.");
       console.error("Host booking completion RPC failed:", {
         error: String(error),
         ownProperties: Object.getOwnPropertyNames(error),
@@ -301,7 +387,9 @@ export async function updateHostBookingStatus(id: string, status: BookingStatus,
         details: error.details,
         hint: error.hint,
       });
-      throw new Error("We couldn't mark this stay as completed. Please try again. If it still fails, contact support.");
+      throw new Error(
+        "We couldn't mark this stay as completed. Please try again. If it still fails, contact support.",
+      );
     }
 
     revalidatePath("/host/bookings");
@@ -321,7 +409,8 @@ export async function updateHostBookingStatus(id: string, status: BookingStatus,
   if (lookupError || !booking) throw new Error("Booking not found.");
 
   const isAllowedTransition =
-    booking.status === "pending" && (status === "confirmed" || status === "cancelled");
+    booking.status === "pending" &&
+    (status === "confirmed" || status === "cancelled");
   if (!isAllowedTransition) {
     throw new Error("This booking can no longer be changed to that status.");
   }
@@ -335,18 +424,26 @@ export async function updateHostBookingStatus(id: string, status: BookingStatus,
     .select("id")
     .maybeSingle();
   if (error) throw new Error("Unable to update booking status.");
-  if (!updated) throw new Error("Booking status changed. Refresh and try again.");
+  if (!updated)
+    throw new Error("Booking status changed. Refresh and try again.");
 
   if (status === "cancelled" && normalizedReason) {
     const admin = getSupabaseAdmin();
-    const { error: updateLogError } = await admin.from("booking_updates").insert({
-      booking_id: id,
-      actor_id: user.id,
-      event_type: "booking_status_changed",
-      summary: `Host declined booking request: ${normalizedReason}`,
-      details: { old_status: booking.status, new_status: status, decline_reason: normalizedReason },
-    });
-    if (updateLogError) console.error("Failed to record host decline reason:", updateLogError);
+    const { error: updateLogError } = await admin
+      .from("booking_updates")
+      .insert({
+        booking_id: id,
+        actor_id: user.id,
+        event_type: "booking_status_changed",
+        summary: `Host declined booking request: ${normalizedReason}`,
+        details: {
+          old_status: booking.status,
+          new_status: status,
+          decline_reason: normalizedReason,
+        },
+      });
+    if (updateLogError)
+      console.error("Failed to record host decline reason:", updateLogError);
   }
 
   revalidatePath("/host/bookings");
@@ -359,12 +456,28 @@ export async function getHostDashboardData() {
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
   const [stats, pending, upcoming, payouts] = await Promise.all([
-    supabase.from("host_dashboard_stats").select("*").eq("host_id", user.id).maybeSingle(),
-    supabase.from("bookings").select(HOST_BOOKING_WITH_LISTING).eq("host_id", user.id).eq("status", "pending").order("check_in", { ascending: true }),
-    supabase.from("bookings").select(HOST_BOOKING_WITH_LISTING).eq("host_id", user.id).eq("status", "confirmed").gte("check_in", today).order("check_in", { ascending: true }),
+    supabase
+      .from("host_dashboard_stats")
+      .select("*")
+      .eq("host_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("bookings")
+      .select(HOST_BOOKING_WITH_LISTING)
+      .eq("host_id", user.id)
+      .eq("status", "pending")
+      .order("check_in", { ascending: true }),
+    supabase
+      .from("bookings")
+      .select(HOST_BOOKING_WITH_LISTING)
+      .eq("host_id", user.id)
+      .eq("status", "confirmed")
+      .gte("check_in", today)
+      .order("check_in", { ascending: true }),
     supabase.from("payouts").select("amount, status").eq("host_id", user.id),
   ]);
-  if (stats.error || pending.error || upcoming.error || payouts.error) throw new Error("Unable to load host dashboard.");
+  if (stats.error || pending.error || upcoming.error || payouts.error)
+    throw new Error("Unable to load host dashboard.");
 
   const payoutTotals = (payouts.data ?? []).reduce(
     (totals, payout) => {
@@ -393,11 +506,41 @@ export async function getHostOverviewData() {
   const { user } = await requireHost();
   const supabase = await createClient();
   const today = todayISO();
-  const [listingCountResult, upcomingResult, verificationResult, changesResult, unreadSupportCounts] = await Promise.all([
-    supabase.from("listings").select("id", { count: "exact", head: true }).eq("host_id", user.id).in("status", ["draft", "published"]),
-    supabase.from("bookings").select(HOST_BOOKING_WITH_LISTING).eq("host_id", user.id).eq("status", "confirmed").gte("check_in", today).order("check_in", { ascending: true }).limit(5),
-    supabase.from("profiles").select("kyc_status, kyc_rejection_reason, host_verified_at").eq("id", user.id).maybeSingle(),
-    supabase.from("booking_change_requests").select("id, booking_id, request_type, current_check_in, current_check_out, requested_check_in, requested_check_out, quoted_total_amount, amount_paid, refund_percent, estimated_refund_amount, reason, created_at, booking:bookings!inner(guest_name, listing:listings(title))").eq("host_id", user.id).eq("request_type", "date_change").eq("status", "pending").order("created_at", { ascending: true }).limit(10),
+  const [
+    listingCountResult,
+    upcomingResult,
+    verificationResult,
+    changesResult,
+    unreadSupportCounts,
+  ] = await Promise.all([
+    supabase
+      .from("listings")
+      .select("id", { count: "exact", head: true })
+      .eq("host_id", user.id)
+      .in("status", ["draft", "published"]),
+    supabase
+      .from("bookings")
+      .select(HOST_BOOKING_WITH_LISTING)
+      .eq("host_id", user.id)
+      .eq("status", "confirmed")
+      .gte("check_in", today)
+      .order("check_in", { ascending: true })
+      .limit(5),
+    supabase
+      .from("profiles")
+      .select("kyc_status, kyc_rejection_reason, host_verified_at")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("booking_change_requests")
+      .select(
+        "id, booking_id, request_type, current_check_in, current_check_out, requested_check_in, requested_check_out, quoted_total_amount, amount_paid, refund_percent, estimated_refund_amount, reason, created_at, booking:bookings!inner(guest_name, listing:listings(title))",
+      )
+      .eq("host_id", user.id)
+      .eq("request_type", "date_change")
+      .eq("status", "pending")
+      .order("created_at", { ascending: true })
+      .limit(10),
     getHostUnreadSupportCounts(user.id).catch(() => null),
   ]);
 
@@ -406,23 +549,33 @@ export async function getHostOverviewData() {
   }
 
   const upcomingRows = (upcomingResult.data ?? []) as unknown as Booking[];
-  const changeRequests = changesResult.error ? null : (changesResult.data ?? []) as unknown as HostBookingChangeRequest[];
-  const onboardingStatus = verificationResult.error ? null : verificationResult.data;
+  const changeRequests = changesResult.error
+    ? null
+    : ((changesResult.data ?? []) as unknown as HostBookingChangeRequest[]);
+  const onboardingStatus = verificationResult.error
+    ? null
+    : verificationResult.data;
 
   const upcomingBookingIds = upcomingRows.map((booking) => booking.id);
   const dateChangesResult = upcomingBookingIds.length
     ? await supabase
         .from("booking_change_requests")
-        .select("id, booking_id, current_check_in, current_check_out, requested_check_in, requested_check_out, created_at")
+        .select(
+          "id, booking_id, current_check_in, current_check_out, requested_check_in, requested_check_out, created_at",
+        )
         .eq("host_id", user.id)
         .eq("request_type", "date_change")
         .eq("status", "approved")
         .in("booking_id", upcomingBookingIds)
         .order("created_at", { ascending: false })
     : { data: [], error: null };
-  if (dateChangesResult.error) throw new Error("Unable to load booking date-change history.");
+  if (dateChangesResult.error)
+    throw new Error("Unable to load booking date-change history.");
 
-  const dateChangesByBooking = new Map<string, NonNullable<Booking["dateChangeHistory"]>>();
+  const dateChangesByBooking = new Map<
+    string,
+    NonNullable<Booking["dateChangeHistory"]>
+  >();
   for (const dateChange of dateChangesResult.data ?? []) {
     const history = dateChangesByBooking.get(dateChange.booking_id) ?? [];
     history.push(dateChange);
@@ -433,35 +586,55 @@ export async function getHostOverviewData() {
     dateChangeHistory: dateChangesByBooking.get(booking.id) ?? [],
   }));
 
-  const listingIds = [...new Set(upcoming.map((booking) => booking.listing_id))];
+  const listingIds = [
+    ...new Set(upcoming.map((booking) => booking.listing_id)),
+  ];
   const unreadBookingIds = Object.keys(unreadSupportCounts ?? {});
   const [guidesResult, unreadRows] = await Promise.all([
     listingIds.length
-      ? supabase.from("listing_arrival_guides")
-          .select("listing_id, arrival_address, arrival_directions, check_in_instructions, wifi_name, wifi_password, arrival_contact, local_tips")
+      ? supabase
+          .from("listing_arrival_guides")
+          .select(
+            "listing_id, arrival_address, arrival_directions, check_in_instructions, wifi_name, wifi_password, arrival_contact, local_tips",
+          )
           .eq("host_id", user.id)
           .in("listing_id", listingIds)
       : Promise.resolve({ data: [], error: null }),
     unreadBookingIds.length
-      ? supabase.from("bookings").select(HOST_BOOKING_WITH_LISTING).eq("host_id", user.id).in("id", unreadBookingIds)
+      ? supabase
+          .from("bookings")
+          .select(HOST_BOOKING_WITH_LISTING)
+          .eq("host_id", user.id)
+          .in("id", unreadBookingIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
 
-  let arrivalGuides: Record<string, HostArrivalGuideDetails | null> | null = null;
+  let arrivalGuides: Record<string, HostArrivalGuideDetails | null> | null =
+    null;
   if (!guidesResult.error) {
-    const guides = Object.fromEntries((guidesResult.data ?? []).map(({ listing_id, ...details }) => [listing_id, details as HostArrivalGuideDetails]));
-    arrivalGuides = Object.fromEntries(listingIds.map((id) => [id, guides[id] ?? null]));
+    const guides = Object.fromEntries(
+      (guidesResult.data ?? []).map(({ listing_id, ...details }) => [
+        listing_id,
+        details as HostArrivalGuideDetails,
+      ]),
+    );
+    arrivalGuides = Object.fromEntries(
+      listingIds.map((id) => [id, guides[id] ?? null]),
+    );
   }
 
-  const supportReplyBookings = unreadSupportCounts === null || unreadRows.error
-    ? null
-    : (unreadRows.data ?? []).map((booking) => ({
-        ...(booking as unknown as Booking),
-        unreadSupportReplyCount: unreadSupportCounts[booking.id] ?? 0,
-      }));
+  const supportReplyBookings =
+    unreadSupportCounts === null || unreadRows.error
+      ? null
+      : (unreadRows.data ?? []).map((booking) => ({
+          ...(booking as unknown as Booking),
+          unreadSupportReplyCount: unreadSupportCounts[booking.id] ?? 0,
+        }));
 
   return {
-    hasActiveOrDraftListings: listingCountResult.error ? null : (listingCountResult.count ?? 0) > 0,
+    hasActiveOrDraftListings: listingCountResult.error
+      ? null
+      : (listingCountResult.count ?? 0) > 0,
     upcoming,
     onboardingStatus,
     supportReplyBookings,
@@ -473,21 +646,43 @@ export async function getHostOverviewData() {
 export async function getHostNavigationAttentionCount() {
   const { user } = await requireHost();
   const supabase = await createClient();
-  const [pendingBookingsResult, changesResult, unreadSupportCounts] = await Promise.all([
-    supabase.from("bookings").select("id", { count: "exact", head: true }).eq("host_id", user.id).eq("status", "pending"),
-    supabase.from("booking_change_requests").select("id", { count: "exact", head: true }).eq("host_id", user.id).eq("request_type", "date_change").eq("status", "pending"),
-    getHostUnreadSupportCounts(user.id),
-  ]);
-  if (pendingBookingsResult.error || changesResult.error) throw new Error("Unable to load host attention count.");
+  const [pendingBookingsResult, changesResult, unreadSupportCounts] =
+    await Promise.all([
+      supabase
+        .from("bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("host_id", user.id)
+        .eq("status", "pending"),
+      supabase
+        .from("booking_change_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("host_id", user.id)
+        .eq("request_type", "date_change")
+        .eq("status", "pending"),
+      getHostUnreadSupportCounts(user.id),
+    ]);
+  if (pendingBookingsResult.error || changesResult.error)
+    throw new Error("Unable to load host attention count.");
 
-  const unreadSupportReplyCount = Object.values(unreadSupportCounts).reduce((total, count) => total + count, 0);
-  return (pendingBookingsResult.count ?? 0) + unreadSupportReplyCount + (changesResult.count ?? 0);
+  const unreadSupportReplyCount = Object.values(unreadSupportCounts).reduce(
+    (total, count) => total + count,
+    0,
+  );
+  return (
+    (pendingBookingsResult.count ?? 0) +
+    unreadSupportReplyCount +
+    (changesResult.count ?? 0)
+  );
 }
 
 export async function getHostListingsData() {
   const { user } = await requireHost();
   const supabase = await createClient();
-  const { data, error } = await supabase.from("listings").select("*, listing_images(id, url, sort_order)").eq("host_id", user.id).order("created_at", { ascending: false });
+  const { data, error } = await supabase
+    .from("listings")
+    .select("*, listing_images(id, url, sort_order)")
+    .eq("host_id", user.id)
+    .order("created_at", { ascending: false });
   if (error) throw new Error("Unable to load listings.");
   return data as unknown as Listing[];
 }
@@ -497,7 +692,9 @@ export async function getHostListingRequestsData() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("host_listing_requests")
-    .select("id, host_id, proposed_title, property_type, county, town, address, contact_phone, property_notes, status, proposed_visit_at, host_message, listing_id, created_at, updated_at")
+    .select(
+      "id, host_id, proposed_title, property_type, county, town, address, contact_phone, property_notes, status, proposed_visit_at, host_message, listing_id, created_at, updated_at",
+    )
     .eq("host_id", user.id)
     .order("created_at", { ascending: false });
   if (error) throw new Error("Unable to load your listing requests.");
@@ -524,11 +721,19 @@ export async function submitHostListingRequest(input: {
     property_notes: input.propertyNotes.trim() || null,
   };
 
-  if (values.proposed_title.length < 3 || values.proposed_title.length > 120) throw new Error("Property name must be 3 to 120 characters.");
-  if (values.property_type.length < 2 || values.property_type.length > 80) throw new Error("Enter a property type up to 80 characters.");
-  if (values.county.length < 2 || values.county.length > 80) throw new Error("Enter a valid county.");
-  if (values.town.length < 2 || values.town.length > 100) throw new Error("Enter a valid town or area.");
-  if ((values.address?.length ?? 0) > 500 || (values.contact_phone?.length ?? 0) > 40 || (values.property_notes?.length ?? 0) > 3000) {
+  if (values.proposed_title.length < 3 || values.proposed_title.length > 120)
+    throw new Error("Property name must be 3 to 120 characters.");
+  if (values.property_type.length < 2 || values.property_type.length > 80)
+    throw new Error("Enter a property type up to 80 characters.");
+  if (values.county.length < 2 || values.county.length > 80)
+    throw new Error("Enter a valid county.");
+  if (values.town.length < 2 || values.town.length > 100)
+    throw new Error("Enter a valid town or area.");
+  if (
+    (values.address?.length ?? 0) > 500 ||
+    (values.contact_phone?.length ?? 0) > 40 ||
+    (values.property_notes?.length ?? 0) > 3000
+  ) {
     throw new Error("One or more property details exceed the allowed length.");
   }
 
@@ -546,10 +751,17 @@ export async function submitHostListingRequest(input: {
   return data as HostListingRequest;
 }
 
-export async function getHostBookingsData(status: Exclude<BookingStatus, "pending">) {
+export async function getHostBookingsData(
+  status: Exclude<BookingStatus, "pending">,
+) {
   const { user } = await requireHost();
   const supabase = await createClient();
-  const { data, error } = await supabase.from("bookings").select(HOST_BOOKING_WITH_LISTING).eq("host_id", user.id).eq("status", status).order("check_in", { ascending: true });
+  const { data, error } = await supabase
+    .from("bookings")
+    .select(HOST_BOOKING_WITH_LISTING)
+    .eq("host_id", user.id)
+    .eq("status", status)
+    .order("check_in", { ascending: true });
   if (error) {
     console.error("Host bookings query failed:", {
       code: error.code,
@@ -557,9 +769,10 @@ export async function getHostBookingsData(status: Exclude<BookingStatus, "pendin
       details: error.details,
       hint: error.hint,
     });
-    const diagnostic = process.env.NODE_ENV === "production"
-      ? ""
-      : ` (${error.code}: ${error.message})`;
+    const diagnostic =
+      process.env.NODE_ENV === "production"
+        ? ""
+        : ` (${error.code}: ${error.message})`;
     throw new Error(`Unable to load bookings.${diagnostic}`);
   }
   const bookings = (data ?? []) as unknown as Booking[];
@@ -567,11 +780,18 @@ export async function getHostBookingsData(status: Exclude<BookingStatus, "pendin
 
   const bookingIds = bookings.map((booking) => booking.id);
   const admin = getSupabaseAdmin();
-  const [unreadByBooking, dateChangesResult, refundRequestsResult, cancellationRefundsResult] = await Promise.all([
+  const [
+    unreadByBooking,
+    dateChangesResult,
+    refundRequestsResult,
+    cancellationRefundsResult,
+  ] = await Promise.all([
     getHostUnreadSupportCounts(user.id, bookingIds),
     supabase
       .from("booking_change_requests")
-      .select("id, booking_id, current_check_in, current_check_out, requested_check_in, requested_check_out, created_at")
+      .select(
+        "id, booking_id, current_check_in, current_check_out, requested_check_in, requested_check_out, created_at",
+      )
       .eq("host_id", user.id)
       .eq("request_type", "date_change")
       .eq("status", "approved")
@@ -579,52 +799,83 @@ export async function getHostBookingsData(status: Exclude<BookingStatus, "pendin
       .order("created_at", { ascending: false }),
     admin
       .from("payment_refund_requests")
-      .select("id, payment_id, booking_id, status, amount_paid, actual_refund_amount, created_at, updated_at, processed_at")
+      .select(
+        "id, payment_id, booking_id, status, amount_paid, actual_refund_amount, created_at, updated_at, processed_at",
+      )
       .in("booking_id", bookingIds)
       .order("created_at", { ascending: false }),
     admin
       .from("booking_change_requests")
-      .select("id, booking_id, amount_paid, estimated_refund_amount, refund_processing_status, actual_refund_amount, created_at, responded_at, refund_decided_at, refund_processed_at")
+      .select(
+        "id, booking_id, amount_paid, estimated_refund_amount, refund_processing_status, actual_refund_amount, created_at, responded_at, refund_decided_at, refund_processed_at",
+      )
       .eq("host_id", user.id)
       .eq("request_type", "cancellation")
       .eq("status", "approved")
       .in("booking_id", bookingIds)
-      .in("refund_processing_status", ["awaiting_admin_review", "awaiting_manual_processing", "declined", "processed", "not_eligible"])
+      .in("refund_processing_status", [
+        "awaiting_admin_review",
+        "awaiting_manual_processing",
+        "declined",
+        "processed",
+        "not_eligible",
+      ])
       .order("created_at", { ascending: false }),
   ]);
-  if (dateChangesResult.error) throw new Error("Unable to load booking date-change history.");
+  if (dateChangesResult.error)
+    throw new Error("Unable to load booking date-change history.");
   if (refundRequestsResult.error) {
-    console.error("Unable to load host refund progress:", refundRequestsResult.error);
+    console.error(
+      "Unable to load host refund progress:",
+      refundRequestsResult.error,
+    );
   }
   if (cancellationRefundsResult.error) {
-    console.error("Unable to load host cancellation refund progress:", cancellationRefundsResult.error);
+    console.error(
+      "Unable to load host cancellation refund progress:",
+      cancellationRefundsResult.error,
+    );
   }
 
-  const dateChangesByBooking = new Map<string, NonNullable<Booking["dateChangeHistory"]>>();
+  const dateChangesByBooking = new Map<
+    string,
+    NonNullable<Booking["dateChangeHistory"]>
+  >();
   for (const dateChange of dateChangesResult.data ?? []) {
     const history = dateChangesByBooking.get(dateChange.booking_id) ?? [];
     history.push(dateChange);
     dateChangesByBooking.set(dateChange.booking_id, history);
   }
-  const refundRequestsByBooking = new Map<string, NonNullable<Booking["refundRequests"]>>();
-  for (const refund of refundRequestsResult.error ? [] : refundRequestsResult.data ?? []) {
+  const refundRequestsByBooking = new Map<
+    string,
+    NonNullable<Booking["refundRequests"]>
+  >();
+  for (const refund of refundRequestsResult.error
+    ? []
+    : (refundRequestsResult.data ?? [])) {
     const requests = refundRequestsByBooking.get(refund.booking_id) ?? [];
-    requests.push({ ...refund, source: 'payment' });
+    requests.push({ ...refund, source: "payment" });
     refundRequestsByBooking.set(refund.booking_id, requests);
   }
-  for (const refund of cancellationRefundsResult.error ? [] : cancellationRefundsResult.data ?? []) {
+  for (const refund of cancellationRefundsResult.error
+    ? []
+    : (cancellationRefundsResult.data ?? [])) {
     const requests = refundRequestsByBooking.get(refund.booking_id) ?? [];
     requests.push({
       id: refund.id,
       booking_id: refund.booking_id,
       payment_id: null,
-      source: 'cancellation',
+      source: "cancellation",
       status: refund.refund_processing_status,
       amount_paid: refund.amount_paid,
       estimated_refund_amount: refund.estimated_refund_amount,
       actual_refund_amount: refund.actual_refund_amount,
       created_at: refund.created_at,
-      updated_at: refund.refund_processed_at ?? refund.refund_decided_at ?? refund.responded_at ?? refund.created_at,
+      updated_at:
+        refund.refund_processed_at ??
+        refund.refund_decided_at ??
+        refund.responded_at ??
+        refund.created_at,
       processed_at: refund.refund_processed_at,
     });
     refundRequestsByBooking.set(refund.booking_id, requests);
@@ -642,10 +893,11 @@ export async function getHostRefundsData(): Promise<RefundListItem[]> {
   const { user } = await requireHost();
   const supabase = await createClient();
   const { data: bookings, error: bookingError } = await supabase
-    .from('bookings')
-    .select('id, booking_reference, listing:listings(title)')
-    .eq('host_id', user.id);
-  if (bookingError) throw new Error('Unable to load bookings for your refunds.');
+    .from("bookings")
+    .select("id, booking_reference, listing:listings(title)")
+    .eq("host_id", user.id);
+  if (bookingError)
+    throw new Error("Unable to load bookings for your refunds.");
   const bookingDetails = (bookings ?? []) as unknown as Array<{
     id: string;
     booking_reference: string;
@@ -657,140 +909,299 @@ export async function getHostRefundsData(): Promise<RefundListItem[]> {
   const admin = getSupabaseAdmin();
   const [paymentResult, cancellationResult] = await Promise.all([
     admin
-      .from('payment_refund_requests')
-      .select('id, payment_id, booking_id, status, amount_paid, actual_refund_amount, created_at, updated_at, processed_at')
-      .in('booking_id', bookingIds)
-      .order('created_at', { ascending: false }),
+      .from("payment_refund_requests")
+      .select(
+        "id, payment_id, booking_id, status, amount_paid, actual_refund_amount, created_at, updated_at, processed_at",
+      )
+      .in("booking_id", bookingIds)
+      .order("created_at", { ascending: false }),
     admin
-      .from('booking_change_requests')
-      .select('id, booking_id, amount_paid, estimated_refund_amount, refund_processing_status, actual_refund_amount, created_at, responded_at, refund_decided_at, refund_processed_at')
-      .eq('host_id', user.id)
-      .eq('request_type', 'cancellation')
-      .eq('status', 'approved')
-      .in('refund_processing_status', ['awaiting_admin_review', 'awaiting_manual_processing', 'declined', 'processed', 'not_eligible'])
-      .in('booking_id', bookingIds)
-      .order('created_at', { ascending: false }),
+      .from("booking_change_requests")
+      .select(
+        "id, booking_id, amount_paid, estimated_refund_amount, refund_processing_status, actual_refund_amount, created_at, responded_at, refund_decided_at, refund_processed_at",
+      )
+      .eq("host_id", user.id)
+      .eq("request_type", "cancellation")
+      .eq("status", "approved")
+      .in("refund_processing_status", [
+        "awaiting_admin_review",
+        "awaiting_manual_processing",
+        "declined",
+        "processed",
+        "not_eligible",
+      ])
+      .in("booking_id", bookingIds)
+      .order("created_at", { ascending: false }),
   ]);
   if (paymentResult.error || cancellationResult.error) {
-    console.error('Unable to load host refund section:', paymentResult.error ?? cancellationResult.error);
-    throw new Error('Unable to load refunds for your bookings. Please try again.');
+    console.error(
+      "Unable to load host refund section:",
+      paymentResult.error ?? cancellationResult.error,
+    );
+    throw new Error(
+      "Unable to load refunds for your bookings. Please try again.",
+    );
   }
 
   const refunds: RefundProgress[] = [
-    ...((paymentResult.data ?? []) as RefundProgress[]).map((refund) => ({ ...refund, source: 'payment' as const })),
+    ...((paymentResult.data ?? []) as RefundProgress[]).map((refund) => ({
+      ...refund,
+      source: "payment" as const,
+    })),
     ...(cancellationResult.data ?? []).map((refund) => ({
       id: refund.id,
       booking_id: refund.booking_id,
       payment_id: null,
-      source: 'cancellation' as const,
-      status: refund.refund_processing_status as RefundProgress['status'],
+      source: "cancellation" as const,
+      status: refund.refund_processing_status as RefundProgress["status"],
       amount_paid: refund.amount_paid,
       estimated_refund_amount: refund.estimated_refund_amount,
       actual_refund_amount: refund.actual_refund_amount,
       created_at: refund.created_at,
-      updated_at: refund.refund_processed_at ?? refund.refund_decided_at ?? refund.responded_at ?? refund.created_at,
+      updated_at:
+        refund.refund_processed_at ??
+        refund.refund_decided_at ??
+        refund.responded_at ??
+        refund.created_at,
       processed_at: refund.refund_processed_at,
     })),
   ];
-  const bookingById = new Map(bookingDetails.map((booking) => {
-    const listing = Array.isArray(booking.listing) ? booking.listing[0] : booking.listing;
-    return [booking.id, { booking_reference: booking.booking_reference, listing_title: listing?.title ?? null }];
-  }));
+  const bookingById = new Map(
+    bookingDetails.map((booking) => {
+      const listing = Array.isArray(booking.listing)
+        ? booking.listing[0]
+        : booking.listing;
+      return [
+        booking.id,
+        {
+          booking_reference: booking.booking_reference,
+          listing_title: listing?.title ?? null,
+        },
+      ];
+    }),
+  );
 
   return refunds
     .map((refund) => ({ ...refund, ...bookingById.get(refund.booking_id) }))
-    .filter((refund): refund is RefundListItem => Boolean(refund.booking_reference))
-    .sort((first, second) => Date.parse(second.updated_at ?? second.created_at) - Date.parse(first.updated_at ?? first.created_at));
+    .filter((refund): refund is RefundListItem =>
+      Boolean(refund.booking_reference),
+    )
+    .sort(
+      (first, second) =>
+        Date.parse(second.updated_at ?? second.created_at) -
+        Date.parse(first.updated_at ?? first.created_at),
+    );
 }
 
 export async function getHostBookingChangeRequestsData() {
   const { user } = await requireHost();
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('booking_change_requests')
-    .select('id, booking_id, request_type, current_check_in, current_check_out, requested_check_in, requested_check_out, quoted_total_amount, amount_paid, refund_percent, estimated_refund_amount, reason, created_at, auto_decision_at, booking:bookings!inner(guest_name, listing:listings(title))')
-    .eq('host_id', user.id)
-    .eq('request_type', 'date_change')
-    .eq('status', 'pending')
-    .order('created_at', { ascending: true });
-  if (error) throw new Error('Unable to load booking change requests.');
+    .from("booking_change_requests")
+    .select(
+      "id, booking_id, request_type, current_check_in, current_check_out, requested_check_in, requested_check_out, quoted_total_amount, amount_paid, refund_percent, estimated_refund_amount, reason, created_at, auto_decision_at, booking:bookings!inner(guest_name, listing:listings(title))",
+    )
+    .eq("host_id", user.id)
+    .eq("request_type", "date_change")
+    .eq("status", "pending")
+    .order("created_at", { ascending: true });
+  if (error) throw new Error("Unable to load booking change requests.");
   return (data ?? []) as unknown as HostBookingChangeRequest[];
 }
 
-export async function getHostDateChangeHistoryData(): Promise<HostDateChangeRecord[]> {
+export async function getHostDateChangeHistoryData(): Promise<
+  HostDateChangeRecord[]
+> {
   const { user } = await requireHost();
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('booking_change_requests')
-    .select('id, booking_id, status, current_check_in, current_check_out, requested_check_in, requested_check_out, quoted_total_amount, reason, created_at, responded_at, host_response, auto_decision_at, decision_source, booking:bookings!inner(booking_reference, guest_name, listing:listings(title))')
-    .eq('host_id', user.id)
-    .eq('request_type', 'date_change')
-    .order('created_at', { ascending: false })
+    .from("booking_change_requests")
+    .select(
+      "id, booking_id, status, current_check_in, current_check_out, requested_check_in, requested_check_out, quoted_total_amount, reason, created_at, responded_at, host_response, auto_decision_at, decision_source, booking:bookings!inner(booking_reference, guest_name, listing:listings(title))",
+    )
+    .eq("host_id", user.id)
+    .eq("request_type", "date_change")
+    .order("created_at", { ascending: false })
     .limit(200);
-  if (error) throw new Error('Unable to load date-change requests.');
+  if (error) throw new Error("Unable to load date-change requests.");
   return (data ?? []) as unknown as HostDateChangeRecord[];
 }
 
-export async function respondToBookingChangeRequest(requestId: string, approve: boolean, hostResponse = '') {
+export async function respondToBookingChangeRequest(
+  requestId: string,
+  approve: boolean,
+  hostResponse = "",
+) {
   const response = hostResponse.trim();
   if (!approve && (response.length < 5 || response.length > 1000)) {
-    throw new Error('Add a decline reason between 5 and 1000 characters. The guest will see it.');
+    throw new Error(
+      "Add a decline reason between 5 and 1000 characters. The guest will see it.",
+    );
   }
   await requireHost();
   const supabase = await createClient();
-  const { error } = await supabase.rpc('respond_to_booking_change_request', {
+  const { error } = await supabase.rpc("respond_to_booking_change_request", {
     p_request_id: requestId,
     p_approve: approve,
     p_host_response: response || null,
   });
   if (error) {
-    if (error.message.includes('PRICE_CHANGE_REQUIRES_SUPPORT')) {
-      throw new Error('The new dates change the total. Contact the guest and support to arrange the price difference before changing this booking.');
+    if (error.message.includes("PRICE_CHANGE_REQUIRES_SUPPORT")) {
+      throw new Error(
+        "The new dates change the total. Contact the guest and support to arrange the price difference before changing this booking.",
+      );
     }
-    if (error.message.includes('REQUESTED_DATES_UNAVAILABLE')) {
-      throw new Error('Those dates are no longer available. Decline the request and ask the guest to choose other dates.');
+    if (error.message.includes("REQUESTED_DATES_UNAVAILABLE")) {
+      throw new Error(
+        "Those dates are no longer available. Decline the request and ask the guest to choose other dates.",
+      );
     }
-    if (error.message.includes('REQUEST_ALREADY_HANDLED')) throw new Error('This request has already been handled.');
-    if (error.message.includes('DECLINE_REASON_REQUIRED')) throw new Error('Add a decline reason between 5 and 1000 characters. The guest will see it.');
-    if (error.message.includes('RESPONSE_WINDOW_EXPIRED')) throw new Error('The response window has expired. The system is processing this request automatically.');
-    throw new Error('Unable to update this booking request.');
+    if (error.message.includes("REQUEST_ALREADY_HANDLED"))
+      throw new Error("This request has already been handled.");
+    if (error.message.includes("DECLINE_REASON_REQUIRED"))
+      throw new Error(
+        "Add a decline reason between 5 and 1000 characters. The guest will see it.",
+      );
+    if (error.message.includes("RESPONSE_WINDOW_EXPIRED"))
+      throw new Error(
+        "The response window has expired. The system is processing this request automatically.",
+      );
+    throw new Error("Unable to update this booking request.");
   }
-  revalidatePath('/host/bookings');
-  revalidatePath('/host/date-changes');
-  revalidatePath('/account/bookings');
-  revalidatePath('/host/payouts');
+  revalidatePath("/host/bookings");
+  revalidatePath("/host/date-changes");
+  revalidatePath("/account/bookings");
+  revalidatePath("/host/payouts");
 }
 
 export async function getHostPayoutsData() {
   const { user } = await requireHost();
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("payouts")
-    .select("*, booking:bookings(id, booking_reference, check_in, check_out, nights, adults_count, children_count, pets_count, rooms_count, status, host_payout_amount, guest_name, guest_country, special_requests, listing:listings(id, title, town, county))")
-    .eq("host_id", user.id)
-    .order("created_at", { ascending: false });
-  if (error) throw new Error("Unable to load payouts.");
-  return data as unknown as Payout[];
+  const admin = getSupabaseAdmin();
+  const [
+    { data, error },
+    { data: requests, error: requestError },
+    { data: profile, error: profileError },
+  ] = await Promise.all([
+    admin
+      .from("payouts")
+      .select(
+        "*, booking:bookings(id, booking_reference, check_in, check_out, nights, adults_count, children_count, pets_count, rooms_count, status, host_payout_amount, host_gross_amount, collection_fee_amount, guest_name, guest_country, special_requests, listing:listings(id, title, town, county))",
+      )
+      .eq("host_id", user.id)
+      .order("created_at", { ascending: false }),
+    admin
+      .from("host_payout_requests")
+      .select(
+        "id, amount, transfer_fee, net_amount, destination_method, status, external_reference, requested_at, processed_at, admin_note",
+      )
+      .eq("host_id", user.id)
+      .order("requested_at", { ascending: false }),
+    admin
+      .from("profiles")
+      .select("host_fee_balance, payout_method")
+      .eq("id", user.id)
+      .maybeSingle(),
+  ]);
+  if (error || requestError || profileError)
+    throw new Error("Unable to load payouts.");
+
+  const requestIds = (requests ?? [])
+    .filter((request) => ["requested", "processing"].includes(request.status))
+    .map((request) => request.id);
+  const { data: reservedItems, error: reservedError } = requestIds.length
+    ? await admin
+        .from("host_payout_request_items")
+        .select("payout_id")
+        .in("request_id", requestIds)
+    : { data: [], error: null };
+  if (reservedError) throw new Error("Unable to load payout requests.");
+
+  const reservedPayoutIds = new Set(
+    (reservedItems ?? []).map((item) => item.payout_id),
+  );
+  const payouts = (data ?? []) as unknown as Payout[];
+  const availableAmount = payouts
+    .filter(
+      (payout) =>
+        payout.status === "owed" &&
+        payout.eligible_for_withdrawal &&
+        !reservedPayoutIds.has(payout.id),
+    )
+    .reduce((sum, payout) => sum + Number(payout.amount), 0);
+  const feeBalance = Number(profile?.host_fee_balance ?? 0);
+
+  return {
+    payouts,
+    requests: requests ?? [],
+    availableAmount,
+    requestableAmount: Math.max(availableAmount - feeBalance, 0),
+    feeBalance,
+    payoutMethodConfigured: profile?.payout_method === "mpesa",
+  };
+}
+
+export async function requestHostPayout() {
+  const { user } = await requireHost();
+  const admin = getSupabaseAdmin();
+  const { data, error } = await admin.rpc("create_host_payout_request", {
+    p_host_id: user.id,
+  });
+  if (error) {
+    if (error.message.includes("PAYOUT_DESTINATION_REQUIRED"))
+      throw new Error("Save your payout method before requesting a transfer.");
+    if (error.message.includes("HOST_FEE_DEBT_REMAINS"))
+      throw new Error(
+        "A payment-processing fee adjustment is still being applied to your balance.",
+      );
+    if (error.message.includes("HOST_FEE_BALANCE_EXCEEDS_PAYOUT"))
+      throw new Error(
+        "Your fee balance currently exceeds your available payout amount.",
+      );
+    if (error.message.includes("NO_PAYOUTS_AVAILABLE"))
+      throw new Error(
+        "There are no available completed-booking payouts to request.",
+      );
+    console.error("Host payout request failed:", error);
+    throw new Error("Unable to request your payout. Please try again.");
+  }
+  const request = Array.isArray(data) ? data[0] : data;
+  if (!request?.request_id)
+    throw new Error("Unable to create your payout request.");
+  revalidatePath("/host/payouts");
+  revalidatePath("/admin/payouts/requests");
+  return {
+    requestId: request.request_id,
+    amount: Number(request.request_amount),
+  };
 }
 
 export async function getHostListingData(id: string) {
   const { user } = await requireHost();
   const supabase = await createClient();
-  const { data, error } = await supabase.from("listings").select("*, listing_images(id, url, sort_order)").eq("id", id).eq("host_id", user.id).single();
+  const { data, error } = await supabase
+    .from("listings")
+    .select("*, listing_images(id, url, sort_order)")
+    .eq("id", id)
+    .eq("host_id", user.id)
+    .single();
   if (error) throw new Error("Listing not found.");
   const { data: arrivalGuide, error: guideError } = await supabase
     .from("listing_arrival_guides")
-    .select("arrival_address, arrival_directions, check_in_instructions, wifi_name, wifi_password, arrival_contact, local_tips")
+    .select(
+      "arrival_address, arrival_directions, check_in_instructions, wifi_name, wifi_password, arrival_contact, local_tips",
+    )
     .eq("listing_id", id)
     .maybeSingle();
   if (guideError) throw new Error("Unable to load arrival guide details.");
-  return { ...data, ...arrivalGuide } as unknown as Listing & ListingFormValues & { listing_images?: ListingImage[] };
+  return { ...data, ...arrivalGuide } as unknown as Listing &
+    ListingFormValues & { listing_images?: ListingImage[] };
 }
 
 export async function getHostArrivalGuidesData(listingIds: string[]) {
   const { user } = await requireHost();
   const uniqueIds = [...new Set(listingIds)].filter(Boolean);
-  if (uniqueIds.length === 0) return {} as Record<string, HostArrivalGuideDetails | null>;
+  if (uniqueIds.length === 0)
+    return {} as Record<string, HostArrivalGuideDetails | null>;
 
   const supabase = await createClient();
   const { data: ownedListings, error: listingError } = await supabase
@@ -804,19 +1215,29 @@ export async function getHostArrivalGuidesData(listingIds: string[]) {
   const { data, error } = ownedIds.length
     ? await supabase
         .from("listing_arrival_guides")
-        .select("listing_id, arrival_address, arrival_directions, check_in_instructions, wifi_name, wifi_password, arrival_contact, local_tips")
+        .select(
+          "listing_id, arrival_address, arrival_directions, check_in_instructions, wifi_name, wifi_password, arrival_contact, local_tips",
+        )
         .eq("host_id", user.id)
         .in("listing_id", ownedIds)
     : { data: [], error: null };
   if (error) throw new Error("Unable to load arrival guide details.");
 
   const guides = Object.fromEntries(
-    (data ?? []).map(({ listing_id, ...details }) => [listing_id, details as HostArrivalGuideDetails]),
+    (data ?? []).map(({ listing_id, ...details }) => [
+      listing_id,
+      details as HostArrivalGuideDetails,
+    ]),
   );
-  return Object.fromEntries(ownedIds.map((id) => [id, guides[id] ?? null])) as Record<string, HostArrivalGuideDetails | null>;
+  return Object.fromEntries(
+    ownedIds.map((id) => [id, guides[id] ?? null]),
+  ) as Record<string, HostArrivalGuideDetails | null>;
 }
 
-export async function updateHostArrivalGuide(listingId: string, values: HostArrivalGuideDetails) {
+export async function updateHostArrivalGuide(
+  listingId: string,
+  values: HostArrivalGuideDetails,
+) {
   const { user } = await requireHost();
   const supabase = await createClient();
   const { data: listing, error: listingError } = await supabase
@@ -836,16 +1257,26 @@ export async function updateHostArrivalGuide(listingId: string, values: HostArri
 export async function getHostAvailabilityData(listingId: string) {
   const { user } = await requireHost();
   const supabase = await createClient();
-  const { data: listing } = await supabase.from("listings").select("id").eq("id", listingId).eq("host_id", user.id).maybeSingle();
+  const { data: listing } = await supabase
+    .from("listings")
+    .select("id")
+    .eq("id", listingId)
+    .eq("host_id", user.id)
+    .maybeSingle();
   if (!listing) throw new Error("Listing not found.");
-  const { data, error } = await supabase.from("listing_availability_blocks").select("*").eq("listing_id", listingId).order("start_date");
+  const { data, error } = await supabase
+    .from("listing_availability_blocks")
+    .select("*")
+    .eq("listing_id", listingId)
+    .order("start_date");
   if (error) throw new Error("Unable to load availability.");
   return data as AvailabilityBlock[];
 }
 
 export async function getHostCalendarData(month: string) {
   const { user } = await requireHost();
-  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new Error("Invalid calendar month.");
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))
+    throw new Error("Invalid calendar month.");
 
   const [year, monthNumber] = month.split("-").map(Number);
   const nextMonth = monthNumber === 12 ? 1 : monthNumber + 1;
@@ -861,7 +1292,8 @@ export async function getHostCalendarData(month: string) {
 
   if (listingsError) throw new Error("Unable to load calendar listings.");
   const listings = listingsData ?? [];
-  if (listings.length === 0) return { listings, bookings: [], blocks: [], externalBlocks: [] };
+  if (listings.length === 0)
+    return { listings, bookings: [], blocks: [], externalBlocks: [] };
 
   const listingIds = listings.map((listing) => listing.id);
   const [bookingsResult, blocksResult] = await Promise.all([
@@ -882,24 +1314,30 @@ export async function getHostCalendarData(month: string) {
       .order("start_date"),
   ]);
 
-  if (bookingsResult.error || blocksResult.error) throw new Error("Unable to load host calendar.");
+  if (bookingsResult.error || blocksResult.error)
+    throw new Error("Unable to load host calendar.");
   const admin = getSupabaseAdmin();
   const { data: externalEvents, error: externalEventsError } = await admin
     .from("host_external_calendar_events")
-    .select("id, listing_id, start_date, end_date, connection:host_calendar_connections(source_name)")
+    .select(
+      "id, listing_id, start_date, end_date, connection:host_calendar_connections(source_name)",
+    )
     .eq("host_id", user.id)
     .in("listing_id", listingIds)
     .lt("start_date", nextMonthStart)
     .gt("end_date", monthStart)
     .order("start_date");
 
-  if (externalEventsError) throw new Error("Unable to load imported calendar dates.");
+  if (externalEventsError)
+    throw new Error("Unable to load imported calendar dates.");
   return {
     listings,
     bookings: (bookingsResult.data ?? []) as unknown as Booking[],
     blocks: (blocksResult.data ?? []) as AvailabilityBlock[],
     externalBlocks: (externalEvents ?? []).map((event) => {
-      const connection = event.connection as unknown as { source_name?: string } | null;
+      const connection = event.connection as unknown as {
+        source_name?: string;
+      } | null;
       return {
         id: event.id,
         listing_id: event.listing_id,
@@ -916,17 +1354,27 @@ export async function getHostCalendarConnections() {
   const admin = getSupabaseAdmin();
   const { data, error } = await admin
     .from("host_calendar_connections")
-    .select("id, listing_id, source_name, last_synced_at, last_sync_status, last_sync_error, created_at")
+    .select(
+      "id, listing_id, source_name, last_synced_at, last_sync_status, last_sync_error, created_at",
+    )
     .eq("host_id", user.id)
     .order("created_at", { ascending: false });
   if (error) throw new Error("Unable to load calendar connections.");
   return data ?? [];
 }
 
-export async function addHostCalendarConnection(listingId: string, sourceUrl: string, sourceName: string) {
+export async function addHostCalendarConnection(
+  listingId: string,
+  sourceUrl: string,
+  sourceName: string,
+) {
   const { user } = await requireHost();
   const safeUrl = validateExternalCalendarUrl(sourceUrl.trim());
-  const safeName = sourceName.trim().replace(/[<>\r\n]/g, "").slice(0, 80) || new URL(safeUrl).hostname;
+  const safeName =
+    sourceName
+      .trim()
+      .replace(/[<>\r\n]/g, "")
+      .slice(0, 80) || new URL(safeUrl).hostname;
   const sessionClient = await createClient();
   const { data: listing } = await sessionClient
     .from("listings")
@@ -939,11 +1387,17 @@ export async function addHostCalendarConnection(listingId: string, sourceUrl: st
   const admin = getSupabaseAdmin();
   const { data: connection, error } = await admin
     .from("host_calendar_connections")
-    .insert({ host_id: user.id, listing_id: listingId, source_name: safeName, source_url: safeUrl })
+    .insert({
+      host_id: user.id,
+      listing_id: listingId,
+      source_name: safeName,
+      source_url: safeUrl,
+    })
     .select("id")
     .single();
   if (error || !connection) {
-    if (error?.code === "23505") throw new Error("This calendar is already connected to the listing.");
+    if (error?.code === "23505")
+      throw new Error("This calendar is already connected to the listing.");
     throw new Error("Unable to connect this calendar.");
   }
 
@@ -951,7 +1405,10 @@ export async function addHostCalendarConnection(listingId: string, sourceUrl: st
   try {
     await syncCalendarConnection(connection.id, true);
   } catch (syncError) {
-    syncMessage = syncError instanceof Error ? syncError.message : "Calendar connected, but the first sync failed.";
+    syncMessage =
+      syncError instanceof Error
+        ? syncError.message
+        : "Calendar connected, but the first sync failed.";
   }
   revalidatePath("/host/calendar");
   return { id: connection.id, syncMessage };
@@ -999,16 +1456,34 @@ export async function rotateHostCalendarExportFeed(listingId: string) {
   const admin = getSupabaseAdmin();
   const { error } = await admin
     .from("host_calendar_export_feeds")
-    .upsert({ listing_id: listingId, host_id: user.id, token_hash: hashCalendarToken(token) }, { onConflict: "listing_id" });
+    .upsert(
+      {
+        listing_id: listingId,
+        host_id: user.id,
+        token_hash: hashCalendarToken(token),
+      },
+      { onConflict: "listing_id" },
+    );
   if (error) throw new Error("Unable to create a private calendar link.");
   return token;
 }
 
-export async function addHostAvailabilityBlock(listingId: string, startDate: string, endDate: string, reason: string) {
+export async function addHostAvailabilityBlock(
+  listingId: string,
+  startDate: string,
+  endDate: string,
+  reason: string,
+) {
   const { user } = await requireHost();
   const supabase = await createClient();
-  const { data: listing } = await supabase.from("listings").select("id").eq("id", listingId).eq("host_id", user.id).maybeSingle();
-  if (!listing || startDate >= endDate) throw new Error("Invalid availability dates.");
+  const { data: listing } = await supabase
+    .from("listings")
+    .select("id")
+    .eq("id", listingId)
+    .eq("host_id", user.id)
+    .maybeSingle();
+  if (!listing || startDate >= endDate)
+    throw new Error("Invalid availability dates.");
   await syncStaleCalendarConnectionsForListing(listingId);
   const [bookingConflict, blockConflict] = await Promise.all([
     supabase
@@ -1027,9 +1502,12 @@ export async function addHostAvailabilityBlock(listingId: string, startDate: str
       .gt("end_date", startDate)
       .limit(1),
   ]);
-  if (bookingConflict.error || blockConflict.error) throw new Error("Unable to verify date availability.");
-  if (bookingConflict.data?.length) throw new Error("These dates overlap a booking request or confirmed stay.");
-  if (blockConflict.data?.length) throw new Error("These dates overlap an existing blocked period.");
+  if (bookingConflict.error || blockConflict.error)
+    throw new Error("Unable to verify date availability.");
+  if (bookingConflict.data?.length)
+    throw new Error("These dates overlap a booking request or confirmed stay.");
+  if (blockConflict.data?.length)
+    throw new Error("These dates overlap an existing blocked period.");
   const admin = getSupabaseAdmin();
   const { data: externalConflict, error: externalConflictError } = await admin
     .from("host_external_calendar_events")
@@ -1039,9 +1517,18 @@ export async function addHostAvailabilityBlock(listingId: string, startDate: str
     .lt("start_date", endDate)
     .gt("end_date", startDate)
     .limit(1);
-  if (externalConflictError) throw new Error("Unable to verify imported calendar dates.");
-  if (externalConflict?.length) throw new Error("These dates overlap an imported external booking.");
-  const { error } = await supabase.from("listing_availability_blocks").insert({ listing_id: listingId, start_date: startDate, end_date: endDate, reason: reason.trim() || null });
+  if (externalConflictError)
+    throw new Error("Unable to verify imported calendar dates.");
+  if (externalConflict?.length)
+    throw new Error("These dates overlap an imported external booking.");
+  const { error } = await supabase
+    .from("listing_availability_blocks")
+    .insert({
+      listing_id: listingId,
+      start_date: startDate,
+      end_date: endDate,
+      reason: reason.trim() || null,
+    });
   if (error) throw new Error("Unable to block dates.");
   revalidatePath(`/host/listings/${listingId}/edit`);
   revalidatePath("/host/calendar");
@@ -1074,4 +1561,3 @@ export async function removeHostAvailabilityBlock(id: string) {
   revalidatePath(`/host/listings/${block.listing_id}/edit`);
   revalidatePath("/host/calendar");
 }
-

@@ -16,8 +16,11 @@ import {
   ClipboardList,
   ClipboardCheck,
   MessageSquareText,
+  Mail,
   BadgeDollarSign,
   CreditCard,
+  Banknote,
+  ReceiptText,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -25,14 +28,48 @@ const NAV_ITEMS = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/verification", label: "Host Verification", icon: BadgeCheck },
   { href: "/admin/listings", label: "Listings", icon: Home },
-  { href: "/admin/listing-requests", label: "Property Visit Requests", icon: ClipboardList },
+  {
+    href: "/admin/listing-requests",
+    label: "Property Visit Requests",
+    icon: ClipboardList,
+  },
   { href: "/admin/bookings", label: "Bookings", icon: CalendarCheck },
-  { href: "/admin/cancellation-requests", label: "Cancellation Requests", icon: ClipboardCheck },
+  {
+    href: "/admin/cancellation-requests",
+    label: "Cancellation Requests",
+    icon: ClipboardCheck,
+  },
   { href: "/admin/refunds", label: "Refunds", icon: BadgeDollarSign },
-  { href: "/admin/payouts?view=payments", label: "Guest Payments", icon: CreditCard, ledgerView: "payments" },
-  { href: "/admin/payouts?view=payouts", label: "Host Payouts", icon: Wallet, ledgerView: "payouts" },
+  {
+    href: "/admin/payouts?view=payments",
+    label: "Guest Payments",
+    icon: CreditCard,
+    ledgerView: "payments",
+  },
+  {
+    href: "/admin/payouts?view=payouts",
+    label: "Host Payouts",
+    icon: Wallet,
+    ledgerView: "payouts",
+  },
+  {
+    href: "/admin/payouts/requests",
+    label: "Host Payout Requests",
+    icon: Banknote,
+  },
+  {
+    href: "/admin/payouts/fees",
+    label: "Fee Reconciliation",
+    icon: ReceiptText,
+  },
+
   { href: "/admin/support", label: "Support Cases & Disputes", icon: LifeBuoy },
-  { href: "/admin/customer-support", label: "Booking Messages", icon: MessageSquareText },
+  {
+    href: "/admin/customer-support",
+    label: "Booking Messages",
+    icon: MessageSquareText,
+  },
+  { href: "/admin/contact-messages", label: "Contact Messages", icon: Mail },
   { href: "/admin/reviews", label: "Reviews Moderation", icon: Star },
   { href: "/admin/audit-log", label: "Audit Log", icon: History },
 ];
@@ -44,13 +81,16 @@ export function AdminSidebar() {
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col overflow-y-auto border-r bg-white">
       <div className="p-6 border-b">
-        <span className="text-lg font-semibold text-[#1B1A2E]">Dominium <span className="text-[#E23E85]">Admin</span> </span>
+        <span className="text-lg font-semibold text-[#1B1A2E]">
+          Dominium <span className="text-[#E23E85]">Admin</span>{" "}
+        </span>
       </div>
 
       <nav className="flex-1 p-3 space-y-1">
         {NAV_ITEMS.map(({ href, label, icon: Icon, exact, ledgerView }) => {
           const isActive = ledgerView
-            ? pathname === "/admin/payouts" && (searchParams.get("view") ?? "payments") === ledgerView
+            ? pathname === "/admin/payouts" &&
+              (searchParams.get("view") ?? "payments") === ledgerView
             : exact
               ? pathname === href
               : pathname === href || pathname.startsWith(href + "/");

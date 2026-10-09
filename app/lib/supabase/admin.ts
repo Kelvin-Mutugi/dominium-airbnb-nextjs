@@ -1,4 +1,5 @@
 // Privileged server-only client (service role, bypasses RLS).
+import "server-only";
 import {
   createClient as createSupabaseClient,
   type SupabaseClient,

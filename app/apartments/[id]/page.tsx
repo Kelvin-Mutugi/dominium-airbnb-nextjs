@@ -20,21 +20,40 @@ export default function ApartmentPage() {
   const searchParams = useSearchParams();
   const initialCheckIn = searchParams.get("checkIn") ?? "";
   const initialCheckOut = searchParams.get("checkOut") ?? "";
-  const requestedGuests = Math.max(1, Number(searchParams.get("guests") ?? 1) || 1);
-  const initialChildren = Math.max(0, Math.min(requestedGuests - 1, Number(searchParams.get("children") ?? 0) || 0));
+  const requestedGuests = Math.max(
+    1,
+    Number(searchParams.get("guests") ?? 1) || 1,
+  );
+  const initialChildren = Math.max(
+    0,
+    Math.min(
+      requestedGuests - 1,
+      Number(searchParams.get("children") ?? 0) || 0,
+    ),
+  );
   const initialGuests = requestedGuests;
-  const initialPets = Math.max(0, Math.min(10, Number(searchParams.get("pets") ?? 0) || 0));
+  const initialPets = Math.max(
+    0,
+    Math.min(10, Number(searchParams.get("pets") ?? 0) || 0),
+  );
   const initialBookingId = searchParams.get("bookingId") ?? undefined;
   const [listing, setListing] = useState<Listing | null>(null);
-  const [relatedListings, setRelatedListings] = useState<RelatedListingSummary[]>([]);
+  const [relatedListings, setRelatedListings] = useState<
+    RelatedListingSummary[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadListing() {
       let data: PublicListingDetail | null;
       try {
-        const response = await fetch(`/api/listings/${encodeURIComponent(params.id)}`);
-        if (!response.ok) throw new Error(`Listing detail request returned ${response.status}.`);
+        const response = await fetch(
+          `/api/listings/${encodeURIComponent(params.id)}`,
+        );
+        if (!response.ok)
+          throw new Error(
+            `Listing detail request returned ${response.status}.`,
+          );
         data = (await response.json()) as PublicListingDetail;
       } catch (error) {
         console.error("Failed to load listing details:", error);
@@ -47,48 +66,81 @@ export default function ApartmentPage() {
         return;
       }
 
-      const [availabilityResult, publishedReviews, publicDetails] = await Promise.all([
-        (async () => {
-          try {
-            const response = await fetch(`/api/listings/${params.id}/availability`, { cache: "no-store" });
-            if (!response.ok) throw new Error(`Availability request returned ${response.status}.`);
-            const payload = (await response.json()) as { ranges?: Listing["bookedDateRanges"] };
-            return { ranges: payload.ranges ?? [], unavailable: false };
-          } catch (availabilityError) {
-            console.error("Failed to load listing availability:", availabilityError);
-            return { ranges: [], unavailable: true };
-          }
-        })(),
-        (async () => {
-          try {
-            const response = await fetch(`/api/listings/${params.id}/reviews`);
-            if (!response.ok) throw new Error(`Reviews request returned ${response.status}.`);
-            const payload = (await response.json()) as { reviews?: Listing["reviews"] };
-            return payload.reviews ?? [];
-          } catch (reviewsError) {
-            console.error("Failed to load listing reviews:", reviewsError);
-            return [];
-          }
-        })(),
-        (async () => {
-          try {
-            const response = await fetch(`/api/listings/${params.id}/public-details`);
-            if (!response.ok) throw new Error(`Public listing details returned ${response.status}.`);
-            return (await response.json()) as {
-              host?: Listing["hostProfile"];
-              relatedListings?: Array<{ id: string; name: string; location: string; pricePerNight: number; imageUrl: string }>;
-            };
-          } catch (publicDetailsError) {
-            console.error("Failed to load public host and nearby listing details:", publicDetailsError);
-            return {};
-          }
-        })(),
-      ]);
+      const [availabilityResult, publishedReviews, publicDetails] =
+        await Promise.all([
+          (async () => {
+            try {
+              const response = await fetch(
+                `/api/listings/${params.id}/availability`,
+                { cache: "no-store" },
+              );
+              if (!response.ok)
+                throw new Error(
+                  `Availability request returned ${response.status}.`,
+                );
+              const payload = (await response.json()) as {
+                ranges?: Listing["bookedDateRanges"];
+              };
+              return { ranges: payload.ranges ?? [], unavailable: false };
+            } catch (availabilityError) {
+              console.error(
+                "Failed to load listing availability:",
+                availabilityError,
+              );
+              return { ranges: [], unavailable: true };
+            }
+          })(),
+          (async () => {
+            try {
+              const response = await fetch(
+                `/api/listings/${params.id}/reviews`,
+              );
+              if (!response.ok)
+                throw new Error(`Reviews request returned ${response.status}.`);
+              const payload = (await response.json()) as {
+                reviews?: Listing["reviews"];
+              };
+              return payload.reviews ?? [];
+            } catch (reviewsError) {
+              console.error("Failed to load listing reviews:", reviewsError);
+              return [];
+            }
+          })(),
+          (async () => {
+            try {
+              const response = await fetch(
+                `/api/listings/${params.id}/public-details`,
+              );
+              if (!response.ok)
+                throw new Error(
+                  `Public listing details returned ${response.status}.`,
+                );
+              return (await response.json()) as {
+                host?: Listing["hostProfile"];
+                relatedListings?: Array<{
+                  id: string;
+                  name: string;
+                  location: string;
+                  pricePerNight: number;
+                  imageUrl: string;
+                }>;
+              };
+            } catch (publicDetailsError) {
+              console.error(
+                "Failed to load public host and nearby listing details:",
+                publicDetailsError,
+              );
+              return {};
+            }
+          })(),
+        ]);
 
       const bookedDateRanges = availabilityResult.ranges;
       const availabilityUnavailable = availabilityResult.unavailable;
       const hostProfile = publicDetails.host;
-      const relatedListings: RelatedListingSummary[] = (publicDetails.relatedListings ?? []).map((related) => ({
+      const relatedListings: RelatedListingSummary[] = (
+        publicDetails.relatedListings ?? []
+      ).map((related) => ({
         id: related.id,
         name: related.name,
         location: related.location,
@@ -108,18 +160,22 @@ export default function ApartmentPage() {
             .filter((url): url is string => Boolean(url))
         : [];
       const price = Number(data.price_per_night);
+      const guestNightlyPrice =
+        price + Number(data.platform_fee_per_night ?? 0);
 
       setListing({
         id: String(data.id),
         name: data.title,
         loc: [data.town, data.county].filter(Boolean).join(", "),
         propertyType: data.property_type ?? undefined,
-        additionalCharges: normalizeListingAdditionalCharges(data.additional_charges),
+        additionalCharges: normalizeListingAdditionalCharges(
+          data.additional_charges,
+        ),
         price: new Intl.NumberFormat("en-KE", {
           style: "currency",
           currency: "KES",
           maximumFractionDigits: 0,
-        }).format(price),
+        }).format(guestNightlyPrice),
         detail: `Max guests: ${data.max_guests}`,
         img: gallery[0] ?? "",
         gallery,
@@ -139,7 +195,10 @@ export default function ApartmentPage() {
         minNights: data.min_nights ?? 1,
         pricePerNight: price,
         serviceFeePercent: 0,
-        serviceFeePerNight: data.platform_fee_per_night == null ? undefined : Number(data.platform_fee_per_night),
+        serviceFeePerNight:
+          data.platform_fee_per_night == null
+            ? undefined
+            : Number(data.platform_fee_per_night),
         latitude: data.latitude == null ? undefined : Number(data.latitude),
         longitude: data.longitude == null ? undefined : Number(data.longitude),
         rating: Number(data.average_rating ?? 0),
@@ -165,7 +224,12 @@ export default function ApartmentPage() {
     return (
       <>
         <Navbar />
-        <ApartmentDetails key={`loading:${params.id}`} listing={null} isLoading onBack={() => router.push("/")} />
+        <ApartmentDetails
+          key={`loading:${params.id}`}
+          listing={null}
+          isLoading
+          onBack={() => router.push("/")}
+        />
       </>
     );
   }
@@ -188,7 +252,21 @@ export default function ApartmentPage() {
     );
   }
 
-  const handleReserve = ({ checkIn, checkOut, guests, children, pets, bookingId }: { checkIn: Date; checkOut: Date; guests: number; children: number; pets: number; bookingId?: string }) => {
+  const handleReserve = ({
+    checkIn,
+    checkOut,
+    guests,
+    children,
+    pets,
+    bookingId,
+  }: {
+    checkIn: Date;
+    checkOut: Date;
+    guests: number;
+    children: number;
+    pets: number;
+    bookingId?: string;
+  }) => {
     const formatDate = (date: Date) => {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");

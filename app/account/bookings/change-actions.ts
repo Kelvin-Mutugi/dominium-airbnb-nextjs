@@ -81,7 +81,7 @@ export async function getCancellationPreview(bookingId: string): Promise<Cancell
     refundPercent: details.refundPercent,
     estimatedRefund: details.estimatedRefund,
     daysUntilCheckIn: details.daysUntilCheckIn,
-    refundTiming: 'If approved, allow 3–5 business days after management approval. Refunds are processed manually.',
+    refundTiming: 'If approved, the refund is sent to the M-Pesa number on your booking after admin review. We will update the booking when Safaricom confirms it.',
     listingPolicy: details.listingPolicy,
   };
 }

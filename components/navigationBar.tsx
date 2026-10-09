@@ -44,7 +44,7 @@ const EXPLORE_LINKS = [
 const INFO_LINKS = [
   { label: "Booking Process", href: "/#booking_process" },
   { label: "Why Choose Us", href: "/#why_choose_us" },
-  { label: "Contact", href: "/contact" },
+  { label: "Contact", href: "/contactus" },
 ];
 
 // Quick picks in the search panel

@@ -18,17 +18,23 @@ export function PriceBreakdown({
     <div className="mt-4 space-y-2 border-t border-[#EDEBE4] pt-4 text-[14px] text-[#3A3856]/80 lg:text-[#3A3856]">
       <div className="flex justify-between">
         <span>
-          {fmt(price.nightlyRate)} × {price.nights} night{price.nights > 1 ? "s" : ""}
+          {fmt(price.nightlyRate)} × {price.nights} night
+          {price.nights > 1 ? "s" : ""}
         </span>
         <span>{fmt(price.subtotal)}</span>
       </div>
-      <div className="flex justify-between">
-        <span>Platform service fee</span>
-        <span>{fmt(price.serviceFee)}</span>
-      </div>
       {price.additionalChargeLines.map((charge, index) => (
-        <div key={`${charge.name}-${charge.frequency}-${index}`} className="flex justify-between gap-4">
-          <span>{charge.name}{charge.frequency === "per_night" ? ` · ${fmt(charge.amount)} × ${price.nights} nights` : " · per booking"}</span>
+        <div
+          key={`${charge.name}-${charge.frequency}-${index}`}
+          className="flex justify-between gap-4"
+        >
+          <span>
+            {charge.name} ·{" "}
+            {charge.required === false ? "optional" : "mandatory"}
+            {charge.frequency === "per_night"
+              ? ` · ${fmt(charge.amount)} × ${price.nights} nights`
+              : " · per booking"}
+          </span>
           <span className="shrink-0">{fmt(charge.total)}</span>
         </div>
       ))}

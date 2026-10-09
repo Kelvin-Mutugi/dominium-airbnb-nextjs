@@ -5,8 +5,12 @@ import { requireAdmin } from "@/app/lib/admin-auth";
 import { recordAdminAuditEvent } from "@/app/lib/admin-audit";
 import { createClient } from "@/app/lib/supabase/server";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
+import {
+  DarajaApiError,
+  initiateDarajaB2CPayment,
+} from "@/app/lib/payments/daraja";
 
-type RefundAction = "approve" | "decline" | "processed";
+type RefundAction = "approve" | "decline";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function createPaymentRefundRequest(paymentId: string, reason: string) {
@@ -73,16 +77,13 @@ export async function decidePaymentRefundRequest(input: {
   requestId: string;
   action: RefundAction;
   response?: string;
-  actualAmount?: number;
-  transactionReference?: string;
 }) {
   const actor = await requireAdmin();
   if (!UUID_PATTERN.test(input.requestId)) throw new Error("Invalid refund request.");
-  if (!["approve", "decline", "processed"].includes(input.action)) throw new Error("Invalid refund decision.");
+  if (!["approve", "decline"].includes(input.action)) throw new Error("Invalid refund decision.");
   const response = String(input.response ?? "").trim();
-  const transactionReference = String(input.transactionReference ?? "").trim();
-  if (response.length > 1000 || transactionReference.length > 200) {
-    throw new Error("Refund notes or reference exceed the allowed length.");
+  if (response.length > 1000) {
+    throw new Error("Refund note exceeds the allowed length.");
   }
 
   const supabase = await createClient();
@@ -90,18 +91,15 @@ export async function decidePaymentRefundRequest(input: {
     p_request_id: input.requestId,
     p_action: input.action,
     p_admin_response: response || null,
-    p_actual_refund_amount: input.actualAmount ?? null,
-    p_transaction_reference: transactionReference || null,
+    p_actual_refund_amount: null,
+    p_transaction_reference: null,
   });
   if (error) {
     if (error.message.includes("STAY_ALREADY_COMPLETED")) {
       throw new Error("Refunds are only eligible before the stay is completed.");
     }
     if (error.message.includes("REFUND_NOT_AWAITING_REVIEW")) throw new Error("This refund is no longer awaiting review.");
-    if (error.message.includes("REFUND_NOT_APPROVED_FOR_PROCESSING")) throw new Error("Approve this refund before recording it as sent.");
     if (error.message.includes("REFUND_DECLINE_REASON_REQUIRED")) throw new Error("Add a reason before declining the refund.");
-    if (error.message.includes("INVALID_ACTUAL_REFUND_AMOUNT")) throw new Error("Enter an amount greater than zero and no more than the payment amount.");
-    if (error.message.includes("REFUND_REFERENCE_REQUIRED")) throw new Error("Enter the bank, M-Pesa, or provider transaction reference.");
     if (error.message.includes("REFUND_REQUEST_NOT_FOUND")) throw new Error("Refund request not found.");
     if (error.message.includes("ADMIN_REQUIRED")) throw new Error("You are not authorized to decide refunds.");
     console.error("Payment refund decision failed:", error);
@@ -116,15 +114,11 @@ export async function decidePaymentRefundRequest(input: {
     entityType: "booking",
     entityId: result.booking_id,
     summary: input.action === "approve"
-      ? "Approved guest payment refund for manual processing."
-      : input.action === "decline"
-        ? "Declined guest payment refund request."
-        : "Recorded guest payment refund as processed.",
+      ? "Approved guest payment refund for Safaricom B2C processing."
+      : "Declined guest payment refund request.",
     after: {
       refund_request_id: input.requestId,
       refund_status: result.refund_status,
-      actual_refund_amount: input.actualAmount ?? null,
-      transaction_reference: transactionReference || null,
       payment_marked_refunded: result.payment_marked_refunded,
       admin_response: response || null,
     },
@@ -140,17 +134,14 @@ async function decideRefund(input: {
   requestId: string;
   action: RefundAction;
   response?: string;
-  actualAmount?: number;
-  transactionReference?: string;
 }) {
   const actor = await requireAdmin();
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(input.requestId)) {
     throw new Error("Invalid refund request.");
   }
   const response = String(input.response ?? "").trim();
-  const transactionReference = String(input.transactionReference ?? "").trim();
-  if (response.length > 1000 || transactionReference.length > 200) {
-    throw new Error("Refund notes or reference exceed the allowed length.");
+  if (response.length > 1000) {
+    throw new Error("Refund note exceeds the allowed length.");
   }
 
   const supabase = await createClient();
@@ -158,18 +149,15 @@ async function decideRefund(input: {
     p_request_id: input.requestId,
     p_action: input.action,
     p_admin_response: response || null,
-    p_actual_refund_amount: input.actualAmount ?? null,
-    p_transaction_reference: transactionReference || null,
+    p_actual_refund_amount: null,
+    p_transaction_reference: null,
   });
   if (error) {
     if (error.message.includes("STAY_ALREADY_COMPLETED")) {
       throw new Error("Refunds are only eligible before the stay is completed.");
     }
     if (error.message.includes("REFUND_NOT_AWAITING_REVIEW")) throw new Error("This refund is no longer awaiting review.");
-    if (error.message.includes("REFUND_NOT_APPROVED_FOR_PROCESSING")) throw new Error("Approve this refund before recording it as sent.");
     if (error.message.includes("REFUND_DECLINE_REASON_REQUIRED")) throw new Error("Add a reason before declining the refund.");
-    if (error.message.includes("INVALID_ACTUAL_REFUND_AMOUNT")) throw new Error("Enter an amount greater than zero and no more than the approved refund amount.");
-    if (error.message.includes("REFUND_REFERENCE_REQUIRED")) throw new Error("Enter the bank, M-Pesa, or provider transaction reference.");
     if (error.message.includes("REFUND_REQUEST_NOT_FOUND")) throw new Error("Refund request not found.");
     if (error.message.includes("CANCELLATION_NOT_APPROVED")) throw new Error("Approve the cancellation before reviewing its refund.");
     if (error.message.includes("ADMIN_REQUIRED")) throw new Error("You are not authorized to decide refunds.");
@@ -181,10 +169,8 @@ async function decideRefund(input: {
   if (!result?.booking_id) throw new Error("Refund was updated, but its booking could not be refreshed.");
 
   const actionLabel = input.action === "approve"
-    ? "Approved refund for manual processing."
-    : input.action === "decline"
-      ? "Declined guest refund request."
-      : "Recorded guest refund as processed.";
+    ? "Approved refund for Safaricom B2C processing."
+    : "Declined guest refund request.";
   await recordAdminAuditEvent({
     actorId: actor.id,
     action: `booking.refund.${input.action}`,
@@ -194,8 +180,6 @@ async function decideRefund(input: {
     after: {
       refund_request_id: input.requestId,
       refund_status: result.refund_status,
-      actual_refund_amount: result.actual_refund,
-      transaction_reference: transactionReference || null,
       payment_marked_refunded: result.payment_marked_refunded,
       admin_response: response || null,
     },
@@ -218,17 +202,178 @@ export async function declineCancellationRefund(requestId: string, reason: strin
   await decideRefund({ requestId, action: "decline", response: reason });
 }
 
-export async function recordCancellationRefundProcessed(
-  requestId: string,
-  actualAmount: number,
-  transactionReference: string,
-  note = "",
-) {
-  await decideRefund({
-    requestId,
-    action: "processed",
-    actualAmount,
-    transactionReference,
-    response: note,
+export async function initiateSafaricomRefund(input: {
+  requestId: string;
+  refundKind: "guest_payment_refund" | "cancellation_refund";
+  amount: number;
+  idempotencyKey: string;
+  note?: string;
+}) {
+  const actor = await requireAdmin();
+  if (!UUID_PATTERN.test(input.requestId)) throw new Error("Invalid refund request.");
+  if (!Number.isFinite(input.amount) || input.amount <= 0) throw new Error("Enter a refund amount above zero.");
+  if (input.idempotencyKey.length < 32 || input.idempotencyKey.length > 128) {
+    throw new Error("Refresh this refund request and try again.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const { data, error } = await admin.rpc("admin_prepare_daraja_refund", {
+    p_refund_kind: input.refundKind,
+    p_request_id: input.requestId,
+    p_admin_id: actor.id,
+    p_amount: input.amount,
+    p_idempotency_key: input.idempotencyKey,
   });
+  if (error) {
+    if (error.message.includes("REFUND_NOT_APPROVED_FOR_PROCESSING")) throw new Error("Approve this refund before sending it.");
+    if (error.message.includes("STAY_ALREADY_COMPLETED")) throw new Error("Refunds are unavailable after the stay is completed.");
+    if (error.message.includes("INVALID_GUEST_MPESA_PHONE")) throw new Error("The guest booking has no valid Kenyan M-Pesa number.");
+    if (error.message.includes("REFUND_AMOUNT_BELOW_ONE_KES")) throw new Error("The refund must be at least KES 1 because Safaricom sends whole-KES amounts.");
+    console.error("Unable to prepare Safaricom refund:", error);
+    throw new Error("Unable to prepare this Safaricom refund.");
+  }
+  const prepared = Array.isArray(data) ? data[0] : data;
+  if (!prepared?.attempt_id) throw new Error("Unable to prepare this refund.");
+  if (prepared.already_active) return { processing: true, amount: Number(prepared.transfer_amount) };
+
+  let submission: Awaited<ReturnType<typeof initiateDarajaB2CPayment>> | null = null;
+  try {
+    submission = await initiateDarajaB2CPayment({
+      amountKes: Number(prepared.transfer_amount),
+      phone: prepared.phone_number,
+      requestId: input.requestId,
+      purpose: "guest_refund",
+    });
+    const { error: recordError } = await admin.rpc("record_daraja_b2c_submission", {
+      p_attempt_id: prepared.attempt_id,
+      p_conversation_id: submission.conversationId,
+      p_originator_conversation_id: submission.originatorConversationId,
+      p_raw_response: submission.rawResponse,
+    });
+    if (recordError) throw recordError;
+  } catch (initiationError) {
+    const uncertain =
+      (initiationError instanceof DarajaApiError && initiationError.requestMayHaveSucceeded) ||
+      Boolean(submission);
+    console.error("Safaricom refund initiation failed:", {
+      requestId: input.requestId,
+      attemptId: prepared.attempt_id,
+      conversationId: submission?.conversationId,
+      originatorConversationId: submission?.originatorConversationId,
+      error: initiationError,
+    });
+    if (uncertain) {
+      if (submission) {
+        await admin.from("daraja_b2c_attempts").update({
+          status: "reconciliation_required",
+          conversation_id: submission.conversationId,
+          originator_conversation_id: submission.originatorConversationId,
+          response_payload: submission.rawResponse,
+          result_description: "Safaricom accepted the refund request but local recording failed; reconcile before retry.",
+          updated_at: new Date().toISOString(),
+        }).eq("id", prepared.attempt_id);
+      } else {
+        await admin.rpc("mark_daraja_b2c_reconciliation_required", {
+          p_attempt_id: prepared.attempt_id,
+          p_description: initiationError instanceof Error ? initiationError.message : "Refund outcome is uncertain; reconcile before retry.",
+          p_raw_response: {},
+        });
+      }
+      return { processing: true, amount: Number(prepared.transfer_amount) };
+    }
+    await admin.from("daraja_b2c_attempts").update({
+      status: "failed",
+      result_description: initiationError instanceof Error ? initiationError.message.slice(0, 500) : "Safaricom rejected the refund.",
+      updated_at: new Date().toISOString(),
+    }).eq("id", prepared.attempt_id).eq("status", "initializing");
+    throw new Error("Safaricom rejected the refund request. No refund was recorded as sent.");
+  }
+
+  await recordAdminAuditEvent({
+    actorId: actor.id,
+    action: "guest_refund.safaricom_submitted",
+    entityType: "booking",
+    entityId: prepared.booking_id,
+    summary: `Submitted Safaricom B2C refund of KES ${Number(prepared.transfer_amount).toFixed(0)}.`,
+    after: {
+      refund_request_id: input.requestId,
+      refund_kind: input.refundKind,
+      amount: Number(prepared.transfer_amount),
+      conversation_id: submission.conversationId,
+      note: String(input.note ?? "").trim() || null,
+    },
+  });
+  revalidatePath("/admin/refunds");
+  revalidatePath("/admin/payouts");
+  revalidatePath(`/admin/bookings/${prepared.booking_id}`);
+  revalidatePath("/account/bookings");
+  return { processing: true, amount: Number(prepared.transfer_amount) };
+}
+
+export async function reconcileSafaricomB2CFee(input: {
+  attemptId: string;
+  actualFee: number;
+  note?: string;
+}) {
+  const actor = await requireAdmin();
+  if (!UUID_PATTERN.test(input.attemptId)) throw new Error("Invalid B2C attempt.");
+  if (!Number.isFinite(input.actualFee) || input.actualFee < 0) throw new Error("Enter a valid actual Safaricom fee.");
+  const admin = getSupabaseAdmin();
+  const { data, error } = await admin.rpc("reconcile_daraja_b2c_fee", {
+    p_attempt_id: input.attemptId,
+    p_actual_fee: input.actualFee,
+    p_admin_id: actor.id,
+    p_admin_note: String(input.note ?? "").trim() || null,
+  });
+  if (error) {
+    if (error.message.includes("B2C_ATTEMPT_NOT_SUCCEEDED")) throw new Error("Only a successful B2C transfer can be fee-reconciled.");
+    console.error("Safaricom fee reconciliation failed:", error);
+    throw new Error("Unable to reconcile the Safaricom fee.");
+  }
+  const result = Array.isArray(data) ? data[0] : data;
+  await recordAdminAuditEvent({
+    actorId: actor.id,
+    action: "safaricom.b2c_fee_reconciled",
+    entityType: "booking",
+    entityId: input.attemptId,
+    summary: `Recorded Safaricom B2C fee of KES ${input.actualFee.toFixed(2)}.`,
+    after: { host_id: result?.host_id, actual_fee: input.actualFee, host_fee_balance: Number(result?.host_fee_balance ?? 0) },
+  });
+  revalidatePath("/admin/refunds");
+  revalidatePath("/admin/payouts/requests");
+  revalidatePath("/host/payouts");
+}
+
+export async function reconcileSafaricomCollectionFee(input: {
+  attemptId: string;
+  actualFee: number;
+  note?: string;
+}) {
+  const actor = await requireAdmin();
+  if (!UUID_PATTERN.test(input.attemptId)) throw new Error("Invalid STK payment attempt.");
+  if (!Number.isFinite(input.actualFee) || input.actualFee < 0) throw new Error("Enter a valid actual collection fee.");
+  const admin = getSupabaseAdmin();
+  const { data, error } = await admin.rpc("reconcile_daraja_collection_fee", {
+    p_attempt_id: input.attemptId,
+    p_actual_fee: input.actualFee,
+    p_admin_id: actor.id,
+    p_admin_note: String(input.note ?? "").trim() || null,
+  });
+  if (error) {
+    if (error.message.includes("DARAJA_PAYMENT_NOT_SUCCESSFUL")) throw new Error("Only a successful STK payment can be reconciled.");
+    console.error("Safaricom collection fee reconciliation failed:", error);
+    throw new Error("Unable to reconcile this collection fee.");
+  }
+  const result = Array.isArray(data) ? data[0] : data;
+  await recordAdminAuditEvent({
+    actorId: actor.id,
+    action: "safaricom.stk_fee_reconciled",
+    entityType: "booking",
+    entityId: result?.booking_id ?? input.attemptId,
+    summary: `Recorded Safaricom STK fee of KES ${input.actualFee.toFixed(2)}.`,
+    after: { host_id: result?.host_id, actual_fee: input.actualFee, host_fee_balance: Number(result?.host_fee_balance ?? 0) },
+  });
+  revalidatePath("/admin/payouts/fees");
+  revalidatePath("/host/payouts");
+  revalidatePath("/admin/bookings");
 }

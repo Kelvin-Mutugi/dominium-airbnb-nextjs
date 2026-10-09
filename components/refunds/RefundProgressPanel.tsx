@@ -57,8 +57,8 @@ export function RefundProgressPanel({
             {request.status === 'awaiting_manual_processing' && (
               <p className="mt-1">
                 {audience === 'guest'
-                  ? 'The refund was approved and is waiting for manual processing. It has not been sent yet.'
-                  : 'The refund was approved and is waiting for manual processing. Booking completion and payout release remain paused.'}
+                  ? 'The refund was approved and is waiting for the Safaricom M-Pesa transfer. It has not been sent yet.'
+                  : 'The refund was approved and is waiting for the Safaricom M-Pesa transfer. Booking completion and payout release remain paused.'}
               </p>
             )}
             {request.status === 'declined' && (

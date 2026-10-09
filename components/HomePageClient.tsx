@@ -67,7 +67,6 @@ export default function HomePageClient({
       <MagicalKenya />
       <FeaturedListings listings={featuredListings} isLoading={isLoading} />
       {children}
-       <MagicalKenya />
       <PopularDestinations
         homes={homes}
         onView={(home) => router.push(`/apartments/${home.id}`)}

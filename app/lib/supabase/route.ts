@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { BookingRequestError, createBooking } from "@/app/lib/booking/create-booking";
+import {
+  BookingRequestError,
+  createBooking,
+} from "@/app/lib/booking/create-booking";
+import { hasSameRequestOrigin } from "@/app/lib/http/request-origin";
 import { createClient } from "@/app/lib/supabase/server";
 
 interface BookingRequestBody {
@@ -14,6 +18,7 @@ interface BookingRequestBody {
   phone?: unknown;
   country?: unknown;
   specialRequests?: unknown;
+  selectedExtras?: unknown;
   agreedToTerms?: unknown;
   paymentMethod?: unknown;
   idempotencyKey?: unknown;
@@ -24,9 +29,11 @@ function badRequest(message: string) {
 }
 
 export async function POST(request: NextRequest) {
-  const requestOrigin = request.headers.get("origin");
-  if (requestOrigin && new URL(requestOrigin).origin !== request.nextUrl.origin) {
-    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  if (!hasSameRequestOrigin(request)) {
+    return NextResponse.json(
+      { error: "Invalid request origin." },
+      { status: 403 },
+    );
   }
 
   let body: BookingRequestBody;
@@ -47,20 +54,36 @@ export async function POST(request: NextRequest) {
     !Number.isInteger(body.children) ||
     !Number.isInteger(body.pets) ||
     typeof body.idempotencyKey !== "string" ||
-    (body.paymentMethod !== "mpesa" && body.paymentMethod !== "card") ||
+    body.paymentMethod !== "mpesa" ||
     body.agreedToTerms !== true
   ) {
-    return badRequest("Complete the required booking details and accept the terms.");
+    return badRequest(
+      "Complete the required booking details and accept the terms.",
+    );
   }
 
-  if (body.country != null && typeof body.country !== "string") return badRequest("Invalid country value.");
-  if (body.specialRequests != null && typeof body.specialRequests !== "string") return badRequest("Invalid special request value.");
+  if (body.country != null && typeof body.country !== "string")
+    return badRequest("Invalid country value.");
+  if (body.specialRequests != null && typeof body.specialRequests !== "string")
+    return badRequest("Invalid special request value.");
+  if (
+    body.selectedExtras != null &&
+    (!Array.isArray(body.selectedExtras) ||
+      body.selectedExtras.some((item) => typeof item !== "string"))
+  ) {
+    return badRequest("Invalid selected extras value.");
+  }
 
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user || !user.email) {
-      return NextResponse.json({ error: "Sign in or create an account before booking." }, { status: 401 });
+      return NextResponse.json(
+        { error: "Sign in or create an account before booking." },
+        { status: 401 },
+      );
     }
     const booking = await createBooking({
       listingId: body.listingId,
@@ -74,6 +97,9 @@ export async function POST(request: NextRequest) {
       phone: body.phone,
       country: body.country as string | undefined,
       specialRequests: body.specialRequests as string | undefined,
+      selectedExtras: Array.isArray(body.selectedExtras)
+        ? body.selectedExtras
+        : undefined,
       agreedToTerms: true,
       paymentMethod: body.paymentMethod,
       idempotencyKey: body.idempotencyKey,
@@ -91,6 +117,9 @@ export async function POST(request: NextRequest) {
       );
     }
     console.error("Booking request failed:", error);
-    return NextResponse.json({ error: "We couldn't create this booking." }, { status: 500 });
+    return NextResponse.json(
+      { error: "We couldn't create this booking." },
+      { status: 500 },
+    );
   }
 }
