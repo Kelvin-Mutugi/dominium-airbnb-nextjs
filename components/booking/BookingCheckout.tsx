@@ -67,6 +67,18 @@ function checkoutStorageKey(
   return `dominium-checkout:${listingId}:${checkIn}:${checkOut}`;
 }
 
+async function readApiJson<T>(response: Response): Promise<T> {
+  const responseText = await response.text();
+  try {
+    return JSON.parse(responseText) as T;
+  } catch {
+    const contentType = response.headers.get("content-type") ?? "unknown";
+    throw new Error(
+      `The server returned an invalid response (HTTP ${response.status}, ${contentType}). Please try again.`,
+    );
+  }
+}
+
 function getOrCreateSessionValue(
   key: string,
   suffix: string,
@@ -234,7 +246,17 @@ export default function BookingCheckout({
             `/api/bookings/${encodeURIComponent(resumeBookingId)}`,
             { cache: "no-store" },
           );
-          const savedBooking = await response.json();
+          const savedBooking = await readApiJson<{
+            status?: string;
+            listingId?: string;
+            error?: string;
+            guestName?: string;
+            guestPhone?: string;
+            guestEmail?: string;
+            pricingSnapshot?: unknown;
+            totalAmount?: number;
+            legacyAdditionalFees?: number;
+          }>(response);
           if (!alive) return;
           if (
             !response.ok ||
@@ -348,7 +370,10 @@ export default function BookingCheckout({
           `/api/listings/${encodeURIComponent(listingId)}/availability`,
           { cache: "no-store" },
         );
-        const payload = await response.json();
+        const payload = await readApiJson<{
+          ranges?: Array<{ start: string; end: string }>;
+          error?: string;
+        }>(response);
         if (!response.ok || !Array.isArray(payload.ranges)) {
           throw new Error(
             payload.error ?? "Availability is temporarily unavailable.",
@@ -483,7 +508,10 @@ export default function BookingCheckout({
             confirmationToken,
           }),
         });
-        const booking = await bookingResponse.json();
+        const booking = await readApiJson<{
+          bookingId?: string;
+          error?: string;
+        }>(bookingResponse);
         if (!bookingResponse.ok || !booking.bookingId)
           throw new Error(booking.error || "We couldn't hold those dates.");
         bookingId = booking.bookingId;
@@ -499,7 +527,11 @@ export default function BookingCheckout({
           confirmationToken,
         }),
       });
-      const payment = await paymentResponse.json();
+      const payment = await readApiJson<{
+        accepted?: boolean;
+        processing?: boolean;
+        error?: string;
+      }>(paymentResponse);
       if (paymentResponse.status === 202 && payment.processing) {
         router.push(`/booking/${bookingId}/confirmation`);
         return;
