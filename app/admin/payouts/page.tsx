@@ -9,6 +9,7 @@ type PaymentRecord = {
   id: string;
   booking_id: string;
   amount: number | string;
+  provider_fee_amount: number | string | null;
   currency: string | null;
   status: string;
   method: string | null;
@@ -24,6 +25,7 @@ type PayoutRecord = {
   host_id: string;
   booking_id: string;
   amount: number | string;
+  providerFee?: number | string | null;
   status: string;
   paid_at: string | null;
   created_at: string;
@@ -52,6 +54,7 @@ type LedgerRecord = {
   id: string;
   bookingId: string;
   amount: number | string;
+  providerFee?: number | string | null;
   status: string;
   createdAt: string;
   paidAt: string | null;
@@ -108,7 +111,12 @@ function statusStyle(status: string) {
   }
 }
 
-function makeHref(view: View, status: string, query: string, bookingId: string | null) {
+function makeHref(
+  view: View,
+  status: string,
+  query: string,
+  bookingId: string | null,
+) {
   const params = new URLSearchParams();
   params.set("view", view);
   if (status !== "all") params.set("status", status);
@@ -118,7 +126,9 @@ function makeHref(view: View, status: string, query: string, bookingId: string |
 }
 
 function isUuid(value: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
 }
 
 function matchesQuery(record: LedgerRecord, query: string) {
@@ -144,15 +154,21 @@ function matchesQuery(record: LedgerRecord, query: string) {
 function SummaryItem({ label, amount }: { label: string; amount: number }) {
   return (
     <div className="px-5 py-4 first:pl-0">
-      <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</dt>
-      <dd className="mt-1 text-xl font-semibold text-[#1B1A2E]">{formatMoney(amount)}</dd>
+      <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+        {label}
+      </dt>
+      <dd className="mt-1 text-xl font-semibold text-[#1B1A2E]">
+        {formatMoney(amount)}
+      </dd>
     </div>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusStyle(status)}`}>
+    <span
+      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusStyle(status)}`}
+    >
       {humanize(status)}
     </span>
   );
@@ -161,12 +177,20 @@ function StatusBadge({ status }: { status: string }) {
 export default async function AdminPaymentsPayoutsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; status?: string; q?: string; bookingId?: string }>;
+  searchParams: Promise<{
+    view?: string;
+    status?: string;
+    q?: string;
+    bookingId?: string;
+  }>;
 }) {
   const params = await searchParams;
   const view: View = params.view === "payouts" ? "payouts" : "payments";
-  const allowedStatuses = view === "payments" ? PAYMENT_STATUSES : PAYOUT_STATUSES;
-  const status = allowedStatuses.includes(params.status ?? "all") ? params.status ?? "all" : "all";
+  const allowedStatuses =
+    view === "payments" ? PAYMENT_STATUSES : PAYOUT_STATUSES;
+  const status = allowedStatuses.includes(params.status ?? "all")
+    ? (params.status ?? "all")
+    : "all";
   const query = (params.q ?? "").trim().slice(0, 100);
   const bookingId = isUuid(params.bookingId ?? "") ? params.bookingId! : null;
   const admin = getSupabaseAdmin();
@@ -175,7 +199,9 @@ export default async function AdminPaymentsPayoutsPage({
   if (view === "payments") {
     let paymentQuery = admin
       .from("payments")
-      .select("id, booking_id, amount, currency, status, method, payment_channel, provider, provider_reference, paid_at, created_at");
+      .select(
+        "id, booking_id, amount, provider_fee_amount, currency, status, method, payment_channel, provider, provider_reference, paid_at, created_at",
+      );
     paymentQuery = bookingId
       ? paymentQuery.eq("booking_id", bookingId)
       : paymentQuery.order("created_at", { ascending: false }).limit(100);
@@ -183,19 +209,30 @@ export default async function AdminPaymentsPayoutsPage({
     if (error) throw new Error("Unable to load payment records.");
 
     const payments = (data ?? []) as unknown as PaymentRecord[];
-    const paymentIds = [...new Set(payments.map((payment) => payment.id).filter(Boolean))];
-    const bookingIds = [...new Set(payments.map((payment) => payment.booking_id).filter(Boolean))];
+    const paymentIds = [
+      ...new Set(payments.map((payment) => payment.id).filter(Boolean)),
+    ];
+    const bookingIds = [
+      ...new Set(payments.map((payment) => payment.booking_id).filter(Boolean)),
+    ];
     const { data: bookingData, error: bookingError } = bookingIds.length
       ? await admin
           .from("bookings")
-          .select("id, listing_id, guest_id, host_id, guest_name, guest_email, check_in, check_out")
+          .select(
+            "id, listing_id, guest_id, host_id, guest_name, guest_email, check_in, check_out",
+          )
           .in("id", bookingIds)
       : { data: [], error: null };
-    if (bookingError) throw new Error("Unable to load payment booking details.");
+    if (bookingError)
+      throw new Error("Unable to load payment booking details.");
 
     const bookings = (bookingData ?? []) as unknown as BookingRecord[];
-    const listingIds = [...new Set(bookings.map((booking) => booking.listing_id).filter(Boolean))];
-    const guestIds = [...new Set(bookings.map((booking) => booking.guest_id).filter(Boolean))];
+    const listingIds = [
+      ...new Set(bookings.map((booking) => booking.listing_id).filter(Boolean)),
+    ];
+    const guestIds = [
+      ...new Set(bookings.map((booking) => booking.guest_id).filter(Boolean)),
+    ];
     const [listingResult, guestResult] = await Promise.all([
       listingIds.length
         ? admin.from("listings").select("id, title").in("id", listingIds)
@@ -204,19 +241,35 @@ export default async function AdminPaymentsPayoutsPage({
         ? admin.from("profiles").select("id, full_name").in("id", guestIds)
         : Promise.resolve({ data: [], error: null }),
     ]);
-    if (listingResult.error || guestResult.error) throw new Error("Unable to load payment names.");
+    if (listingResult.error || guestResult.error)
+      throw new Error("Unable to load payment names.");
 
-    const bookingById = new Map(bookings.map((booking) => [booking.id, booking]));
-    const listingById = new Map((listingResult.data ?? []).map((listing) => [listing.id, listing.title]));
-    const guestById = new Map((guestResult.data ?? []).map((guest) => [guest.id, guest.full_name]));
-    const { data: refundRequests, error: refundRequestError } = paymentIds.length
-      ? await admin
-        .from("payment_refund_requests")
-        .select("payment_id, status")
-        .in("payment_id", paymentIds)
-      : { data: [], error: null };
-    if (refundRequestError) throw new Error("Unable to load payment refund request statuses. Apply the payment refund request migration and try again.");
-    const refundStatusByPayment = new Map((refundRequests ?? []).map((request) => [request.payment_id, request.status]));
+    const bookingById = new Map(
+      bookings.map((booking) => [booking.id, booking]),
+    );
+    const listingById = new Map(
+      (listingResult.data ?? []).map((listing) => [listing.id, listing.title]),
+    );
+    const guestById = new Map(
+      (guestResult.data ?? []).map((guest) => [guest.id, guest.full_name]),
+    );
+    const { data: refundRequests, error: refundRequestError } =
+      paymentIds.length
+        ? await admin
+            .from("payment_refund_requests")
+            .select("payment_id, status")
+            .in("payment_id", paymentIds)
+        : { data: [], error: null };
+    if (refundRequestError)
+      throw new Error(
+        "Unable to load payment refund request statuses. Apply the payment refund request migration and try again.",
+      );
+    const refundStatusByPayment = new Map(
+      (refundRequests ?? []).map((request) => [
+        request.payment_id,
+        request.status,
+      ]),
+    );
 
     records = payments.map((payment) => {
       const booking = bookingById.get(payment.booking_id);
@@ -224,13 +277,18 @@ export default async function AdminPaymentsPayoutsPage({
         id: payment.id,
         bookingId: payment.booking_id,
         amount: payment.amount,
+        providerFee: payment.provider_fee_amount,
         status: payment.status,
         createdAt: payment.created_at,
         paidAt: payment.paid_at,
-        listingTitle: booking ? listingById.get(booking.listing_id) ?? null : null,
+        listingTitle: booking
+          ? (listingById.get(booking.listing_id) ?? null)
+          : null,
         checkIn: booking?.check_in ?? null,
         checkOut: booking?.check_out ?? null,
-        guestName: booking?.guest_name ?? (booking?.guest_id ? guestById.get(booking.guest_id) : null),
+        guestName:
+          booking?.guest_name ??
+          (booking?.guest_id ? guestById.get(booking.guest_id) : null),
         guestEmail: booking?.guest_email ?? null,
         provider: payment.provider,
         reference: payment.provider_reference,
@@ -250,35 +308,55 @@ export default async function AdminPaymentsPayoutsPage({
     if (error) throw new Error("Unable to load payout records.");
 
     const payouts = (data ?? []) as unknown as PayoutRecord[];
-    const bookingIds = [...new Set(payouts.map((payout) => payout.booking_id).filter(Boolean))];
-    const hostIds = [...new Set(payouts.map((payout) => payout.host_id).filter(Boolean))];
-    const [{ data: bookingData, error: bookingError }, { data: profileData, error: profileError }] = await Promise.all([
+    const bookingIds = [
+      ...new Set(payouts.map((payout) => payout.booking_id).filter(Boolean)),
+    ];
+    const hostIds = [
+      ...new Set(payouts.map((payout) => payout.host_id).filter(Boolean)),
+    ];
+    const [
+      { data: bookingData, error: bookingError },
+      { data: profileData, error: profileError },
+    ] = await Promise.all([
       bookingIds.length
         ? admin
             .from("bookings")
-            .select("id, listing_id, guest_id, host_id, guest_name, guest_email, check_in, check_out")
+            .select(
+              "id, listing_id, guest_id, host_id, guest_name, guest_email, check_in, check_out",
+            )
             .in("id", bookingIds)
         : Promise.resolve({ data: [], error: null }),
       hostIds.length
         ? admin
             .from("profiles")
-            .select("id, full_name, business_name, payout_method, payout_details")
+            .select(
+              "id, full_name, business_name, payout_method, payout_details",
+            )
             .in("id", hostIds)
         : Promise.resolve({ data: [], error: null }),
     ]);
-    if (bookingError || profileError) throw new Error("Unable to load payout details.");
+    if (bookingError || profileError)
+      throw new Error("Unable to load payout details.");
 
     const bookings = (bookingData ?? []) as unknown as BookingRecord[];
     const profiles = (profileData ?? []) as unknown as ProfileRecord[];
-    const listingIds = [...new Set(bookings.map((booking) => booking.listing_id).filter(Boolean))];
+    const listingIds = [
+      ...new Set(bookings.map((booking) => booking.listing_id).filter(Boolean)),
+    ];
     const { data: listingData, error: listingError } = listingIds.length
       ? await admin.from("listings").select("id, title").in("id", listingIds)
       : { data: [], error: null };
     if (listingError) throw new Error("Unable to load payout listing names.");
 
-    const bookingById = new Map(bookings.map((booking) => [booking.id, booking]));
-    const profileById = new Map(profiles.map((profile) => [profile.id, profile]));
-    const listingById = new Map((listingData ?? []).map((listing) => [listing.id, listing.title]));
+    const bookingById = new Map(
+      bookings.map((booking) => [booking.id, booking]),
+    );
+    const profileById = new Map(
+      profiles.map((profile) => [profile.id, profile]),
+    );
+    const listingById = new Map(
+      (listingData ?? []).map((listing) => [listing.id, listing.title]),
+    );
     records = payouts.map((payout) => {
       const booking = bookingById.get(payout.booking_id);
       const host = profileById.get(payout.host_id);
@@ -289,7 +367,9 @@ export default async function AdminPaymentsPayoutsPage({
         status: payout.status,
         createdAt: payout.created_at,
         paidAt: payout.paid_at,
-        listingTitle: booking ? listingById.get(booking.listing_id) ?? null : null,
+        listingTitle: booking
+          ? (listingById.get(booking.listing_id) ?? null)
+          : null,
         checkIn: booking?.check_in ?? null,
         checkOut: booking?.check_out ?? null,
         hostName: host?.business_name ?? host?.full_name ?? null,
@@ -323,20 +403,46 @@ export default async function AdminPaymentsPayoutsPage({
             ? "Payments collected from guests for their bookings. Showing the latest 100 records."
             : "Payouts owed and sent to hosts for completed bookings. Showing the latest 100 records."}
         </p>
+        {view === "payouts" && (
+          <Link
+            href="/admin/payouts/requests"
+            className="mt-3 inline-flex min-h-10 items-center rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-700"
+          >
+            Review withdrawal requests
+          </Link>
+        )}
       </header>
 
       <dl className="grid grid-cols-1 divide-y border-y sm:grid-cols-3 sm:divide-x sm:divide-y-0">
         {view === "payments" ? (
           <>
-            <SummaryItem label="Collected in latest 100" amount={sumStatus(["paid", "success"])} />
-            <SummaryItem label="Awaiting payment" amount={sumStatus(["pending"])} />
-            <SummaryItem label="Failed or refunded" amount={sumStatus(["failed", "refunded"])} />
+            <SummaryItem
+              label="Collected in latest 100"
+              amount={sumStatus(["paid", "success"])}
+            />
+            <SummaryItem
+              label="Awaiting payment"
+              amount={sumStatus(["pending"])}
+            />
+            <SummaryItem
+              label="Failed or refunded"
+              amount={sumStatus(["failed", "refunded"])}
+            />
           </>
         ) : (
           <>
-            <SummaryItem label="Owed in latest 100" amount={sumStatus(["owed"])} />
-            <SummaryItem label="Processing" amount={sumStatus(["processing"])} />
-            <SummaryItem label="Paid in latest 100" amount={sumStatus(["paid"])} />
+            <SummaryItem
+              label="Owed in latest 100"
+              amount={sumStatus(["owed"])}
+            />
+            <SummaryItem
+              label="Processing"
+              amount={sumStatus(["processing"])}
+            />
+            <SummaryItem
+              label="Paid in latest 100"
+              amount={sumStatus(["paid"])}
+            />
           </>
         )}
       </dl>
@@ -361,23 +467,39 @@ export default async function AdminPaymentsPayoutsPage({
 
         <form action="/admin/payouts" className="flex w-full max-w-md gap-2">
           <input type="hidden" name="view" value={view} />
-          {status !== "all" && <input type="hidden" name="status" value={status} />}
-          {bookingId && <input type="hidden" name="bookingId" value={bookingId} />}
-          <label className="sr-only" htmlFor="ledger-search">Search ledger</label>
+          {status !== "all" && (
+            <input type="hidden" name="status" value={status} />
+          )}
+          {bookingId && (
+            <input type="hidden" name="bookingId" value={bookingId} />
+          )}
+          <label className="sr-only" htmlFor="ledger-search">
+            Search ledger
+          </label>
           <input
             id="ledger-search"
             name="q"
             type="search"
             defaultValue={query}
             maxLength={100}
-            placeholder={view === "payments" ? "Search reference, guest, listing…" : "Search host, booking, listing…"}
+            placeholder={
+              view === "payments"
+                ? "Search reference, guest, listing…"
+                : "Search host, booking, listing…"
+            }
             className="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#1B1A2E] placeholder:text-gray-400 outline-none focus:border-[#E23E85] focus:ring-2 focus:ring-[#E23E85]/20"
           />
-          <button type="submit" className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700">
+          <button
+            type="submit"
+            className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+          >
             Search
           </button>
           {(query || bookingId) && (
-            <Link href={makeHref(view, status, "", null)} className="self-center text-sm text-gray-500 hover:text-gray-900">
+            <Link
+              href={makeHref(view, status, "", null)}
+              className="self-center text-sm text-gray-500 hover:text-gray-900"
+            >
               Clear
             </Link>
           )}
@@ -385,14 +507,31 @@ export default async function AdminPaymentsPayoutsPage({
       </div>
 
       <p className="text-xs text-gray-500">
-        {filteredRecords.length} {filteredRecords.length === 1 ? "record" : "records"}
-        {bookingId ? ` for booking ${bookingId.slice(0, 8)}` : query ? " match your search" : " shown from the latest 100"}.
+        {filteredRecords.length}{" "}
+        {filteredRecords.length === 1 ? "record" : "records"}
+        {bookingId
+          ? ` for booking ${bookingId.slice(0, 8)}`
+          : query
+            ? " match your search"
+            : " shown from the latest 100"}
+        .
       </p>
-      {bookingId && <p className="-mt-4 text-sm text-gray-600">Filtered to booking <span className="font-mono">{bookingId.slice(0, 8)}</span>. <Link href={makeHref(view, status, query, null)} className="font-medium text-[#CF2F74] hover:underline">Clear booking filter</Link></p>}
+      {bookingId && (
+        <p className="-mt-4 text-sm text-gray-600">
+          Filtered to booking{" "}
+          <span className="font-mono">{bookingId.slice(0, 8)}</span>.{" "}
+          <Link
+            href={makeHref(view, status, query, null)}
+            className="font-medium text-[#CF2F74] hover:underline"
+          >
+            Clear booking filter
+          </Link>
+        </p>
+      )}
 
       <div className="overflow-x-auto border-y bg-white">
         {view === "payments" ? (
-          <table className="w-full min-w-[980px] text-left text-sm">
+          <table className="w-full min-w-[1080px] text-left text-sm">
             <thead className="bg-gray-50 text-xs font-medium uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-4 py-3">Payment / Booking</th>
@@ -400,6 +539,7 @@ export default async function AdminPaymentsPayoutsPage({
                 <th className="px-4 py-3">Provider</th>
                 <th className="px-4 py-3">Reference</th>
                 <th className="px-4 py-3 text-right">Amount</th>
+                <th className="px-4 py-3 text-right">Provider fee</th>
                 <th className="px-4 py-3">Paid</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Refund review</th>
@@ -409,33 +549,73 @@ export default async function AdminPaymentsPayoutsPage({
               {filteredRecords.map((record) => (
                 <tr key={record.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
-                    <Link href={`/admin/bookings/${record.bookingId}`} className="font-medium text-[#1B1A2E] hover:text-[#E23E85]">
+                    <Link
+                      href={`/admin/bookings/${record.bookingId}`}
+                      className="font-medium text-[#1B1A2E] hover:text-[#E23E85]"
+                    >
                       {record.listingTitle ?? "Listing unavailable"}
                     </Link>
-                    <span className="mt-0.5 block text-xs text-gray-500">Booking {record.bookingId.slice(0, 8)}</span>
+                    <span className="mt-0.5 block text-xs text-gray-500">
+                      Booking {record.bookingId.slice(0, 8)}
+                    </span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="block text-gray-800">{record.guestName ?? "Guest name unavailable"}</span>
-                    {record.guestEmail && <span className="block text-xs text-gray-500">{record.guestEmail}</span>}
+                    <span className="block text-gray-800">
+                      {record.guestName ?? "Guest name unavailable"}
+                    </span>
+                    {record.guestEmail && (
+                      <span className="block text-xs text-gray-500">
+                        {record.guestEmail}
+                      </span>
+                    )}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{humanize(record.provider ?? record.method) || "—"}</td>
-                  <td className="max-w-48 truncate px-4 py-3 font-mono text-xs text-gray-500" title={record.reference ?? undefined}>
+                  <td className="px-4 py-3 text-gray-600">
+                    {humanize(record.provider ?? record.method) || "—"}
+                  </td>
+                  <td
+                    className="max-w-48 truncate px-4 py-3 font-mono text-xs text-gray-500"
+                    title={record.reference ?? undefined}
+                  >
                     {record.reference ?? "—"}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-gray-900">
                     {formatMoney(record.amount, record.currency ?? "KES")}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-gray-600">{record.paidAt ? formatDate(record.paidAt, "short") : "—"}</td>
-                  <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-gray-600">
+                    {formatMoney(
+                      record.providerFee ?? 0,
+                      record.currency ?? "KES",
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-gray-600">
+                    {record.paidAt ? formatDate(record.paidAt, "short") : "—"}
+                  </td>
                   <td className="px-4 py-3">
-                    {record.status === "paid" || record.status === "success"
-                      ? <PaymentRefundRequestButton paymentId={record.id} requestStatus={record.refundRequestStatus} />
-                      : <span className="text-xs text-gray-400">Available for paid payments</span>}
+                    <StatusBadge status={record.status} />
+                  </td>
+                  <td className="px-4 py-3">
+                    {record.status === "paid" || record.status === "success" ? (
+                      <PaymentRefundRequestButton
+                        paymentId={record.id}
+                        requestStatus={record.refundRequestStatus}
+                      />
+                    ) : (
+                      <span className="text-xs text-gray-400">
+                        Available for paid payments
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}
               {filteredRecords.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-gray-500">No payments match these filters.</td></tr>
+                <tr>
+                  <td
+                    colSpan={9}
+                    className="px-4 py-12 text-center text-sm text-gray-500"
+                  >
+                    No payments match these filters.
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -456,23 +636,47 @@ export default async function AdminPaymentsPayoutsPage({
               {filteredRecords.map((record) => (
                 <tr key={record.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
-                    <Link href={`/admin/bookings/${record.bookingId}`} className="font-medium text-[#1B1A2E] hover:text-[#E23E85]">
+                    <Link
+                      href={`/admin/bookings/${record.bookingId}`}
+                      className="font-medium text-[#1B1A2E] hover:text-[#E23E85]"
+                    >
                       {record.listingTitle ?? "Listing unavailable"}
                     </Link>
-                    <span className="mt-0.5 block text-xs text-gray-500">Booking {record.bookingId.slice(0, 8)}</span>
+                    <span className="mt-0.5 block text-xs text-gray-500">
+                      Booking {record.bookingId.slice(0, 8)}
+                    </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-800">{record.hostName ?? "Host name unavailable"}</td>
+                  <td className="px-4 py-3 text-gray-800">
+                    {record.hostName ?? "Host name unavailable"}
+                  </td>
                   <td className="whitespace-nowrap px-4 py-3 text-gray-600">
-                    {record.checkIn && record.checkOut ? `${formatDate(record.checkIn, "noYear")} – ${formatDate(record.checkOut, "short")}` : "—"}
+                    {record.checkIn && record.checkOut
+                      ? `${formatDate(record.checkIn, "noYear")} – ${formatDate(record.checkOut, "short")}`
+                      : "—"}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{record.payoutDestination}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-gray-900">{formatMoney(record.amount)}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-gray-600">{record.paidAt ? formatDate(record.paidAt, "short") : "—"}</td>
-                  <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
+                  <td className="px-4 py-3 text-gray-600">
+                    {record.payoutDestination}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-gray-900">
+                    {formatMoney(record.amount)}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-gray-600">
+                    {record.paidAt ? formatDate(record.paidAt, "short") : "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <StatusBadge status={record.status} />
+                  </td>
                 </tr>
               ))}
               {filteredRecords.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-500">No payouts match these filters.</td></tr>
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="px-4 py-12 text-center text-sm text-gray-500"
+                  >
+                    No payouts match these filters.
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>

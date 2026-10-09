@@ -8,7 +8,8 @@ export type AdminAuditEntity =
   | "user"
   | "host_verification"
   | "support_case"
-  | "review";
+  | "review"
+  | "payout";
 
 type AdminAuditEvent = {
   actorId: string;
@@ -34,6 +35,8 @@ export async function recordAdminAuditEvent(event: AdminAuditEvent) {
 
   if (error) {
     console.error("Failed to write admin audit event:", error);
-    throw new Error("The change was made, but its audit record could not be saved. Contact support before retrying.");
+    throw new Error(
+      "The change was made, but its audit record could not be saved. Contact support before retrying.",
+    );
   }
 }

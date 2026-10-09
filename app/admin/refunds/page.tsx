@@ -76,6 +76,17 @@ type PaymentRefundRequest = {
   created_at: string;
 };
 
+type DarajaRefundAttempt = {
+  id: string;
+  purpose: string;
+  payment_refund_request_id: string | null;
+  cancellation_refund_request_id: string | null;
+  status: string;
+  amount: number | string;
+  actual_fee: number | string | null;
+  transaction_id: string | null;
+};
+
 function oneLine(value: string | null | undefined) {
   return value?.trim() || "Not provided";
 }
@@ -109,6 +120,32 @@ export default async function AdminRefundsPage({
   if (paymentRefundError) throw new Error("Unable to load guest payment refund requests. Apply the payment refund request migration and try again.");
   const requests = (data ?? []) as unknown as RefundRequest[];
   const paymentRefundRequests = (paymentRefundData ?? []) as unknown as PaymentRefundRequest[];
+
+  const paymentRefundIds = paymentRefundRequests.map((request) => request.id);
+  const cancellationRefundIds = requests.map((request) => request.id);
+  const [paymentAttemptsResult, cancellationAttemptsResult] = await Promise.all([
+    paymentRefundIds.length
+      ? admin.from("daraja_b2c_attempts").select("id, purpose, payment_refund_request_id, cancellation_refund_request_id, status, amount, actual_fee, transaction_id").in("payment_refund_request_id", paymentRefundIds).order("created_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
+    cancellationRefundIds.length
+      ? admin.from("daraja_b2c_attempts").select("id, purpose, payment_refund_request_id, cancellation_refund_request_id, status, amount, actual_fee, transaction_id").in("cancellation_refund_request_id", cancellationRefundIds).order("created_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (paymentAttemptsResult.error || cancellationAttemptsResult.error) {
+    throw new Error("Unable to load Safaricom refund transfer states.");
+  }
+  const latestPaymentAttempt = new Map<string, DarajaRefundAttempt>();
+  const latestCancellationAttempt = new Map<string, DarajaRefundAttempt>();
+  for (const attempt of (paymentAttemptsResult.data ?? []) as unknown as DarajaRefundAttempt[]) {
+    if (attempt.payment_refund_request_id && !latestPaymentAttempt.has(attempt.payment_refund_request_id)) {
+      latestPaymentAttempt.set(attempt.payment_refund_request_id, attempt);
+    }
+  }
+  for (const attempt of (cancellationAttemptsResult.data ?? []) as unknown as DarajaRefundAttempt[]) {
+    if (attempt.cancellation_refund_request_id && !latestCancellationAttempt.has(attempt.cancellation_refund_request_id)) {
+      latestCancellationAttempt.set(attempt.cancellation_refund_request_id, attempt);
+    }
+  }
 
   const bookingIds = [...new Set([...requests.map((request) => request.booking_id), ...paymentRefundRequests.map((request) => request.booking_id)])];
   const userIds = [...new Set([...requests.flatMap((request) => [request.guest_id, request.host_id]), ...paymentRefundRequests.map((request) => request.guest_id).filter((id): id is string => Boolean(id))])];
@@ -173,7 +210,7 @@ export default async function AdminRefundsPage({
       <header>
         <h1 className="text-2xl font-semibold text-[#E23E85]">Refunds</h1>
         <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-600">
-          Cancellation approval and refund approval are separate decisions. Approving a refund authorizes manual payment; record it as processed only after the money has actually been sent.
+          Cancellation approval and refund approval are separate decisions. Approved refunds are sent to the guest&apos;s booking M-Pesa number through Safaricom B2C and are marked processed only after the result callback confirms success.
         </p>
       </header>
 
@@ -200,7 +237,7 @@ export default async function AdminRefundsPage({
         <header className="flex flex-wrap items-baseline justify-between gap-2">
           <div>
             <h2 id="payment-refund-requests-heading" className="text-lg font-semibold text-[#1B1A2E]">Guest payment refund requests</h2>
-            <p className="mt-1 text-sm text-gray-600">Refund reviews submitted from the guest payment ledger. Approval authorizes manual processing; it does not send money.</p>
+            <p className="mt-1 text-sm text-gray-600">Refund reviews submitted from the guest payment ledger. Approval authorizes a Safaricom B2C transfer; the callback confirms when money is sent.</p>
           </div>
           <span className="text-xs text-gray-500">Latest {paymentRefundRequests.length}</span>
         </header>
@@ -238,7 +275,7 @@ export default async function AdminRefundsPage({
                       <p className="text-sm text-emerald-800">Refund sent: {formatMoney(request.actual_refund_amount ?? 0)} on {formatDate(request.processed_at)} · Reference {request.transaction_reference}</p>
                     )}
                   </div>
-                  <PaymentRefundDecisionActions requestId={request.id} status={request.status} amountPaid={Number(request.amount_paid)} />
+                  <PaymentRefundDecisionActions requestId={request.id} status={request.status} amountPaid={Number(request.amount_paid)} lastAttempt={latestPaymentAttempt.get(request.id) ?? null} />
                 </article>
               );
             })}
@@ -313,6 +350,7 @@ export default async function AdminRefundsPage({
                     status={request.refund_processing_status}
                     estimatedAmount={Number(request.estimated_refund_amount)}
                     maxRefundAmount={Number(request.estimated_refund_amount)}
+                    lastAttempt={latestCancellationAttempt.get(request.id) ?? null}
                   />
                 </div>
               </article>

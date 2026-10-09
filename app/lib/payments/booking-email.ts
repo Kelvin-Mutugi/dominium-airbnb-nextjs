@@ -1,13 +1,17 @@
 import "server-only";
 
 function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (character) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  })[character] ?? character);
+  return value.replace(
+    /[&<>"']/g,
+    (character) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[character] ?? character,
+  );
 }
 
 export async function sendBookingConfirmationEmail(input: {
@@ -18,12 +22,15 @@ export async function sendBookingConfirmationEmail(input: {
   checkIn: string;
   checkOut: string;
   totalPaid: number;
+  priceLines?: Array<{ name: string; amount: number }>;
   hostContact: string | null;
 }) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.BOOKING_CONFIRMATION_FROM;
   if (!apiKey || !from) {
-    console.warn("Booking email skipped: configure RESEND_API_KEY and BOOKING_CONFIRMATION_FROM.");
+    console.warn(
+      "Booking email skipped: configure RESEND_API_KEY and BOOKING_CONFIRMATION_FROM.",
+    );
     return false;
   }
 
@@ -35,6 +42,14 @@ export async function sendBookingConfirmationEmail(input: {
     currency: "KES",
     maximumFractionDigits: 2,
   }).format(input.totalPaid);
+  const priceLines = input.priceLines ?? [];
+  const priceText = priceLines.map(
+    (line) =>
+      `${line.name}: ${new Intl.NumberFormat("en-KE", { style: "currency", currency: "KES", maximumFractionDigits: 2 }).format(line.amount)}`,
+  );
+  const priceHtml = priceLines.length
+    ? `<ul>${priceLines.map((line) => `<li>${escapeHtml(line.name)}: ${escapeHtml(new Intl.NumberFormat("en-KE", { style: "currency", currency: "KES", maximumFractionDigits: 2 }).format(line.amount))}</li>`).join("")}</ul>`
+    : "";
   const hostContact = input.hostContact
     ? `<p><strong>Host contact:</strong><br>${escapeHtml(input.hostContact).replaceAll("\n", "<br>")}</p>`
     : "";
@@ -54,17 +69,22 @@ export async function sendBookingConfirmationEmail(input: {
         "Your Dominium booking is confirmed.",
         `Booking ID: ${input.bookingReference || input.bookingId}`,
         `Stay: ${input.checkIn} to ${input.checkOut}`,
+        ...priceText,
         `Total paid: ${amount}`,
-        input.hostContact ? `Host contact: ${input.hostContact}` : "Host contact is available in your arrival guide.",
+        input.hostContact
+          ? `Host contact: ${input.hostContact}`
+          : "Host contact is available in your arrival guide.",
       ].join("\n"),
-      html: `<h1>Your booking is confirmed</h1><p><strong>${title}</strong></p><p>Booking ID: ${reference}</p><p>Stay: ${dates}</p><p>Total paid: ${escapeHtml(amount)}</p>${hostContact}`,
+      html: `<h1>Your booking is confirmed</h1><p><strong>${title}</strong></p><p>Booking ID: ${reference}</p><p>Stay: ${dates}</p>${priceHtml}<p>Total paid: ${escapeHtml(amount)}</p>${hostContact}`,
     }),
     cache: "no-store",
   });
 
   if (!response.ok) {
     const detail = await response.text();
-    throw new Error(`Booking confirmation email failed (${response.status}): ${detail.slice(0, 300)}`);
+    throw new Error(
+      `Booking confirmation email failed (${response.status}): ${detail.slice(0, 300)}`,
+    );
   }
   return true;
 }

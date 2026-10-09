@@ -8,13 +8,6 @@ import { updatePayout } from '@/app/account/profile/actions';
 import { useAction } from './useAction';
 import { Field, FormMessage, btnPrimary, inputClass } from './ui';
 
-type Method = 'mpesa' | 'bank';
-
-const OPTIONS: { id: Method; label: string; hint: string }[] = [
-  { id: 'mpesa', label: 'M-Pesa', hint: 'Paid to your Safaricom number' },
-  { id: 'bank', label: 'Bank transfer', hint: 'Paid to your bank account' },
-];
-
 export function PayoutForm({
   method: initialMethod,
   details,
@@ -22,12 +15,10 @@ export function PayoutForm({
   method: string | null;
   details: Record<string, string> | null;
 }) {
-  const [method, setMethod] = useState<Method>(initialMethod === 'bank' ? 'bank' : 'mpesa');
+  const method = 'mpesa';
   const [values, setValues] = useState({
     phone: details?.phone ?? '',
     account_name: details?.account_name ?? '',
-    bank_name: details?.bank_name ?? '',
-    account_number: details?.account_number ?? '',
   });
   const { run, pending, result } = useAction(updatePayout);
 
@@ -41,67 +32,27 @@ export function PayoutForm({
       details:
         method === 'mpesa'
           ? { phone: values.phone, account_name: values.account_name }
-          : { bank_name: values.bank_name, account_name: values.account_name, account_number: values.account_number },
+          : {},
     });
   }
 
   return (
     <form onSubmit={onSubmit} className="max-w-xl space-y-5">
-      <fieldset>
-        <legend className="sr-only">Payout method</legend>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {OPTIONS.map((o) => (
-            <label
-              key={o.id}
-              className={`flex min-h-16 cursor-pointer items-start gap-3 rounded-2xl p-4 text-sm transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#E23E85] ${
-                method === o.id ? 'account-neu-lift bg-[#FCE8F0] ring-2 ring-[#E23E85]/25' : 'account-neu-surface hover:bg-neutral-50'
-              }`}
-            >
-              <input
-                type="radio"
-                name="payout_method"
-                value={o.id}
-                checked={method === o.id}
-                onChange={() => setMethod(o.id)}
-                className="mt-0.5 accent-[#E23E85]"
-              />
-              <span>
-                <span className="block font-medium text-neutral-900">{o.label}</span>
-                <span className="block text-neutral-500">{o.hint}</span>
-              </span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
-
-      {method === 'mpesa' ? (
-        <Field label="M-Pesa number" htmlFor="payout_phone">
-          <input
-            id="payout_phone"
-            type="tel"
-            className={inputClass}
-            value={values.phone}
-            onChange={set('phone')}
-            placeholder="0712 345 678"
-            required
-          />
-        </Field>
-      ) : (
-        <>
-          <Field label="Bank name" htmlFor="bank_name">
-            <input id="bank_name" className={inputClass} value={values.bank_name} onChange={set('bank_name')} required />
-          </Field>
-          <Field label="Account number" htmlFor="account_number">
-            <input
-              id="account_number"
-              inputMode="numeric"
-              className={inputClass}
-              value={values.account_number}
-              onChange={set('account_number')}
-              required
-            />
-          </Field>
-        </>
+      <Field label="Safaricom M-Pesa number" htmlFor="payout_phone">
+        <input
+          id="payout_phone"
+          type="tel"
+          className={inputClass}
+          value={values.phone}
+          onChange={set('phone')}
+          placeholder="0712 345 678"
+          required
+        />
+      </Field>
+      {initialMethod !== 'mpesa' && (
+        <p className="text-sm text-amber-800">
+          Host payouts now use Safaricom M-Pesa. Add an M-Pesa number to receive future payouts.
+        </p>
       )}
 
       <Field label="Name on the account" htmlFor="account_name">

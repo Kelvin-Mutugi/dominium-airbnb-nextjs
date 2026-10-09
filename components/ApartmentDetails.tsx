@@ -170,6 +170,7 @@ export default function ApartmentDetails({
     platformFeePerNight: listing.serviceFeePerNight ?? 0,
     additionalCharges: listing.additionalCharges ?? [],
     nights,
+    selectedExtras: [],
   });
   const tripTotal = bookingPrice.total;
   const formatPrice = (amount: number) =>
@@ -479,10 +480,50 @@ export default function ApartmentDetails({
                   </div>
 
                   <PriceBreakdown price={bookingPrice} />
+                  {listing.additionalCharges &&
+                    listing.additionalCharges.length > 0 && (
+                      <section
+                        className="mt-3 border-t border-[#EDEBE4] pt-3"
+                        aria-label="Additional listing fees"
+                      >
+                        <h3 className="text-sm font-semibold text-[#1B1A2E]">
+                          {nights > 0
+                            ? "Optional extras at checkout"
+                            : "Listing fees"}
+                        </h3>
+                        <ul className="mt-2 space-y-2 text-xs text-[#3A3856]">
+                          {listing.additionalCharges
+                            .filter(
+                              (charge) =>
+                                nights === 0 || charge.required === false,
+                            )
+                            .map((charge, index) => (
+                              <li
+                                key={`${charge.name}-${index}`}
+                                className="flex justify-between gap-3"
+                              >
+                                <span>
+                                  {charge.name} ·{" "}
+                                  {charge.required === false
+                                    ? "optional"
+                                    : "mandatory"}{" "}
+                                  · host charge
+                                </span>
+                                <span className="shrink-0">
+                                  {formatPrice(charge.amount)}{" "}
+                                  {charge.frequency === "per_night"
+                                    ? "/ night"
+                                    : "/ booking"}
+                                </span>
+                              </li>
+                            ))}
+                        </ul>
+                      </section>
+                    )}
                   {nights === 0 && (
                     <p className="mt-3 text-xs text-[#3A3856]/70">
-                      Choose dates to see the service fee and trip total before
-                      continuing.
+                      Choose dates to see mandatory fees and the trip total
+                      before continuing.
                     </p>
                   )}
 

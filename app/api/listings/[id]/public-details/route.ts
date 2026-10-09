@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function publicHostName(fullName: string | null, businessName: string | null) {
   const business = businessName?.trim();
@@ -25,21 +26,26 @@ async function fetchPublicDetails(id: string) {
   if (listingError) throw new Error("Unable to load listing details.");
   if (!listing) return null;
 
-  const [{ data: profile }, { data: relatedListings, error: relatedError }] = await Promise.all([
-    admin
-      .from("profiles")
-      .select("full_name, business_name, avatar_url, host_verified_at, host_bio")
-      .eq("id", listing.host_id)
-      .maybeSingle(),
-    admin
-      .from("listings")
-      .select("id, title, town, county, price_per_night, listing_images(url, sort_order)")
-      .eq("status", "published")
-      .eq("county", listing.county)
-      .neq("id", listing.id)
-      .order("created_at", { ascending: false })
-      .limit(6),
-  ]);
+  const [{ data: profile }, { data: relatedListings, error: relatedError }] =
+    await Promise.all([
+      admin
+        .from("profiles")
+        .select(
+          "full_name, business_name, avatar_url, host_verified_at, host_bio",
+        )
+        .eq("id", listing.host_id)
+        .maybeSingle(),
+      admin
+        .from("listings")
+        .select(
+          "id, title, town, county, price_per_night, platform_fee_per_night, listing_images(url, sort_order)",
+        )
+        .eq("status", "published")
+        .eq("county", listing.county)
+        .neq("id", listing.id)
+        .order("created_at", { ascending: false })
+        .limit(6),
+    ]);
 
   if (relatedError) throw new Error("Unable to load nearby listings.");
 
@@ -47,18 +53,23 @@ async function fetchPublicDetails(id: string) {
   let nearest = related;
   if (related.length === 0 && listing.town) {
     const { data: nearbyByTown, error: townError } = await admin
-        .from("listings")
-        .select("id, title, town, county, price_per_night, listing_images(url, sort_order)")
-        .eq("status", "published")
-        .eq("town", listing.town)
-        .neq("id", listing.id)
-        .order("created_at", { ascending: false })
-        .limit(6);
+      .from("listings")
+      .select(
+        "id, title, town, county, price_per_night, platform_fee_per_night, listing_images(url, sort_order)",
+      )
+      .eq("status", "published")
+      .eq("town", listing.town)
+      .neq("id", listing.id)
+      .order("created_at", { ascending: false })
+      .limit(6);
     if (townError) throw new Error("Unable to load nearby listings.");
     nearest = nearbyByTown ?? [];
   }
 
-  const displayName = publicHostName(profile?.full_name ?? null, profile?.business_name ?? null);
+  const displayName = publicHostName(
+    profile?.full_name ?? null,
+    profile?.business_name ?? null,
+  );
   return {
     host: {
       displayName,
@@ -68,34 +79,47 @@ async function fetchPublicDetails(id: string) {
     },
     relatedListings: nearest.map((item) => {
       const images = Array.isArray(item.listing_images)
-        ? [...item.listing_images].sort((first, second) => first.sort_order - second.sort_order)
+        ? [...item.listing_images].sort(
+            (first, second) => first.sort_order - second.sort_order,
+          )
         : [];
       return {
         id: item.id,
         name: item.title,
         location: [item.town, item.county].filter(Boolean).join(", "),
-        pricePerNight: Number(item.price_per_night),
+        pricePerNight:
+          Number(item.price_per_night) +
+          Number(item.platform_fee_per_night ?? 0),
         imageUrl: images[0]?.url ?? "",
       };
     }),
   };
 }
 
-const getCachedPublicDetails = unstable_cache(fetchPublicDetails, ["public-listing-details-v1"], {
-  revalidate: 300,
-  tags: ["public-listings", "public-host-profiles"],
-});
+const getCachedPublicDetails = unstable_cache(
+  fetchPublicDetails,
+  ["public-listing-details-v1"],
+  {
+    revalidate: 300,
+    tags: ["public-listings", "public-host-profiles"],
+  },
+);
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  if (!UUID_RE.test(id)) return NextResponse.json({ error: "Listing not found." }, { status: 404 });
+  if (!UUID_RE.test(id))
+    return NextResponse.json({ error: "Listing not found." }, { status: 404 });
 
   try {
     const details = await getCachedPublicDetails(id);
-    if (!details) return NextResponse.json({ error: "Listing not found." }, { status: 404 });
+    if (!details)
+      return NextResponse.json(
+        { error: "Listing not found." },
+        { status: 404 },
+      );
     return NextResponse.json(details, {
       headers: {
         "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
@@ -104,6 +128,9 @@ export async function GET(
     });
   } catch (error) {
     console.error("Public listing details error:", error);
-    return NextResponse.json({ error: "Unable to load listing details." }, { status: 503 });
+    return NextResponse.json(
+      { error: "Unable to load listing details." },
+      { status: 503 },
+    );
   }
 }

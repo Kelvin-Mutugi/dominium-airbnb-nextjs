@@ -28,7 +28,10 @@ interface DatabaseListing {
 function normalizeAmenities(value: unknown): Amenity[] {
   if (!Array.isArray(value)) return [];
   const allowed = new Set<Amenity>(["wifi", "ac", "pool", "parking"]);
-  return value.filter((item): item is Amenity => typeof item === "string" && allowed.has(item as Amenity));
+  return value.filter(
+    (item): item is Amenity =>
+      typeof item === "string" && allowed.has(item as Amenity),
+  );
 }
 
 function normalizeListing(listing: DatabaseListing): Listing {
@@ -40,11 +43,12 @@ function normalizeListing(listing: DatabaseListing): Listing {
     : [];
   const amenities = normalizeAmenities(listing.amenities);
   const price = Number(listing.price_per_night ?? 0);
+  const guestNightlyPrice = price + Number(listing.platform_fee_per_night ?? 0);
   const formattedPrice = new Intl.NumberFormat("en-KE", {
     style: "currency",
     currency: "KES",
     maximumFractionDigits: 0,
-  }).format(price);
+  }).format(guestNightlyPrice);
   const loc = [listing.town, listing.county].filter(Boolean).join(", ");
 
   return {
@@ -63,7 +67,9 @@ function normalizeListing(listing: DatabaseListing): Listing {
     pricePerNight: price,
     serviceFeePercent: 0,
     serviceFeePerNight: Number(listing.platform_fee_per_night ?? 0),
-    additionalCharges: normalizeListingAdditionalCharges(listing.additional_charges),
+    additionalCharges: normalizeListingAdditionalCharges(
+      listing.additional_charges,
+    ),
     features: [
       ...(listing.bedrooms ? [`${listing.bedrooms} bedrooms`] : []),
       ...(listing.bathrooms ? [`${listing.bathrooms} bathrooms`] : []),
@@ -88,10 +94,16 @@ const LISTING_SELECT = `
   listing_images ( url, sort_order )
 `;
 
-async function fetchHomepageListings(searchTerms: string[] | null, limit: number): Promise<Listing[]> {
+async function fetchHomepageListings(
+  searchTerms: string[] | null,
+  limit: number,
+): Promise<Listing[]> {
   const supabase = getPublicSupabaseClient();
 
-  let query = supabase.from("listings").select(LISTING_SELECT).eq("status", "published");
+  let query = supabase
+    .from("listings")
+    .select(LISTING_SELECT)
+    .eq("status", "published");
 
   if (searchTerms?.length) {
     const clauses = searchTerms.flatMap((term) => [
@@ -120,8 +132,13 @@ const getCachedHomepageFeatured = unstable_cache(
 );
 
 const getCachedHomepageDestination = unstable_cache(
-  (searchTerms: string[]) => fetchHomepageListings(searchTerms, DESTINATION_FETCH_SIZE),
-  ["homepage-destination-v1", String(DESTINATION_PAGE_SIZE), String(DESTINATION_FETCH_SIZE)],
+  (searchTerms: string[]) =>
+    fetchHomepageListings(searchTerms, DESTINATION_FETCH_SIZE),
+  [
+    "homepage-destination-v1",
+    String(DESTINATION_PAGE_SIZE),
+    String(DESTINATION_FETCH_SIZE),
+  ],
   {
     revalidate: 300,
     tags: ["public-listings", "homepage-destinations"],
@@ -132,6 +149,8 @@ export function getHomepageFeaturedListings(): Promise<Listing[]> {
   return getCachedHomepageFeatured();
 }
 
-export function getHomepageDestinationListings(searchTerms: string[]): Promise<Listing[]> {
+export function getHomepageDestinationListings(
+  searchTerms: string[],
+): Promise<Listing[]> {
   return getCachedHomepageDestination(searchTerms);
 }

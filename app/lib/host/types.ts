@@ -1,7 +1,7 @@
 // lib/host/types.ts
 // Mirrors the Supabase schema (+ the additions in sql/001_host_panel_schema.sql)
 
-import type { RefundProgress } from '@/types/refunds';
+import type { RefundProgress } from "@/types/refunds";
 
 export type ListingStatus = "draft" | "published" | "suspended" | "archived";
 export type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
@@ -82,6 +82,7 @@ export interface ListingAdditionalCharge {
   name: string;
   amount: number;
   frequency: "per_night" | "per_booking";
+  required?: boolean;
 }
 
 export type HostListingRequestStatus =
@@ -141,6 +142,8 @@ export interface Booking {
   host_payout_amount: number;
   host_base_amount: number | null;
   additional_charges_amount: number | null;
+  host_gross_amount?: number | null;
+  collection_fee_amount?: number | null;
   guest_name: string | null;
   guest_country: string | null;
   special_requests: string | null;
@@ -149,7 +152,10 @@ export interface Booking {
   dateChangeHistory?: BookingDateChange[];
   refundRequests?: RefundProgress[];
   // joined
-  listing?: Pick<Listing, "id" | "title" | "town" | "county" | "check_out_time">;
+  listing?: Pick<
+    Listing,
+    "id" | "title" | "town" | "county" | "check_out_time"
+  >;
 }
 
 export interface BookingDateChange {
@@ -164,7 +170,7 @@ export interface BookingDateChange {
 export interface HostBookingChangeRequest {
   id: string;
   booking_id: string;
-  request_type: 'cancellation' | 'date_change';
+  request_type: "cancellation" | "date_change";
   current_check_in: string;
   current_check_out: string;
   requested_check_in: string | null;
@@ -185,7 +191,7 @@ export interface HostBookingChangeRequest {
 export interface HostDateChangeRecord {
   id: string;
   booking_id: string;
-  status: 'pending' | 'approved' | 'declined';
+  status: "pending" | "approved" | "declined";
   current_check_in: string;
   current_check_out: string;
   requested_check_in: string;
@@ -196,7 +202,7 @@ export interface HostDateChangeRecord {
   responded_at: string | null;
   host_response: string | null;
   auto_decision_at: string | null;
-  decision_source: 'host' | 'system' | null;
+  decision_source: "host" | "system" | null;
   booking: {
     booking_reference: string;
     guest_name: string | null;
@@ -210,6 +216,7 @@ export interface Payout {
   booking_id: string;
   amount: number;
   status: PayoutStatus;
+  eligible_for_withdrawal?: boolean;
   paid_at: string | null;
   created_at: string;
   booking?: Pick<
@@ -225,6 +232,8 @@ export interface Payout {
     | "rooms_count"
     | "status"
     | "host_payout_amount"
+    | "host_gross_amount"
+    | "collection_fee_amount"
     | "guest_name"
     | "guest_country"
     | "special_requests"

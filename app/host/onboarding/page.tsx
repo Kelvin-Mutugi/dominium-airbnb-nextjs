@@ -26,10 +26,8 @@ type FormState = {
   county: string;
   residentialAddress: string;
   // Payout
-  payoutMethod: "mpesa" | "bank";
+  payoutMethod: "mpesa";
   mpesaNumber: string;
-  bankName: string;
-  bankAccount: string;
   // About & terms
   hostBio: string;
   agreedToHostTerms: boolean;
@@ -50,8 +48,6 @@ const initialState: FormState = {
   residentialAddress: "",
   payoutMethod: "mpesa",
   mpesaNumber: "",
-  bankName: "",
-  bankAccount: "",
   hostBio: "",
   agreedToHostTerms: false,
 };
@@ -119,10 +115,8 @@ export default function HostOnboardingPage() {
             dateOfBirth: status.date_of_birth ?? current.dateOfBirth,
             county: status.county ?? current.county,
             residentialAddress: status.residential_address ?? current.residentialAddress,
-            payoutMethod: status.payout_method === "bank" ? "bank" : "mpesa",
+            payoutMethod: "mpesa",
             mpesaNumber: payoutDetails?.mpesa_number ?? payoutDetails?.phone ?? current.mpesaNumber,
-            bankName: payoutDetails?.bank_name ?? current.bankName,
-            bankAccount: payoutDetails?.account_number ?? current.bankAccount,
             hostBio: status.host_bio ?? current.hostBio,
           }));
         }
@@ -165,9 +159,6 @@ export default function HostOnboardingPage() {
     if (form.payoutMethod === "mpesa" && !MPESA_REGEX.test(form.mpesaNumber)) {
       return "Enter a valid M-Pesa number, e.g. 0712345678.";
     }
-    if (form.payoutMethod === "bank" && (!form.bankName || !form.bankAccount)) {
-      return "Bank name and account number are both required.";
-    }
     if (!form.agreedToHostTerms) return "You must accept the Host Listing Agreement and Terms of Service.";
     return null;
   }
@@ -197,8 +188,6 @@ export default function HostOnboardingPage() {
     payload.set("residentialAddress", form.residentialAddress);
     payload.set("payoutMethod", form.payoutMethod);
     payload.set("mpesaNumber", form.mpesaNumber);
-    payload.set("bankName", form.bankName);
-    payload.set("bankAccount", form.bankAccount);
     payload.set("hostBio", form.hostBio);
     payload.set("agreedToHostTerms", String(form.agreedToHostTerms));
 
@@ -332,32 +321,11 @@ export default function HostOnboardingPage() {
         {/* Payout */}
         <section className="space-y-5 rounded-2xl bg-white p-6 shadow-sm">
           <h2 className="font-semibold text-[#12231d]">Payout details</h2>
-          <fieldset className="space-y-2 text-sm text-[#12231d]">
-            <legend className="font-medium">Payout method</legend>
-            <label className="mr-5 inline-flex items-center gap-2">
-              <input type="radio" checked={form.payoutMethod === "mpesa"} onChange={() => update("payoutMethod", "mpesa")} /> M-Pesa
-            </label>
-            <label className="inline-flex items-center gap-2">
-              <input type="radio" checked={form.payoutMethod === "bank"} onChange={() => update("payoutMethod", "bank")} /> Bank transfer
-            </label>
-          </fieldset>
-          {form.payoutMethod === "mpesa" ? (
-            <label className={labelClass}>
-              M-Pesa number
-              <input type="tel" placeholder="0712345678" className={inputClass} value={form.mpesaNumber} onChange={(e) => update("mpesaNumber", e.target.value)} />
-            </label>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className={labelClass}>
-                Bank name
-                <input className={inputClass} value={form.bankName} onChange={(e) => update("bankName", e.target.value)} />
-              </label>
-              <label className={labelClass}>
-                Account number
-                <input className={inputClass} value={form.bankAccount} onChange={(e) => update("bankAccount", e.target.value)} />
-              </label>
-            </div>
-          )}
+          <p className="text-sm text-gray-600">Host payouts are sent to a Safaricom M-Pesa number.</p>
+          <label className={labelClass}>
+            M-Pesa number
+            <input type="tel" placeholder="0712345678" className={inputClass} value={form.mpesaNumber} onChange={(e) => update("mpesaNumber", e.target.value)} />
+          </label>
         </section>
 
         {/* About & terms */}

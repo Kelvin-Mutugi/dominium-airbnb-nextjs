@@ -25,6 +25,7 @@ function listingPayload(values: Partial<ListingFormValues>) {
           name: String(charge.name ?? "").trim(),
           amount: Number(charge.amount),
           frequency: charge.frequency,
+          required: charge.required !== false,
         }))
       : [],
     max_guests: Number(values.max_guests),
@@ -41,46 +42,94 @@ function listingPayload(values: Partial<ListingFormValues>) {
   };
 }
 
-function validateListing(values: ReturnType<typeof listingPayload>, requireMapPin = false) {
-  if (!values.title || !values.property_type || !values.county || !values.town) {
+function validateListing(
+  values: ReturnType<typeof listingPayload>,
+  requireMapPin = false,
+) {
+  if (
+    !values.title ||
+    !values.property_type ||
+    !values.county ||
+    !values.town
+  ) {
     throw new Error("Title, property type, county, and town are required.");
   }
-  if (values.property_type.length > 80) throw new Error("Property type must be 80 characters or fewer.");
+  if (values.property_type.length > 80)
+    throw new Error("Property type must be 80 characters or fewer.");
   if (!Number.isFinite(values.price_per_night) || values.price_per_night <= 0) {
     throw new Error("Price per night must be greater than zero.");
   }
-  if (!Number.isFinite(values.platform_fee_per_night) || values.platform_fee_per_night < 0) {
+  if (
+    !Number.isFinite(values.platform_fee_per_night) ||
+    values.platform_fee_per_night < 0
+  ) {
     throw new Error("Platform fee per night must be zero or more.");
   }
-  const hasLatitude = values.latitude !== null && Number.isFinite(values.latitude);
-  const hasLongitude = values.longitude !== null && Number.isFinite(values.longitude);
-  if (hasLatitude !== hasLongitude || (requireMapPin && (!hasLatitude || !hasLongitude))) {
+  const hasLatitude =
+    values.latitude !== null && Number.isFinite(values.latitude);
+  const hasLongitude =
+    values.longitude !== null && Number.isFinite(values.longitude);
+  if (
+    hasLatitude !== hasLongitude ||
+    (requireMapPin && (!hasLatitude || !hasLongitude))
+  ) {
     throw new Error("Pin the listing location on the map before saving.");
   }
-  if (hasLatitude && hasLongitude && (Math.abs(values.latitude as number) > 90 || Math.abs(values.longitude as number) > 180)) {
+  if (
+    hasLatitude &&
+    hasLongitude &&
+    (Math.abs(values.latitude as number) > 90 ||
+      Math.abs(values.longitude as number) > 180)
+  ) {
     throw new Error("Choose a valid map location.");
   }
   if (!Number.isInteger(values.max_guests) || values.max_guests < 1) {
     throw new Error("Maximum guests must be at least one.");
   }
-  if (values.additional_charges.length > 20 || values.additional_charges.some((charge) =>
-    !charge.name || charge.name.length > 80 || !Number.isFinite(charge.amount) || charge.amount <= 0 ||
-    !["per_night", "per_booking"].includes(charge.frequency)
-  )) {
-    throw new Error("Additional charges must have a name up to 80 characters, a positive amount, and a valid frequency. Add no more than 20 charges.");
+  if (
+    values.additional_charges.length > 20 ||
+    values.additional_charges.some(
+      (charge) =>
+        !charge.name ||
+        charge.name.length > 80 ||
+        !Number.isFinite(charge.amount) ||
+        charge.amount <= 0 ||
+        !["per_night", "per_booking"].includes(charge.frequency) ||
+        typeof charge.required !== "boolean",
+    )
+  ) {
+    throw new Error(
+      "Additional charges must have a name up to 80 characters, a positive amount, valid frequency, and requirement. Add no more than 20 charges.",
+    );
+  }
+  if (
+    new Set(
+      values.additional_charges.map((charge) =>
+        charge.name.toLocaleLowerCase(),
+      ),
+    ).size !== values.additional_charges.length
+  ) {
+    throw new Error("Each additional charge must have a unique name.");
   }
 }
 
-export async function createAdminListing(hostId: string, values: ListingFormValues) {
+export async function createAdminListing(
+  hostId: string,
+  values: ListingFormValues,
+) {
   const actor = await requireAdmin();
   const normalizedHostId = hostId.trim();
-  if (!normalizedHostId) throw new Error("A host must be selected before creating a listing.");
+  if (!normalizedHostId)
+    throw new Error("A host must be selected before creating a listing.");
 
   const payload = listingPayload(values);
   validateListing(payload, true);
 
   const admin = getSupabaseAdmin();
-  const slug = `${payload.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}-${crypto.randomUUID().slice(0, 6)}`;
+  const slug = `${payload.title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")}-${crypto.randomUUID().slice(0, 6)}`;
   const { data, error } = await admin
     .from("listings")
     .insert({
@@ -88,7 +137,6 @@ export async function createAdminListing(hostId: string, values: ListingFormValu
       slug,
       host_id: normalizedHostId,
       status: "pending_review",
-      is_publish_ready: true,
     })
     .select()
     .single();
@@ -114,7 +162,10 @@ export async function createAdminListing(hostId: string, values: ListingFormValu
   return data;
 }
 
-export async function updateAdminListing(listingId: string, values: ListingFormValues) {
+export async function updateAdminListing(
+  listingId: string,
+  values: ListingFormValues,
+) {
   const actor = await requireAdmin();
   const payload = listingPayload(values);
   validateListing(payload);
@@ -122,7 +173,9 @@ export async function updateAdminListing(listingId: string, values: ListingFormV
   const admin = getSupabaseAdmin();
   const { data: existingListing, error: lookupError } = await admin
     .from("listings")
-    .select("host_id, title, county, town, property_type, price_per_night, platform_fee_per_night, additional_charges, status")
+    .select(
+      "host_id, title, county, town, property_type, price_per_night, platform_fee_per_night, additional_charges, status",
+    )
     .eq("id", listingId)
     .maybeSingle();
 
@@ -133,7 +186,8 @@ export async function updateAdminListing(listingId: string, values: ListingFormV
     .update(payload)
     .eq("id", listingId);
 
-  if (updateError) throw new Error(updateError.message || "Unable to update listing.");
+  if (updateError)
+    throw new Error(updateError.message || "Unable to update listing.");
 
   const { error: guideError } = await admin
     .from("listing_arrival_guides")
@@ -141,9 +195,12 @@ export async function updateAdminListing(listingId: string, values: ListingFormV
       {
         listing_id: listingId,
         host_id: existingListing.host_id,
-        arrival_address: String(values.arrival_address ?? "").trim() || payload.address,
-        arrival_directions: String(values.arrival_directions ?? "").trim() || null,
-        check_in_instructions: String(values.check_in_instructions ?? "").trim() || null,
+        arrival_address:
+          String(values.arrival_address ?? "").trim() || payload.address,
+        arrival_directions:
+          String(values.arrival_directions ?? "").trim() || null,
+        check_in_instructions:
+          String(values.check_in_instructions ?? "").trim() || null,
         wifi_name: String(values.wifi_name ?? "").trim() || null,
         wifi_password: String(values.wifi_password ?? "").trim() || null,
         arrival_contact: String(values.arrival_contact ?? "").trim() || null,
@@ -153,7 +210,8 @@ export async function updateAdminListing(listingId: string, values: ListingFormV
       { onConflict: "listing_id" },
     );
 
-  if (guideError) throw new Error(guideError.message || "Unable to update arrival guide.");
+  if (guideError)
+    throw new Error(guideError.message || "Unable to update arrival guide.");
 
   await recordAdminAuditEvent({
     actorId: actor.id,
@@ -202,7 +260,12 @@ export async function createAdminListingImageUploadUrl(
 ) {
   await requireAdmin();
   const extension = ADMIN_LISTING_IMAGE_TYPES[contentType];
-  if (!extension || !Number.isFinite(fileSize) || fileSize <= 0 || fileSize > 10 * 1024 * 1024) {
+  if (
+    !extension ||
+    !Number.isFinite(fileSize) ||
+    fileSize <= 0 ||
+    fileSize > 10 * 1024 * 1024
+  ) {
     throw new Error("Choose a JPG, PNG, or WebP image up to 10 MB.");
   }
 
@@ -223,7 +286,10 @@ export async function createAdminListingImageUploadUrl(
   return { path, token: data.token };
 }
 
-export async function registerAdminListingImage(listingId: string, path: string) {
+export async function registerAdminListingImage(
+  listingId: string,
+  path: string,
+) {
   const actor = await requireAdmin();
   const admin = getSupabaseAdmin();
   const { data: listing, error: listingError } = await admin
@@ -234,7 +300,9 @@ export async function registerAdminListingImage(listingId: string, path: string)
   if (listingError || !listing) throw new Error("Listing not found.");
 
   const folder = `${listing.host_id}/${listingId}`;
-  const fileName = path.startsWith(`${folder}/`) ? path.slice(folder.length + 1) : "";
+  const fileName = path.startsWith(`${folder}/`)
+    ? path.slice(folder.length + 1)
+    : "";
   if (!/^[0-9a-f-]+\.(jpg|png|webp)$/i.test(fileName)) {
     throw new Error("Invalid image upload path.");
   }
@@ -255,7 +323,9 @@ export async function registerAdminListingImage(listingId: string, path: string)
     .maybeSingle();
   if (latestImageError) throw new Error("Unable to determine image order.");
 
-  const { data: publicUrl } = admin.storage.from("listing-images").getPublicUrl(path);
+  const { data: publicUrl } = admin.storage
+    .from("listing-images")
+    .getPublicUrl(path);
   const { data: image, error: insertError } = await admin
     .from("listing_images")
     .insert({
@@ -306,9 +376,12 @@ export async function deleteAdminListingImage(imageId: string) {
 
   const marker = "/storage/v1/object/public/listing-images/";
   const markerIndex = new URL(image.url).pathname.indexOf(marker);
-  const objectPath = markerIndex >= 0
-    ? decodeURIComponent(new URL(image.url).pathname.slice(markerIndex + marker.length))
-    : "";
+  const objectPath =
+    markerIndex >= 0
+      ? decodeURIComponent(
+          new URL(image.url).pathname.slice(markerIndex + marker.length),
+        )
+      : "";
   const expectedFolder = `${listing.host_id}/${image.listing_id}/`;
 
   if (objectPath.startsWith(expectedFolder)) {
@@ -322,7 +395,8 @@ export async function deleteAdminListingImage(imageId: string) {
     .from("listing_images")
     .delete()
     .eq("id", imageId);
-  if (deleteError) throw new Error(deleteError.message || "Unable to remove listing image.");
+  if (deleteError)
+    throw new Error(deleteError.message || "Unable to remove listing image.");
 
   await recordAdminAuditEvent({
     actorId: actor.id,
@@ -356,11 +430,12 @@ async function updateListingStatus(
 
   if (lookupError || !listing) throw new Error("Listing not found.");
   if (!allowedStatuses.includes(listing.status)) {
-    throw new Error(`Cannot ${action.replace("listing.", "").replaceAll("_", " ")} a listing with status ${listing.status}.`);
+    throw new Error(
+      `Cannot ${action.replace("listing.", "").replaceAll("_", " ")} a listing with status ${listing.status}.`,
+    );
   }
-  const resolvedNextStatus = typeof nextStatus === "function"
-    ? nextStatus(listing.status)
-    : nextStatus;
+  const resolvedNextStatus =
+    typeof nextStatus === "function" ? nextStatus(listing.status) : nextStatus;
 
   const { data: updated, error } = await admin
     .from("listings")
@@ -370,7 +445,8 @@ async function updateListingStatus(
     .select("id")
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!updated) throw new Error("Listing status changed. Refresh and try again.");
+  if (!updated)
+    throw new Error("Listing status changed. Refresh and try again.");
 
   await recordAdminAuditEvent({
     actorId,
@@ -389,12 +465,26 @@ async function updateListingStatus(
 
 export async function reinstateListing(listingId: string) {
   const actor = await requireAdmin();
-  await updateListingStatus(listingId, ["suspended"], "published", "listing.reinstated", "Reinstated listing {title}.", actor.id);
+  await updateListingStatus(
+    listingId,
+    ["suspended"],
+    "published",
+    "listing.reinstated",
+    "Reinstated listing {title}.",
+    actor.id,
+  );
 }
 
 export async function restoreArchivedListing(listingId: string) {
   const actor = await requireAdmin();
-  await updateListingStatus(listingId, ["archived"], "published", "listing.restored", "Restored archived listing {title}.", actor.id);
+  await updateListingStatus(
+    listingId,
+    ["archived"],
+    "published",
+    "listing.restored",
+    "Restored archived listing {title}.",
+    actor.id,
+  );
 }
 
 export async function toggleAdminListingPublication(listingId: string) {
@@ -402,7 +492,7 @@ export async function toggleAdminListingPublication(listingId: string) {
   await updateListingStatus(
     listingId,
     ["published", "draft", "pending_review"],
-    (status) => status === "published" ? "draft" : "published",
+    (status) => (status === "published" ? "draft" : "published"),
     "listing.publication_toggled",
     "Changed publication status for listing {title}.",
     actor.id,
@@ -412,25 +502,51 @@ export async function toggleAdminListingPublication(listingId: string) {
 // approve listing
 export async function approveListing(listingId: string) {
   const actor = await requireAdmin();
-  await updateListingStatus(listingId, ["pending_review", "draft"], "published", "listing.published", "Published listing {title}.", actor.id);
+  await updateListingStatus(
+    listingId,
+    ["pending_review", "draft"],
+    "published",
+    "listing.published",
+    "Published listing {title}.",
+    actor.id,
+  );
 }
 
 //reject listing
 export async function rejectListing(listingId: string) {
   const actor = await requireAdmin();
-  await updateListingStatus(listingId, ["pending_review"], "draft", "listing.rejected", "Rejected listing {title}.", actor.id);
+  await updateListingStatus(
+    listingId,
+    ["pending_review"],
+    "draft",
+    "listing.rejected",
+    "Rejected listing {title}.",
+    actor.id,
+  );
 }
 
 //archive listing
 export async function archiveListing(listingId: string) {
   const actor = await requireAdmin();
-  await updateListingStatus(listingId, ["published"], "archived", "listing.archived", "Archived listing {title}.", actor.id);
+  await updateListingStatus(
+    listingId,
+    ["published"],
+    "archived",
+    "listing.archived",
+    "Archived listing {title}.",
+    actor.id,
+  );
 }
 
 //suspend listing
 export async function suspendListing(listingId: string) {
   const actor = await requireAdmin();
-  await updateListingStatus(listingId, ["published"], "suspended", "listing.suspended", "Suspended listing {title}.", actor.id);
+  await updateListingStatus(
+    listingId,
+    ["published"],
+    "suspended",
+    "listing.suspended",
+    "Suspended listing {title}.",
+    actor.id,
+  );
 }
-
-

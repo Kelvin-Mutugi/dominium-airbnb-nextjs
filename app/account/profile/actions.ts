@@ -96,22 +96,14 @@ export async function updatePayout(input: {
   const accountName = (d.account_name ?? '').trim().slice(0, 100);
   if (accountName.length < 2) return { ok: false, error: 'Enter the name on the account.' };
 
-  let details: Record<string, string>;
-  if (input.method === 'mpesa') {
-    const phone = normalizePhone(d.phone ?? '');
-    if (!phone || !phone.startsWith('+254')) {
-      return { ok: false, error: 'Enter the Safaricom number registered for M-Pesa, like 0712 345 678.' };
-    }
-    details = { phone, account_name: accountName };
-  } else if (input.method === 'bank') {
-    const bankName = (d.bank_name ?? '').trim().slice(0, 100);
-    const accountNumber = (d.account_number ?? '').replace(/\s/g, '');
-    if (bankName.length < 2) return { ok: false, error: 'Enter your bank’s name.' };
-    if (!/^\d{6,20}$/.test(accountNumber)) return { ok: false, error: 'Enter the account number using digits only.' };
-    details = { bank_name: bankName, account_name: accountName, account_number: accountNumber };
-  } else {
-    return { ok: false, error: 'Choose a payout method.' };
+  if (input.method !== 'mpesa') {
+    return { ok: false, error: 'Host payouts are currently sent to M-Pesa numbers.' };
   }
+  const phone = normalizePhone(d.phone ?? '');
+  if (!phone || !phone.startsWith('+254')) {
+    return { ok: false, error: 'Enter the Safaricom number registered for M-Pesa, like 0712 345 678.' };
+  }
+  const details = { phone, account_name: accountName };
 
   const { error } = await supabase
     .from('profiles')

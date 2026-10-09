@@ -9,6 +9,7 @@ interface ListingRow {
   county: string | null;
   town: string | null;
   price_per_night: number | string;
+  platform_fee_per_night: number | string | null;
   max_guests: number | null;
   bedrooms: number | null;
   amenities: unknown;
@@ -50,7 +51,7 @@ export interface PublicListingDetail {
 }
 
 const CARD_SELECT = `
-  id, title, description, county, town, price_per_night, max_guests,
+  id, title, description, county, town, price_per_night, platform_fee_per_night, max_guests,
   bedrooms, amenities, average_rating, review_count,
   listing_images ( url, sort_order )
 `;
@@ -66,17 +67,22 @@ const DETAIL_SELECT = `
 
 function toCardListing(row: ListingRow): Listing {
   const images = Array.isArray(row.listing_images)
-    ? [...row.listing_images].sort((first, second) => first.sort_order - second.sort_order)
+    ? [...row.listing_images].sort(
+        (first, second) => first.sort_order - second.sort_order,
+      )
     : [];
   const amenities = Array.isArray(row.amenities)
-    ? row.amenities.filter((amenity): amenity is string => typeof amenity === "string")
+    ? row.amenities.filter(
+        (amenity): amenity is string => typeof amenity === "string",
+      )
     : [];
 
   return {
     id: String(row.id),
     title: row.title ?? "Untitled stay",
     location: [row.town, row.county].filter(Boolean).join(", "),
-    pricePerNight: Number(row.price_per_night),
+    pricePerNight:
+      Number(row.price_per_night) + Number(row.platform_fee_per_night ?? 0),
     bedrooms: row.bedrooms ?? 0,
     guests: row.max_guests ?? 0,
     amenities,
@@ -88,7 +94,11 @@ function toCardListing(row: ListingRow): Listing {
   };
 }
 
-async function fetchCountyListingPage(county: string, from: number, to: number) {
+async function fetchCountyListingPage(
+  county: string,
+  from: number,
+  to: number,
+) {
   const { data, error } = await getPublicSupabaseClient()
     .from("listings")
     .select(CARD_SELECT)
@@ -109,7 +119,12 @@ export const getCachedCountyListingPage = unstable_cache(
   { revalidate: 120, tags: ["public-listings"] },
 );
 
-async function fetchCatalogPage(location: string, guests: number, from: number, to: number) {
+async function fetchCatalogPage(
+  location: string,
+  guests: number,
+  from: number,
+  to: number,
+) {
   let query = getPublicSupabaseClient()
     .from("listings")
     .select(CARD_SELECT)
@@ -148,12 +163,27 @@ const getCachedCatalogPage = unstable_cache(
   { revalidate: 60, tags: ["public-listings"] },
 );
 
-export function getPublicCatalogPage(location: string, guests: number, from: number, to: number) {
-  const normalizedLocation = location.replace(/[%,]/g, " ").replace(/\s+/g, " ").trim();
-  return getCachedCatalogPage(normalizedLocation, Math.max(0, guests), from, to);
+export function getPublicCatalogPage(
+  location: string,
+  guests: number,
+  from: number,
+  to: number,
+) {
+  const normalizedLocation = location
+    .replace(/[%,]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return getCachedCatalogPage(
+    normalizedLocation,
+    Math.max(0, guests),
+    from,
+    to,
+  );
 }
 
-async function fetchPublicListingDetail(id: string): Promise<PublicListingDetail | null> {
+async function fetchPublicListingDetail(
+  id: string,
+): Promise<PublicListingDetail | null> {
   const { data, error } = await getPublicSupabaseClient()
     .from("listings")
     .select(DETAIL_SELECT)

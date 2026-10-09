@@ -8,10 +8,10 @@ A typical stay follows this path:
 
 1. The guest chooses a listing and dates, then submits their details and payment choice.
 2. The system temporarily holds the dates while payment is completed.
-3. Paystack confirms payment to the server; a verified payment changes the booking from **Pending** to **Confirmed**.
+3. Safaricom confirms the M-Pesa payment to the server; a verified payment changes the booking from **Pending** to **Confirmed**.
 4. Before check-in, the guest can request a date change or cancellation. These are requests, not instant changes.
 5. The host reviews date-change requests. An administrator reviews cancellation requests.
-6. If a cancellation is approved, any refund is reviewed separately by an administrator and then sent manually.
+6. If a cancellation is approved, any eligible refund is reviewed separately and sent to the guest's booking phone through Safaricom B2C.
 7. After the scheduled check-out time, the host can mark the stay complete. If the host does not, the daily automatic process completes eligible stays after a 24-hour grace period.
 8. A host payout may be held while the grace period or an unresolved case/request remains. When released, **Owed** means awaiting payment; it does not mean money has already been transferred.
 
@@ -19,13 +19,13 @@ A typical stay follows this path:
 
 ### Booking and payment
 
-At checkout, choose your dates, enter your contact details, select M-Pesa or card, and accept the displayed booking terms. The system creates a temporary date hold while Paystack processes the payment.
+At checkout, choose your dates, enter your contact details, and accept the displayed booking terms. The system creates a temporary date hold and sends an STK Push prompt to the Kenyan phone number on the booking. Approve the amount on your phone with your M-Pesa PIN.
 
-The hold lasts 10 minutes. A browser message from Paystack alone does not confirm the booking; the server verifies the transaction. After verified payment:
+The hold lasts 10 minutes. A browser message alone does not confirm the booking; the server verifies the Safaricom callback against the STK status and saved payment attempt. After verified payment:
 
 - **Confirmed** means the payment has been verified and the reservation is active.
 - **Pending** means the payment has not yet been confirmed. The confirmation page checks for updates while payment is being processed.
-- If payment is not completed before the hold expires, the booking hold can expire and the dates may become available again. A payment that succeeds after the hold expires is flagged for reconciliation; it is not automatically treated as a confirmed reservation. If Paystack charged you but the booking did not confirm, contact support and provide the booking reference and payment reference.
+- If payment is not completed before the hold expires, the booking hold can expire and the dates may become available again. A payment that succeeds after the hold expires is flagged for reconciliation; it is not automatically treated as a confirmed reservation. If Safaricom charged you but the booking did not confirm, do not pay again; contact support with the booking reference and M-Pesa receipt.
 
 A guest account is not required for every booking. Guest checkout bookings use a private confirmation token, so keep the booking confirmation and reference available.
 Booking confirmation email is sent only when the service's email settings are configured. If no confirmation email arrives, check the booking confirmation page or Account → Bookings, or contact support with the booking reference.
@@ -59,9 +59,9 @@ Before check-in, open **Manage booking → Cancel booking**. The page shows an e
 Cancellation approval and refund approval are two different decisions:
 
 1. After an approved cancellation, an eligible refund enters a separate admin review.
-2. If an administrator approves the refund, the refund is authorized for manual payment. **No money is transferred by the approval itself.**
-3. A team member sends the refund through the approved payment method, then records the actual amount and transaction reference in the system.
-4. The guest's booking page then shows the amount and recorded date. A bank or mobile-money provider may take additional time to post the funds.
+2. If an administrator approves the refund, it becomes eligible for a Safaricom B2C transfer. **Approval itself does not send money.**
+3. The admin initiates the transfer; the refund is recorded only after a matching successful Safaricom result callback.
+4. The guest's booking page and in-app notifications update after confirmation. If a callback times out or the state is uncertain, the refund remains under reconciliation; do not assume it was sent or initiate another transfer.
 
 An estimate is not a guaranteed final refund. Property terms, fees, and payment history may affect the final decision. Contact support if the displayed status or amount appears incorrect.
 
@@ -107,7 +107,7 @@ Hosts should report a booking issue promptly. An unresolved case can keep a payo
 
 ### 1. Confirm a pending booking
 
-Open **Admin → Bookings** and review the guest, host, property, dates, party size, and payment record. A pending booking should only be confirmed when the payment/booking evidence supports it. Paystack's verified webhook normally confirms successful payments automatically; do not treat a browser redirect alone as proof of payment.
+Open **Admin → Bookings** and review the guest, host, property, dates, party size, and payment record. A pending booking should only be confirmed when the payment/booking evidence supports it. The verified Safaricom callback normally confirms successful payments automatically; do not treat a browser message alone as proof of payment.
 
 ### 2. Review a cancellation request
 
@@ -126,9 +126,9 @@ Open **Admin → Refunds**. The queue separates cases into **Needs decision**, *
 
 Each case links to the relevant booking and shows the guest, host, property, dates, original payment records/references, amount paid, estimate, cancellation terms, and guest note. Check these details before deciding.
 
-- **Approve refund**: authorizes manual processing up to the approved estimate. It does not call Paystack or transfer money.
+- **Approve refund**: authorizes processing up to the approved estimate. The admin then initiates a Safaricom B2C transfer to the guest's booking phone; approval itself does not send money.
 - **Decline refund**: requires a written reason. The cancellation remains in effect if it was already approved.
-- **Record refund sent**: use only after verifying the real transfer. Enter the actual amount and bank/M-Pesa/provider reference. Do not enter a planned transfer as completed.
+- Refunds are marked processed only after the matching Safaricom B2C result callback succeeds. Do not treat request acceptance as proof of transfer; ambiguous/time-out transfers must be reconciled before retrying.
 - A partial refund is recorded on the refund case and does not mark the entire original payment refunded. A full refund marks related paid payment records refunded.
 
 Use decision notes that are factual, concise, and suitable for the guest to read. Escalate discrepancies between the estimate, payment records, and published terms instead of guessing.
@@ -137,33 +137,38 @@ Use decision notes that are factual, concise, and suitable for the guest to read
 
 Hosts decide date-change requests in **Host → Bookings**. Administrators can review the complete history from **Admin → Bookings → Booking details**. The current workflow only approves requests when the total is unchanged. A price-changing request requires support/finance coordination before dates or money are changed.
 
-### 5. Record a host payout
+### 5. Process a host payout
 
-Use **Admin → Payments & Payouts** to review payment and payout records. **Owed** means due to the host but not transferred. This page currently has no control to send or mark a host payout paid; the system does not initiate host payout transfers. Operations must use the separately approved finance process and retain transfer evidence. Do not describe an **Owed** record as paid.
+Hosts request eligible completed-booking earnings from **Host → Payouts**. A request reserves its linked booking payout rows and snapshots the M-Pesa destination. Review requests in **Admin → Payments & Payouts → Withdrawal requests**. Verify the destination and the B2C fee estimate before initiating a Safaricom transfer. The host bears transfer costs through their signed fee balance.
+
+The request remains reserved until Safaricom sends a matching successful result callback. An initiation response alone does not mean the host has been paid. Reconcile the actual B2C fee from the authoritative Safaricom record after success. A definite failure can be retried; timeouts or uncertain results must be reconciled with Safaricom before retrying or cancelling. The database balance is a liability ledger, not a live Safaricom float check.
+
+**Owed** means eligible and awaiting a host request/transfer, not already transferred. Historical payout rows that predate immutable price and fee snapshots are held out of the withdrawal flow until finance reconciles them.
 
 ## Status Glossary
 
-| Status | Meaning |
-|---|---|
-| Pending booking | Booking/payment is not yet confirmed; a short payment hold may be active. |
-| Confirmed | Reservation is active. |
-| Completed | Stay has been recorded as ended. |
-| Cancelled | Reservation is cancelled; check its linked refund request separately. |
-| Cancellation request pending | Guest asked to cancel; booking remains confirmed until admin decision. |
-| Refund awaiting admin review | Cancellation is approved, and a second admin decision is required for the refund. |
-| Refund awaiting manual processing | Refund approved, but funds have not yet been sent/recorded. |
-| Refund declined | Admin declined the refund; see the decision reason. |
-| Refund processed | Admin recorded the actual amount and transaction reference after sending funds. |
-| Payout processing | Host payout is temporarily held. |
-| Payout owed | Hold cleared; host payout is awaiting transfer. |
-| Payout paid | Admin recorded the verified host transfer. |
+| Status                            | Meaning                                                                           |
+| --------------------------------- | --------------------------------------------------------------------------------- |
+| Pending booking                   | Booking/payment is not yet confirmed; a short payment hold may be active.         |
+| Confirmed                         | Reservation is active.                                                            |
+| Completed                         | Stay has been recorded as ended.                                                  |
+| Cancelled                         | Reservation is cancelled; check its linked refund request separately.             |
+| Cancellation request pending      | Guest asked to cancel; booking remains confirmed until admin decision.            |
+| Refund awaiting admin review      | Cancellation is approved, and a second admin decision is required for the refund. |
+| Refund awaiting manual processing | Refund approved, but funds have not yet been sent/recorded.                       |
+| Refund declined                   | Admin declined the refund; see the decision reason.                               |
+| Refund processed                  | Admin recorded the actual amount and transaction reference after sending funds.   |
+| Payout processing                 | Host payout is temporarily held.                                                  |
+| Payout owed                       | Hold cleared; host payout is awaiting transfer.                                   |
+| Payout paid                       | Admin recorded the verified host transfer.                                        |
+| Payout request requested          | Host reserved eligible owed payouts; admin has not recorded a transfer.           |
 
 ## Policy and Operational Notes
 
 - **Cancellation estimate alignment:** the current application calculation is 100% at least 14 days before check-in, 50% 7–13 days before check-in, and 0% inside 7 days, based on payments recorded. The published policy also mentions an administrative fee and a travel-credit alternative. Management must confirm which terms are authoritative and align the application calculation and guest wording before treating estimates as binding.
-- **Refunds are manual:** the app records decisions and references; it does not itself initiate a refund transfer.
-- **Host payouts are manual:** the app records Processing/Owed/Paid states; it does not itself transfer money to the host.
-- **Recording host payouts:** Admin → Payments & Payouts is currently a read-only ledger; it has no control for sending a payout or changing its status to Paid. Operations must follow the separately approved finance process. Do not claim a payout is paid based only on an Owed record.
+- **Refunds:** administrators approve eligible refunds and initiate Safaricom B2C to the guest's booking phone. A matching successful result callback is required before the refund is recorded as processed.
+- **Host payouts:** admins initiate Safaricom B2C from Host Payout Requests. The request remains reserved until a successful result callback; the initiation response alone does not mean the host was paid.
+- **Fee reconciliation:** use Admin → Payouts → Fee Reconciliation to record actual STK fees from Safaricom's authoritative transaction statement. Reconcile actual B2C fees after successful host payouts and refunds; those costs are carried against host earnings.
 - **Booking confirmation email:** email delivery requires `RESEND_API_KEY` and `BOOKING_CONFIRMATION_FROM`. Without those settings, the confirmation page is the status source of truth.
 - **Automatic stay completion:** a daily Vercel job is configured for 00:00 UTC. It completes eligible confirmed stays after the configured check-out time plus 24 hours, unless an unresolved support case or guest change/cancellation request exists. On Vercel Hobby it may execute during the scheduled hour; daily polling may add nearly another day of delay.
 - **Deployment prerequisites:** Supabase must have the applicable migrations applied; the Vercel job also needs a secure `CRON_SECRET`. If deployment moves to Cloudflare, the cron must be configured as a Cloudflare Worker Cron Trigger with the corresponding scheduled handler; `vercel.json` will not schedule it there.
@@ -171,4 +176,4 @@ Use **Admin → Payments & Payouts** to review payment and payout records. **Owe
 
 ## Deployment Readiness Checklist
 
-Before relying on these flows in production, confirm the production Supabase project has all pending migrations applied. The recent workflow migrations include `20261002120000_admin_cancellation_approval.sql`, `20261002130000_checkout_completion_hybrid.sql`, `20261002140000_host_booking_display_grants.sql`, `20261002150000_host_manual_booking_completion.sql`, and `20261002160000_refund_review_workflow.sql`, in addition to the earlier booking/payment/privacy migrations. Configure the Paystack webhook and secret. Configure `CRON_SECRET` before relying on automatic stay completion; Vercel invokes the daily job at 00:00 UTC, and Hobby timing may be delayed within the scheduled hour. Configure email settings if confirmation emails are required. Test payment confirmation, cancellation, refund decisions, host completion, open-case holds, and payout status in a non-production project before launch.
+Before relying on these flows in production, confirm the production Supabase project has all pending migrations applied through `20261009160000_paystack_retirement.sql`, in addition to earlier booking/payment/privacy migrations. That final migration discards the retired Paystack payment-attempt table and removes Paystack-only columns/RPCs; it does not delete users or profiles. Configure Daraja STK, B2C, and reversal credentials and public HTTPS callbacks as documented in `BOOKINGSETUP.md`; keep them in Cloudflare Worker secrets. Configure the Cloudflare cron triggers before relying on automatic stay completion. Configure email settings if confirmation emails are required. Test payment confirmation, cancellation, B2C refunds, fee reconciliation, host completion, open-case holds, payouts, and reversals in a non-production project before launch.
