@@ -283,6 +283,27 @@ export async function POST(request: Request) {
     }
     return accepted();
   } catch (error) {
+    const failureReason = `Callback processing failed: ${
+      error instanceof Error ? error.message : "Unknown processing error."
+    }`.slice(0, 500);
+    const { error: attemptUpdateError } = await admin
+      .from("daraja_payment_attempts")
+      .update({
+        status: "reconciliation_required",
+        result_description: failureReason,
+        callback_payload: callback,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", attempt.id)
+      .in("status", ["initializing", "pending", "reconciliation_required"]);
+    if (attemptUpdateError) {
+      console.error("Daraja callback reconciliation status update failed:", attemptUpdateError);
+    }
+    try {
+      await markEvent(admin, fingerprint, "reconciliation_required", attempt.id);
+    } catch (eventUpdateError) {
+      console.error("Daraja callback event reconciliation update failed:", eventUpdateError);
+    }
     console.error("Daraja STK callback settlement failed:", error);
     return NextResponse.json({ error: "Callback processing failed." }, { status: 500 });
   }
