@@ -10,6 +10,7 @@ interface ConfirmationData {
   listingId: string;
   status: "pending" | "confirmed" | "completed" | "cancelled";
   paymentConfirmed: boolean;
+  paymentAttemptStatus: string | null;
   emailConfirmationEnabled: boolean;
   paymentAttemptReference: string | null;
   listingTitle: string;
@@ -123,6 +124,8 @@ export default function BookingConfirmationPage() {
 
   const trip = booking ? `${booking.checkIn} to ${booking.checkOut}` : "";
   const listingId = booking?.listingId ?? searchParams.get("listingId");
+  const paymentNeedsReconciliation =
+    booking?.paymentAttemptStatus === "reconciliation_required";
   const checkoutUrl = booking
     ? `/booking/${booking.listingId}?${new URLSearchParams({ bookingId: booking.bookingId, checkIn: booking.checkIn, checkOut: booking.checkOut, guests: String(booking.guests), children: String(booking.children), pets: String(booking.pets) }).toString()}`
     : null;
@@ -252,12 +255,25 @@ export default function BookingConfirmationPage() {
                 : "Your confirmation will appear here when the payment is verified. Email notifications are not configured yet."}
             </p>
             {booking && (
-              <p className="mt-4 text-sm text-[#3A3856]">
-                Booking reference:{" "}
-                <span className="font-medium text-[#1B1A2E]">
-                  {booking.bookingReference || booking.bookingId}
-                </span>
-              </p>
+              <div className="mt-4 space-y-3 text-sm text-[#3A3856]">
+                <p>
+                  Booking reference:{" "}
+                  <span className="font-medium text-[#1B1A2E]">
+                    {booking.bookingReference || booking.bookingId}
+                  </span>
+                </p>
+                <p>
+                  If you approved the prompt and received an M-Pesa receipt,
+                  don&apos;t pay again. Contact support with your booking
+                  reference and receipt so we can verify the payment.
+                </p>
+                <Link
+                  href={`/account/support?${new URLSearchParams({ booking: booking.bookingId, category: "booking_issue" }).toString()}`}
+                  className="inline-flex min-h-11 items-center rounded-md border border-[#B8B7B2] px-4 font-semibold text-[#1B1A2E]"
+                >
+                  Contact support
+                </Link>
+              </div>
             )}
             <button
               type="button"
@@ -282,7 +298,23 @@ export default function BookingConfirmationPage() {
             <p role="alert" className="mt-2 text-sm leading-6 text-[#3A3856]">
               {errorMessage}
             </p>
-            {checkoutUrl && (
+            {paymentNeedsReconciliation && booking && (
+              <>
+                <p className="mt-4 text-sm text-[#3A3856]">
+                  Booking reference:{" "}
+                  <span className="font-medium text-[#1B1A2E]">
+                    {booking.bookingReference || booking.bookingId}
+                  </span>
+                </p>
+                <Link
+                  href={`/account/support?${new URLSearchParams({ booking: booking.bookingId, category: "booking_issue" }).toString()}`}
+                  className="mt-6 inline-flex min-h-12 items-center rounded-md bg-[#1B1A2E] px-5 font-semibold text-white"
+                >
+                  Contact support
+                </Link>
+              </>
+            )}
+            {checkoutUrl && !paymentNeedsReconciliation && (
               <Link
                 href={checkoutUrl}
                 className="mt-6 inline-flex min-h-12 items-center rounded-md bg-[#1B1A2E] px-5 font-semibold text-white"
