@@ -204,8 +204,7 @@ export default function ListingForm({
           !Number.isFinite(charge.amount) ||
           charge.amount <= 0 ||
           !["per_night", "per_booking"].includes(charge.frequency) ||
-          typeof charge.required !== "boolean" ||
-          !["host", "platform"].includes(charge.who_receives ?? "host"),
+            typeof charge.required !== "boolean",
       )
     ) {
       setError(
