@@ -57,13 +57,16 @@ export default function HeroSection({
       </div>
 
       <div className="relative z-[2] mx-auto w-full max-w-[1120px] text-center lg:py-2">
-        <h1 className="mx-auto max-w-[720px] text-[30px] font-bold leading-[1.1] tracking-[0.3px] text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.35)] sm:text-[38px] lg:text-[48px] lg:leading-[1.06]">
+        {/* <h1 className="mx-auto max-w-[720px] text-[30px] font-bold leading-[1.1] tracking-[0.3px] text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.35)] sm:text-[38px] lg:text-[48px] lg:leading-[1.06]">
           Find your next few nights in Kenya
+        </h1> */}
+        <h1 className="mx-auto max-w-[720px] text-[30px] font-bold leading-[1.1] tracking-[0.3px] text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.35)] sm:text-[38px] lg:text-[48px] lg:leading-[1.06]">
+          This website is under maintenance. Please do not make any Payments
         </h1>
 
-        <p className="mx-auto mt-4 max-w-[500px] text-[15px] leading-[1.55] text-white/85 sm:text-base">
+        {/* <p className="mx-auto mt-4 max-w-[500px] text-[15px] leading-[1.55] text-white/85 sm:text-base">
           verified b&bs in kenya. search by county,pick your dates and book securely.
-        </p>
+        </p> */}
 
         {/* <div className="mt-7 flex justify-center">
           <SearchBar
