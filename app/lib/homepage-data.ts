@@ -22,6 +22,7 @@ interface DatabaseListing {
   bedrooms: number;
   bathrooms: number;
   amenities: unknown;
+  is_rare_find: boolean | null;
   listing_images?: { url?: string | null; sort_order: number }[] | null;
 }
 
@@ -79,7 +80,7 @@ function normalizeListing(listing: DatabaseListing): Listing {
     rating: undefined,
     reviewCount: undefined,
     verified: true,
-    rareFind: false,
+    rareFind: listing.is_rare_find === true,
     guests: listing.max_guests,
     beds: listing.bedrooms,
     baths: listing.bathrooms,
@@ -90,7 +91,7 @@ function normalizeListing(listing: DatabaseListing): Listing {
 const LISTING_SELECT = `
   id, title, description, county, town, price_per_night,
   platform_fee_per_night, additional_charges, min_nights,
-  max_guests, bedrooms, bathrooms, amenities,
+  max_guests, bedrooms, bathrooms, amenities, is_rare_find,
   listing_images ( url, sort_order )
 `;
 
@@ -124,7 +125,7 @@ async function fetchHomepageListings(
 
 const getCachedHomepageFeatured = unstable_cache(
   () => fetchHomepageListings(null, FEATURED_PAGE_SIZE),
-  ["homepage-featured-v1", String(FEATURED_PAGE_SIZE)],
+  ["homepage-featured-v2", String(FEATURED_PAGE_SIZE)],
   {
     revalidate: 300,
     tags: ["public-listings", "homepage-featured"],
@@ -135,7 +136,7 @@ const getCachedHomepageDestination = unstable_cache(
   (searchTerms: string[]) =>
     fetchHomepageListings(searchTerms, DESTINATION_FETCH_SIZE),
   [
-    "homepage-destination-v1",
+    "homepage-destination-v2",
     String(DESTINATION_PAGE_SIZE),
     String(DESTINATION_FETCH_SIZE),
   ],

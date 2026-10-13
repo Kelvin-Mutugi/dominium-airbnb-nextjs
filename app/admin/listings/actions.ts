@@ -5,6 +5,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAdmin } from "@/app/lib/admin-auth";
 import { recordAdminAuditEvent } from "@/app/lib/admin-audit";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
+import { isListingCategory, LISTING_CATEGORIES } from "@/app/lib/listing-categories";
 import type { ListingFormValues } from "@/app/lib/host/types";
 
 function listingPayload(values: Partial<ListingFormValues>) {
@@ -17,6 +18,10 @@ function listingPayload(values: Partial<ListingFormValues>) {
     latitude: values.latitude == null ? null : Number(values.latitude),
     longitude: values.longitude == null ? null : Number(values.longitude),
     property_type: String(values.property_type ?? "").trim(),
+    categories: Array.isArray(values.categories)
+      ? [...new Set(values.categories)]
+      : [],
+    is_rare_find: Boolean(values.is_rare_find),
     price_per_night: Number(values.price_per_night),
     platform_fee_per_night: Number(values.platform_fee_per_night),
     service_fee_percent: 0,
@@ -56,6 +61,12 @@ function validateListing(
   }
   if (values.property_type.length > 80)
     throw new Error("Property type must be 80 characters or fewer.");
+  if (
+    values.categories.length > LISTING_CATEGORIES.length ||
+    values.categories.some((category) => !isListingCategory(category))
+  ) {
+    throw new Error("Choose valid listing categories.");
+  }
   if (!Number.isFinite(values.price_per_night) || values.price_per_night <= 0) {
     throw new Error("Price per night must be greater than zero.");
   }
@@ -142,6 +153,31 @@ export async function createAdminListing(
     .single();
 
   if (error) throw new Error(error.message || "Unable to create listing.");
+
+  const { error: guideError } = await admin
+    .from("listing_arrival_guides")
+    .upsert(
+      {
+        listing_id: data.id,
+        host_id: normalizedHostId,
+        arrival_address:
+          String(values.arrival_address ?? "").trim() || payload.address,
+        arrival_directions:
+          String(values.arrival_directions ?? "").trim() || null,
+        check_in_instructions:
+          String(values.check_in_instructions ?? "").trim() || null,
+        wifi_name: String(values.wifi_name ?? "").trim() || null,
+        wifi_password: String(values.wifi_password ?? "").trim() || null,
+        arrival_contact: String(values.arrival_contact ?? "").trim() || null,
+        local_tips: String(values.local_tips ?? "").trim() || null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "listing_id" },
+    );
+
+  if (guideError)
+    throw new Error(guideError.message || "Unable to save arrival guide.");
+
   await recordAdminAuditEvent({
     actorId: actor.id,
     action: "listing.created",
@@ -151,6 +187,8 @@ export async function createAdminListing(
     after: {
       title: payload.title,
       property_type: payload.property_type,
+      categories: payload.categories,
+      is_rare_find: payload.is_rare_find,
       price_per_night: payload.price_per_night,
       platform_fee_per_night: payload.platform_fee_per_night,
       additional_charges: payload.additional_charges,
@@ -174,7 +212,7 @@ export async function updateAdminListing(
   const { data: existingListing, error: lookupError } = await admin
     .from("listings")
     .select(
-      "host_id, title, county, town, property_type, price_per_night, platform_fee_per_night, additional_charges, status",
+      "host_id, title, county, town, property_type, categories, is_rare_find, price_per_night, platform_fee_per_night, additional_charges, status",
     )
     .eq("id", listingId)
     .maybeSingle();
@@ -224,6 +262,8 @@ export async function updateAdminListing(
       county: existingListing.county,
       town: existingListing.town,
       property_type: existingListing.property_type,
+      categories: existingListing.categories,
+      is_rare_find: existingListing.is_rare_find,
       price_per_night: existingListing.price_per_night,
       platform_fee_per_night: existingListing.platform_fee_per_night,
       additional_charges: existingListing.additional_charges,
@@ -234,6 +274,8 @@ export async function updateAdminListing(
       county: payload.county,
       town: payload.town,
       property_type: payload.property_type,
+      categories: payload.categories,
+      is_rare_find: payload.is_rare_find,
       price_per_night: payload.price_per_night,
       platform_fee_per_night: payload.platform_fee_per_night,
       additional_charges: payload.additional_charges,
@@ -283,7 +325,7 @@ export async function createAdminListingImageUploadUrl(
     .createSignedUploadUrl(path);
   if (error || !data) throw new Error("Unable to prepare image upload.");
 
-  return { path, token: data.token };
+  return { path, signedUrl: data.signedUrl };
 }
 
 export async function registerAdminListingImage(

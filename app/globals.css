@@ -96,6 +96,22 @@ body {
   animation: hero-fade 18s infinite;
 }
 
+.category-scrollbar {
+  justify-content: flex-start;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 640px) {
+  .category-scrollbar--centered {
+    justify-content: safe center;
+  }
+}
+
+.category-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .listing-image {
   filter: saturate(1.08) contrast(1.04) brightness(1.02);
 }

@@ -9,9 +9,10 @@ interface ActiveFilterChipsProps {
   filters: ActiveFilter[];
   onRemove: (key: string) => void;
   onClearAll: () => void;
+  soft?: boolean;
 }
 
-export default function ActiveFilterChips({ filters, onRemove, onClearAll }: ActiveFilterChipsProps) {
+export default function ActiveFilterChips({ filters, onRemove, onClearAll, soft = false }: ActiveFilterChipsProps) {
   if (filters.length === 0) return null;
 
   return (
@@ -20,7 +21,7 @@ export default function ActiveFilterChips({ filters, onRemove, onClearAll }: Act
         <button
           key={f.key}
           onClick={() => onRemove(f.key)}
-          className="flex items-center gap-2 border border-ink/10 bg-white px-3 py-1.5 pl-3 text-xs text-ink hover:border-ink/30 "
+          className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs transition-colors ${soft ? "border-neutral-300 bg-neutral-100 text-neutral-700 hover:border-neutral-400 hover:bg-neutral-200" : "border-ink/10 bg-white text-ink hover:border-ink/30"}`}
         >
           {f.label}
           <span className="text-ink/40">✕</span>
@@ -28,7 +29,7 @@ export default function ActiveFilterChips({ filters, onRemove, onClearAll }: Act
       ))}
       <button
         onClick={onClearAll}
-        className="px-2 py-1.5 text-xs text-wine underline underline-offset-2"
+        className={`px-2 py-1.5 text-xs underline underline-offset-2 ${soft ? "text-[#555555]" : "text-wine"}`}
       >
         Clear all
       </button>

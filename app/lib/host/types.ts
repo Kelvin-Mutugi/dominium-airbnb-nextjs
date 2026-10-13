@@ -149,6 +149,9 @@ export interface Booking {
   special_requests: string | null;
   created_at: string;
   unreadSupportReplyCount?: number;
+  selectedOptionalFees?: HostOptionalFee[] | null;
+  paymentStatus?: string | null;
+  paymentPaidAt?: string | null;
   dateChangeHistory?: BookingDateChange[];
   refundRequests?: RefundProgress[];
   // joined
@@ -165,6 +168,13 @@ export interface BookingDateChange {
   requested_check_in: string;
   requested_check_out: string;
   created_at: string;
+}
+
+export interface HostOptionalFee {
+  name: string;
+  amount: number;
+  unitAmount: number;
+  frequency: "per_night" | "per_booking";
 }
 
 export interface HostBookingChangeRequest {
@@ -253,6 +263,8 @@ export interface HostDashboardStats {
 }
 
 // Form-only shape used by the create/edit listing form
+import type { ListingCategory } from "@/app/lib/listing-categories";
+
 export interface ListingFormValues {
   title: string;
   description: string;
@@ -262,6 +274,8 @@ export interface ListingFormValues {
   latitude: number | null;
   longitude: number | null;
   property_type: string;
+  categories: ListingCategory[];
+  is_rare_find: boolean;
   price_per_night: number;
   platform_fee_per_night: number;
   additional_charges: ListingAdditionalCharge[];

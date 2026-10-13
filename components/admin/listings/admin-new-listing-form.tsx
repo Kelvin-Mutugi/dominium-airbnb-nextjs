@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Images, Trash2, Upload } from "lucide-react";
 import { createAdminListing } from "@/app/admin/listings/actions";
 import { linkCreatedListingToHostRequest } from "@/app/admin/listing-requests/actions";
@@ -24,7 +24,27 @@ export function AdminNewListingForm({
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [createdListingId, setCreatedListingId] = useState<string | null>(null);
   const [createdListingNotice, setCreatedListingNotice] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<{
+    phase: "creating" | "uploading" | "finalizing";
+    completedBytes: number;
+    currentFileBytes: number;
+    currentFile: number;
+    totalBytes: number;
+    totalFiles: number;
+  } | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!submitting) return;
+
+    function warnBeforeLeaving(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", warnBeforeLeaving);
+    return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
+  }, [submitting]);
 
   function selectImages(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
@@ -46,11 +66,34 @@ export function AdminNewListingForm({
     try {
       setSubmitting(true);
       setError(null);
+      setUploadProgress({
+        phase: "creating",
+        completedBytes: 0,
+        currentFileBytes: 0,
+        currentFile: 0,
+        totalBytes: selectedImages.reduce((total, file) => total + file.size, 0),
+        totalFiles: selectedImages.length,
+      });
       const listing = await createAdminListing(hostId, values);
 
       try {
-        for (const file of selectedImages) {
-          await uploadAdminListingImage(listing.id, file);
+        let completedBytes = 0;
+        for (const [index, file] of selectedImages.entries()) {
+          setUploadProgress((current) => current && {
+            ...current,
+            phase: "uploading",
+            currentFile: index + 1,
+            currentFileBytes: 0,
+          });
+          await uploadAdminListingImage(listing.id, file, (currentFileBytes) => {
+            setUploadProgress((current) => current && { ...current, currentFileBytes });
+          });
+          completedBytes += file.size;
+          setUploadProgress((current) => current && {
+            ...current,
+            completedBytes,
+            currentFileBytes: 0,
+          });
         }
       } catch (uploadError) {
         console.error("Listing created, but image upload failed:", uploadError);
@@ -60,6 +103,7 @@ export function AdminNewListingForm({
         return;
       }
 
+      setUploadProgress((current) => current && { ...current, phase: "finalizing" });
       if (intakeRequestId) {
         try {
           await linkCreatedListingToHostRequest(intakeRequestId, listing.id);
@@ -78,6 +122,7 @@ export function AdminNewListingForm({
       setError(err instanceof Error ? err.message : "Unable to create listing.");
     } finally {
       setSubmitting(false);
+      setUploadProgress(null);
     }
   }
 
@@ -116,11 +161,43 @@ export function AdminNewListingForm({
         <p className="text-gray-500">Admin fills in the property details on behalf of the host and submits it for review.</p>
       </div>
 
+      {uploadProgress && (
+        <div role="status" aria-live="polite" className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          <p className="font-semibold">
+            {uploadProgress.phase === "creating" && "Saving listing details..."}
+            {uploadProgress.phase === "uploading" && `Uploading image ${uploadProgress.currentFile} of ${uploadProgress.totalFiles}...`}
+            {uploadProgress.phase === "finalizing" && "Finishing listing setup..."}
+          </p>
+          <div
+            role="progressbar"
+            aria-label="Listing upload progress"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={uploadProgress.phase === "uploading" && uploadProgress.totalBytes > 0
+              ? Math.round(((uploadProgress.completedBytes + uploadProgress.currentFileBytes) / uploadProgress.totalBytes) * 100)
+              : undefined}
+            aria-valuetext={uploadProgress.phase === "uploading" && uploadProgress.totalBytes > 0
+              ? `${Math.round(((uploadProgress.completedBytes + uploadProgress.currentFileBytes) / uploadProgress.totalBytes) * 100)}% uploaded`
+              : "In progress"}
+            className="mt-2 h-2 overflow-hidden rounded-full bg-amber-200"
+          >
+            <div
+              className={`h-full rounded-full bg-[#E23E85] transition-[width] duration-150 ${uploadProgress.phase === "creating" ? "w-1/3 animate-pulse" : ""}`}
+              style={uploadProgress.phase === "uploading" && uploadProgress.totalBytes > 0
+                ? { width: `${Math.round(((uploadProgress.completedBytes + uploadProgress.currentFileBytes) / uploadProgress.totalBytes) * 100)}%` }
+                : uploadProgress.phase === "finalizing" ? { width: "100%" } : undefined}
+            />
+          </div>
+          <p className="mt-2 text-xs">Please keep this page open until the listing finishes uploading.</p>
+        </div>
+      )}
+
       <div className="rounded-2xl bg-white p-4 shadow-sm">
         <label className="mb-2 block text-sm font-medium text-[#12231d]">Host ID</label>
         <input
           value={hostId}
           onChange={(event) => setHostId(event.target.value)}
+          disabled={submitting}
           placeholder="Paste host user ID"
           className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-1 focus:ring-[#ec1561]"
         />
@@ -135,6 +212,7 @@ export function AdminNewListingForm({
           <button
             type="button"
             onClick={() => imageInputRef.current?.click()}
+            disabled={submitting}
             className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-[#1B1A2E] hover:bg-gray-50"
           >
             <Upload size={16} aria-hidden="true" />
@@ -163,6 +241,7 @@ export function AdminNewListingForm({
                 <button
                   type="button"
                   onClick={() => setSelectedImages((current) => current.filter((_, imageIndex) => imageIndex !== index))}
+                  disabled={submitting}
                   aria-label={`Remove ${file.name}`}
                   title="Remove image"
                   className="rounded p-1 text-gray-500 hover:bg-red-50 hover:text-red-600"

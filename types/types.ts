@@ -12,6 +12,7 @@ export interface Listing {
   reviewCount: number;
   verified: boolean;
   imageUrl?: string;
+  imageUrls?: string[];
 }
 
 export interface FilterState {
@@ -20,7 +21,7 @@ export interface FilterState {
   propertyType: string | null;
   bedrooms: string | null;
   amenities: string[];
-  verifiedOnly: boolean;
+  groupStayOnly: boolean;
   instantBooking: boolean;
   minRating: number | null;
 }
@@ -31,7 +32,7 @@ export const DEFAULT_FILTERS: FilterState = {
   propertyType: null,
   bedrooms: null,
   amenities: [],
-  verifiedOnly: false,
+  groupStayOnly: false,
   instantBooking: false,
   minRating: null,
 };

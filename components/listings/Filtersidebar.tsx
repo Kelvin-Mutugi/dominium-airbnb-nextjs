@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import { FilterState, AmenityOption } from "@/types/types";
 
 const PROPERTY_TYPES = ["Apartment", "Cottage", "House", "Studio", "Villa"];
@@ -14,12 +15,15 @@ const RATING_OPTIONS = [
 interface FilterSidebarProps {
   filters: FilterState;
   amenityOptions: AmenityOption[];
-  verifiedCount: number;
+  groupStayCount: number;
   instantBookingCount: number;
   /** Optional: number of listings matching the current filters (shown in the mobile "Show" button) */
   resultsCount?: number;
   onChange: (patch: Partial<FilterState>) => void;
   onReset: () => void;
+  soft?: boolean;
+  mobileOnly?: boolean;
+  desktopOnly?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -30,19 +34,24 @@ function Pill({
   label,
   active,
   onClick,
+  soft = false,
 }: {
   label: string;
   active: boolean;
   onClick: () => void;
+  soft?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       aria-pressed={active}
-      className={`shrink-0 whitespace-nowrap border px-3.5 py-2 text-sm transition-colors lg:py-1.5 lg:text-xs ${
-        active
-          ? "border-ink bg-ink text-cream"
-          : "border-ink/10 bg-white text-ink hover:border-ink/30"
+      className={`shrink-0 whitespace-nowrap rounded-lg px-3.5 py-2 text-sm transition-all lg:py-1.5 lg:text-xs ${soft
+        ? active
+          ? "border border-neutral-800 bg-neutral-800 font-semibold text-white"
+          : "border border-neutral-300 bg-white text-neutral-700 hover:border-neutral-500 hover:bg-neutral-100"
+        : active
+          ? "border border-ink bg-ink text-cream"
+          : "border border-ink/10 bg-white text-ink hover:border-ink/30"
       }`}
     >
       {label}
@@ -55,19 +64,21 @@ function CheckRow({
   count,
   checked,
   onChange,
+  soft = false,
 }: {
   label: string;
   count?: number;
   checked: boolean;
   onChange: (checked: boolean) => void;
+  soft?: boolean;
 }) {
   return (
-    <label className="mb-1.5 flex items-center gap-2.5 py-1.5 text-sm text-ink/80 lg:mb-2.5 lg:gap-2 lg:py-0">
+    <label className={`mb-1.5 flex items-center gap-2.5 py-1.5 text-sm lg:mb-2.5 lg:gap-2 lg:py-0 ${soft ? "text-[#555555]" : "text-ink/80"}`}>
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="h-4 w-4 accent-wine lg:h-3.5 lg:w-3.5"
+        className={`h-4 w-4 lg:h-3.5 lg:w-3.5 ${soft ? "accent-[#666666]" : "accent-wine"}`}
       />
       <span>{label}</span>
       {typeof count === "number" && (
@@ -125,11 +136,12 @@ type FieldsProps = Omit<FilterSidebarProps, "resultsCount"> & {
 function FilterFields({
   filters,
   amenityOptions,
-  verifiedCount,
+  groupStayCount,
   instantBookingCount,
   onChange,
   onReset,
   showReset = false,
+  soft = false,
 }: FieldsProps) {
   const toggleAmenity = (key: string, checked: boolean) => {
     const next = checked
@@ -139,14 +151,13 @@ function FilterFields({
   };
 
   // text-base on mobile stops iOS Safari from zooming in when an input is focused
-  const inputClass =
-    "w-full border border-ink/10 bg-white px-2.5 py-2.5 text-base text-ink lg:py-2 lg:text-sm";
+  const inputClass = `w-full rounded-md px-3 py-2.5 text-base outline-none transition-colors focus-visible:ring-2 focus-visible:ring-neutral-500 lg:py-2 lg:text-sm ${soft ? "border border-neutral-300 bg-white text-neutral-800 hover:border-neutral-400" : "border border-ink/10 bg-white text-ink"}`;
 
   return (
     <>
       {/* Price */}
-      <div className="border-b border-ink/10 py-5 first:pt-0">
-        <h3 className="mb-3.5 text-sm font-semibold text-ink">Price per night (KES)</h3>
+      <div className={`border-b py-5 first:pt-0 ${soft ? "border-[#e2e2e2]" : "border-ink/10"}`}>
+        <h3 className={`mb-3.5 text-sm font-semibold ${soft ? "text-[#373737]" : "text-ink"}`}>Price per night (KES)</h3>
         <div className="mb-2.5 flex items-center gap-2">
           <input
             type="number"
@@ -171,14 +182,15 @@ function FilterFields({
       </div>
 
       {/* Property type */}
-      <div className="border-b border-ink/10 py-5">
-        <h3 className="mb-3.5 text-sm font-semibold text-ink">Property type</h3>
+      <div className={`border-b py-5 ${soft ? "border-[#e2e2e2]" : "border-ink/10"}`}>
+        <h3 className={`mb-3.5 text-sm font-semibold ${soft ? "text-[#373737]" : "text-ink"}`}>Property type</h3>
         <div className="flex flex-wrap gap-2">
           {PROPERTY_TYPES.map((type) => (
             <Pill
               key={type}
               label={type}
               active={filters.propertyType === type}
+              soft={soft}
               onClick={() =>
                 onChange({ propertyType: filters.propertyType === type ? null : type })
               }
@@ -188,14 +200,15 @@ function FilterFields({
       </div>
 
       {/* Bedrooms */}
-      <div className="border-b border-ink/10 py-5">
-        <h3 className="mb-3.5 text-sm font-semibold text-ink">Bedrooms</h3>
+      <div className={`border-b py-5 ${soft ? "border-[#e2e2e2]" : "border-ink/10"}`}>
+        <h3 className={`mb-3.5 text-sm font-semibold ${soft ? "text-[#373737]" : "text-ink"}`}>Bedrooms</h3>
         <div className="flex flex-wrap gap-2">
           {BEDROOM_OPTIONS.map((b) => (
             <Pill
               key={b}
               label={b}
               active={filters.bedrooms === b}
+              soft={soft}
               onClick={() => onChange({ bedrooms: filters.bedrooms === b ? null : b })}
             />
           ))}
@@ -203,8 +216,8 @@ function FilterFields({
       </div>
 
       {/* Amenities */}
-      <div className="border-b border-ink/10 py-5">
-        <h3 className="mb-3.5 text-sm font-semibold text-ink">Amenities</h3>
+      <div className={`border-b py-5 ${soft ? "border-[#e2e2e2]" : "border-ink/10"}`}>
+        <h3 className={`mb-3.5 text-sm font-semibold ${soft ? "text-[#373737]" : "text-ink"}`}>Amenities</h3>
         {amenityOptions.map((a) => (
           <CheckRow
             key={a.key}
@@ -212,35 +225,39 @@ function FilterFields({
             count={a.count}
             checked={filters.amenities.includes(a.key)}
             onChange={(checked) => toggleAmenity(a.key, checked)}
+            soft={soft}
           />
         ))}
       </div>
 
-      {/* Host */}
-      <div className="border-b border-ink/10 py-5">
-        <h3 className="mb-3.5 text-sm font-semibold text-ink">Host</h3>
+      {/* Guest capacity */}
+      <div className={`border-b py-5 ${soft ? "border-[#e2e2e2]" : "border-ink/10"}`}>
+        <h3 className={`mb-3.5 text-sm font-semibold ${soft ? "text-[#373737]" : "text-ink"}`}>Guest capacity</h3>
         <CheckRow
-          label="Verified hosts only"
-          count={verifiedCount}
-          checked={filters.verifiedOnly}
-          onChange={(checked) => onChange({ verifiedOnly: checked })}
+          label="Sleeps 4+ guests"
+          count={groupStayCount}
+          checked={filters.groupStayOnly}
+          onChange={(checked) => onChange({ groupStayOnly: checked })}
+          soft={soft}
         />
         <CheckRow
           label="Instant booking"
           count={instantBookingCount}
           checked={filters.instantBooking}
           onChange={(checked) => onChange({ instantBooking: checked })}
+          soft={soft}
         />
       </div>
 
       {/* Rating */}
       <div className="py-5">
-        <h3 className="mb-3.5 text-sm font-semibold text-ink">Guest rating</h3>
+        <h3 className={`mb-3.5 text-sm font-semibold ${soft ? "text-[#373737]" : "text-ink"}`}>Guest rating</h3>
         {RATING_OPTIONS.map((r) => (
           <CheckRow
             key={r.key}
             label={r.label}
             checked={filters.minRating === (r.key === "any" ? null : Number(r.key))}
+            soft={soft}
             onChange={() =>
               onChange({ minRating: r.key === "any" ? null : Number(r.key) })
             }
@@ -249,7 +266,7 @@ function FilterFields({
         {showReset && (
           <button
             onClick={onReset}
-            className="mt-2 text-sm text-wine underline underline-offset-2"
+            className={`mt-2 text-sm underline underline-offset-2 ${soft ? "text-[#555555]" : "text-wine"}`}
           >
             Reset filters
           </button>
@@ -266,13 +283,17 @@ function FilterFields({
 export default function FilterSidebar({
   filters,
   amenityOptions,
-  verifiedCount,
+  groupStayCount,
   instantBookingCount,
   resultsCount,
   onChange,
   onReset,
+  soft = false,
+  mobileOnly = false,
+  desktopOnly = false,
 }: FilterSidebarProps) {
   const [open, setOpen] = useState(false);
+  const [desktopOpen, setDesktopOpen] = useState(false);
 
   // Lock page scroll + close on Escape while the mobile sheet is open
   useEffect(() => {
@@ -296,7 +317,7 @@ export default function FilterSidebar({
     (filters.propertyType ? 1 : 0) +
     (filters.bedrooms && filters.bedrooms !== "Any" ? 1 : 0) +
     filters.amenities.length +
-    (filters.verifiedOnly ? 1 : 0) +
+    (filters.groupStayOnly ? 1 : 0) +
     (filters.instantBooking ? 1 : 0) +
     (filters.minRating ? 1 : 0);
 
@@ -308,45 +329,43 @@ export default function FilterSidebar({
   const fieldProps = {
     filters,
     amenityOptions,
-    verifiedCount,
+    groupStayCount,
     instantBookingCount,
     onChange,
     onReset,
+    soft,
   };
 
   return (
     <>
       {/* ---------- Mobile / tablet: compact bar (hidden on lg+) ---------- */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-3 [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden">
+      {!desktopOnly && <div className="flex items-center gap-2 lg:hidden">
         <button
           onClick={() => setOpen(true)}
           aria-haspopup="dialog"
-          className="flex shrink-0 items-center gap-2 border border-ink bg-white px-3.5 py-2 text-sm font-medium text-ink"
+          aria-label="Filters"
+          title="Filters"
+          className={mobileOnly
+            ? `relative flex size-10 shrink-0 items-center justify-center rounded-full transition-colors ${soft ? "border border-[#dedede] bg-white text-[#484848] hover:bg-[#f5f5f5]" : "border border-ink bg-white text-ink"}`
+            : `flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition-colors ${soft ? "border border-neutral-300 bg-white text-neutral-800 hover:border-neutral-500 hover:bg-neutral-100" : "border border-ink bg-white text-ink"}`}
         >
           <SlidersIcon />
-          Filters
-          {activeCount > 0 && (
+          {!mobileOnly && "Filters"}
+          {!mobileOnly && activeCount > 0 && (
             <span className="flex h-5 min-w-[1.25rem] items-center justify-center bg-ink px-1 text-xs text-cream">
               {activeCount}
             </span>
           )}
+          {mobileOnly && activeCount > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#444444] px-1 text-[10px] text-white">
+              {activeCount}
+            </span>
+          )}
         </button>
-
-        {/* Quick-access property type chips so common filtering needs no sheet */}
-        {PROPERTY_TYPES.map((type) => (
-          <Pill
-            key={type}
-            label={type}
-            active={filters.propertyType === type}
-            onClick={() =>
-              onChange({ propertyType: filters.propertyType === type ? null : type })
-            }
-          />
-        ))}
-      </div>
+      </div>}
 
       {/* ---------- Mobile / tablet: bottom sheet (hidden on lg+) ---------- */}
-      {open && (
+      {!desktopOnly && open && (
         <div
           className="fixed inset-0 z-50 lg:hidden"
           role="dialog"
@@ -361,13 +380,13 @@ export default function FilterSidebar({
           />
 
           {/* Sheet */}
-          <div className="absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col bg-cream">
-            <div className="flex items-center justify-between border-b border-ink/10 px-5 py-4">
-              <h2 className="text-base font-semibold text-ink">Filters</h2>
+          <div className={`absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col ${soft ? "bg-[#f5f5f5]" : "bg-cream"}`}>
+            <div className={`flex items-center justify-between border-b px-5 py-4 ${soft ? "border-[#e1e1e1]" : "border-ink/10"}`}>
+              <h2 className="text-base font-semibold text-[#303030]">Filters</h2>
               <button
                 onClick={() => setOpen(false)}
                 aria-label="Close filters"
-                className="-mr-2 p-2 text-ink"
+                className="-mr-2 p-2 text-[#555555]"
               >
                 <CloseIcon />
               </button>
@@ -377,16 +396,16 @@ export default function FilterSidebar({
               <FilterFields {...fieldProps} />
             </div>
 
-            <div className="flex items-center gap-4 border-t border-ink/10 bg-cream px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div className={`flex items-center gap-4 border-t px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] ${soft ? "border-[#e1e1e1] bg-[#f5f5f5]" : "border-ink/10 bg-cream"}`}>
               <button
                 onClick={onReset}
-                className="text-sm text-wine underline underline-offset-2"
+                className={`text-sm underline underline-offset-2 ${soft ? "text-[#555555]" : "text-wine"}`}
               >
                 Clear all
               </button>
               <button
                 onClick={() => setOpen(false)}
-                className="ml-auto bg-ink px-6 py-3 text-sm font-medium text-cream"
+                className={`ml-auto rounded-md px-6 py-3 text-sm font-semibold transition-colors ${soft ? "border border-neutral-800 bg-neutral-800 text-white hover:bg-neutral-700" : "bg-ink text-cream"}`}
               >
                 {showLabel}
               </button>
@@ -395,10 +414,37 @@ export default function FilterSidebar({
         </div>
       )}
 
-      {/* ---------- Desktop: original sticky sidebar (lg+) ---------- */}
-      <aside className="sticky top-20 hidden max-h-[calc(100dvh-6rem)] self-start overflow-y-auto lg:block">
-        <FilterFields {...fieldProps} showReset />
-      </aside>
+      {/* ---------- Desktop: collapsible full-width filter panel ---------- */}
+      {!mobileOnly && <section className="hidden lg:block">
+        <button
+          type="button"
+          onClick={() => setDesktopOpen((current) => !current)}
+          aria-expanded={desktopOpen}
+          aria-controls="desktop-listing-filters"
+          className={`inline-flex min-h-9 items-center gap-2 rounded-md px-3 text-sm font-semibold transition-colors ${soft ? "border border-neutral-300 bg-white text-neutral-800 hover:border-neutral-500 hover:bg-neutral-100" : "border border-ink/15 bg-white text-ink hover:bg-cream"}`}
+        >
+          <SlidersHorizontal size={16} aria-hidden="true" />
+          Filters
+          {activeCount > 0 && (
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1 text-xs text-cream">
+              {activeCount}
+            </span>
+          )}
+          <ChevronDown
+            size={16}
+            aria-hidden="true"
+            className={`transition-transform ${desktopOpen ? "rotate-180" : ""}`}
+          />
+        </button>
+        {desktopOpen && (
+          <div
+            id="desktop-listing-filters"
+            className={`mt-3 grid grid-cols-3 gap-x-8 rounded-md px-6 py-2 ${soft ? "border border-neutral-200 bg-neutral-50" : "border border-ink/10 bg-white shadow-sm"}`}
+          >
+            <FilterFields {...fieldProps} showReset />
+          </div>
+        )}
+      </section>}
     </>
   );
 }

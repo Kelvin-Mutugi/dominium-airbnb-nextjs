@@ -4,6 +4,7 @@ import type {
   ListingAdditionalCharge,
   ListingFormValues,
 } from "@/app/lib/host/types";
+import { isListingCategory } from "@/app/lib/listing-categories";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 import { AdminListingEditForm } from "@/components/admin/listings/admin-listing-edit-form";
 import { AdminListingImages } from "@/components/admin/listings/admin-listing-images";
@@ -43,6 +44,10 @@ export default async function AdminEditListingPage({
     latitude: listing.latitude == null ? null : Number(listing.latitude),
     longitude: listing.longitude == null ? null : Number(listing.longitude),
     property_type: listing.property_type ?? "",
+    categories: Array.isArray(listing.categories)
+      ? listing.categories.filter(isListingCategory)
+      : [],
+    is_rare_find: listing.is_rare_find === true,
     price_per_night: Number(listing.price_per_night ?? 0),
     platform_fee_per_night: Number(
       listing.platform_fee_per_night ??

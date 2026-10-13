@@ -1,5 +1,6 @@
 import { Wifi } from "lucide-react";
 import type { ListingAdditionalCharge } from "@/app/lib/host/types";
+import type { ListingCategory } from "@/app/lib/listing-categories";
 
 export const HERO_IMAGES: string[] = [
   // City: Nairobi skyline with KICC (Kenny Murgor)
@@ -64,6 +65,7 @@ export interface Listing {
   serviceFeePercent: number;
   serviceFeePerNight?: number;
   propertyType?: string;
+  categories?: ListingCategory[];
   additionalCharges?: ListingAdditionalCharge[];
   cancellationDeadline?: string;
 

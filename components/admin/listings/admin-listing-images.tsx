@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Trash2, Upload } from "lucide-react";
 import { deleteAdminListingImage } from "@/app/admin/listings/actions";
 import { uploadAdminListingImage } from "@/components/admin/listings/upload-admin-listing-image";
@@ -23,6 +23,25 @@ export function AdminListingImages({
   const [images, setImages] = useState(initialImages);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<{
+    completedBytes: number;
+    currentFileBytes: number;
+    currentFile: number;
+    totalBytes: number;
+    totalFiles: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!busy) return;
+
+    function warnBeforeLeaving(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", warnBeforeLeaving);
+    return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
+  }, [busy]);
 
   async function uploadImages(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
@@ -31,10 +50,31 @@ export function AdminListingImages({
 
     setBusy(true);
     setError(null);
+    let completedBytes = 0;
+    setUploadProgress({
+      completedBytes: 0,
+      currentFileBytes: 0,
+      currentFile: 1,
+      totalBytes: files.reduce((total, file) => total + file.size, 0),
+      totalFiles: files.length,
+    });
 
     try {
-      for (const file of files) {
-        const image = await uploadAdminListingImage(listingId, file);
+      for (const [index, file] of files.entries()) {
+        setUploadProgress((current) => current && {
+          ...current,
+          currentFile: index + 1,
+          currentFileBytes: 0,
+        });
+        const image = await uploadAdminListingImage(listingId, file, (currentFileBytes) => {
+          setUploadProgress((current) => current && { ...current, currentFileBytes });
+        });
+        completedBytes += file.size;
+        setUploadProgress((current) => current && {
+          ...current,
+          completedBytes,
+          currentFileBytes: 0,
+        });
         setImages((current) => [...current, image].sort((first, second) => first.sort_order - second.sort_order));
       }
     } catch (err) {
@@ -42,6 +82,7 @@ export function AdminListingImages({
       setError(err instanceof Error ? err.message : "Unable to upload images.");
     } finally {
       setBusy(false);
+      setUploadProgress(null);
     }
   }
 
@@ -85,6 +126,29 @@ export function AdminListingImages({
       </div>
 
       <p className="mt-1 text-xs text-gray-500">JPG, PNG, or WebP. Maximum 10 MB per image.</p>
+      {uploadProgress && (
+        <div role="status" aria-live="polite" className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+          <p className="font-medium">Uploading image {uploadProgress.currentFile} of {uploadProgress.totalFiles}...</p>
+          <div
+            role="progressbar"
+            aria-label="Image upload progress"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={uploadProgress.totalBytes > 0
+              ? Math.round(((uploadProgress.completedBytes + uploadProgress.currentFileBytes) / uploadProgress.totalBytes) * 100)
+              : 0}
+            className="mt-2 h-2 overflow-hidden rounded-full bg-amber-200"
+          >
+            <div
+              className="h-full rounded-full bg-[#E23E85] transition-[width] duration-150"
+              style={{ width: `${uploadProgress.totalBytes > 0
+                ? Math.round(((uploadProgress.completedBytes + uploadProgress.currentFileBytes) / uploadProgress.totalBytes) * 100)
+                : 0}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs">Please keep this page open until the images finish uploading.</p>
+        </div>
+      )}
       {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
 
       {images.length > 0 ? (

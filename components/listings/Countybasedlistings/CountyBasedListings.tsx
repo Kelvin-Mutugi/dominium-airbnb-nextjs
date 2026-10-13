@@ -123,7 +123,7 @@ export default function CountyBasedListings({
         listing.pricePerNight <= filters.maxPrice &&
         bedroomMatch &&
         amenityMatch &&
-        (!filters.verifiedOnly || listing.verified) &&
+        (!filters.groupStayOnly || listing.guests >= 4) &&
         (!filters.minRating || listing.rating >= filters.minRating)
       );
     });
@@ -170,10 +170,10 @@ export default function CountyBasedListings({
 
   const activeFilters: ActiveFilter[] = [];
 
-  if (filters.verifiedOnly) {
+  if (filters.groupStayOnly) {
     activeFilters.push({
-      key: "verifiedOnly",
-      label: "Verified hosts",
+      key: "groupStayOnly",
+      label: "Sleeps 4+ guests",
     });
   }
 
@@ -199,9 +199,9 @@ export default function CountyBasedListings({
   });
 
   const removeFilter = (key: string) => {
-    if (key === "verifiedOnly") {
+    if (key === "groupStayOnly") {
       updateFilters({
-        verifiedOnly: false,
+        groupStayOnly: false,
       });
     }
 
@@ -284,7 +284,7 @@ return (
         <FilterSidebar
           filters={filters}
           amenityOptions={amenityOptions}
-          verifiedCount={databaseListings.length}
+          groupStayCount={databaseListings.filter((listing) => listing.guests >= 4).length}
           instantBookingCount={0}
           onChange={updateFilters}
           onReset={resetFilters}

@@ -604,6 +604,76 @@ export default function HostBookingsPage() {
                   </section>
                 </div>
 
+                <section
+                  aria-label="Selected optional extras"
+                  className="mb-3 border-t border-[#1B1A2E]/10 pt-3"
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h4 className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                      Optional extras selected by guest
+                    </h4>
+                    <span className="text-xs font-medium text-gray-600">
+                      {b.paymentStatus === "paid" || b.paymentStatus === "success"
+                        ? `Payment received${b.paymentPaidAt ? ` · ${formatDate(b.paymentPaidAt, "long")}` : ""}`
+                        : b.paymentStatus === "refunded"
+                          ? "Payment refunded"
+                          : b.paymentStatus
+                            ? `Payment not completed · ${b.paymentStatus}`
+                            : "Payment status unavailable"}
+                    </span>
+                  </div>
+                  {b.selectedOptionalFees === null ||
+                  b.selectedOptionalFees === undefined ? (
+                    <p className="mt-1 text-sm text-gray-500">
+                      Optional fee selections are unavailable for this booking.
+                    </p>
+                  ) : b.selectedOptionalFees.length === 0 ? (
+                    <p className="mt-1 text-sm text-gray-500">
+                      No optional extras were selected.
+                    </p>
+                  ) : (
+                    <ul className="mt-2 divide-y divide-[#1B1A2E]/10">
+                      {b.selectedOptionalFees.map((fee) => (
+                        <li
+                          key={`${fee.name}-${fee.frequency}`}
+                          className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2 text-sm"
+                        >
+                          <span className="font-medium text-[#1B1A2E]">
+                            {fee.name}
+                            <span className="ml-2 text-xs font-normal text-gray-500">
+                              {fee.frequency === "per_night"
+                                ? `KES ${Number(fee.unitAmount).toLocaleString("en-KE")} per night`
+                                : "per booking"}
+                            </span>
+                          </span>
+                          <span className="flex items-center gap-3 tabular-nums">
+                            <span className="font-medium text-[#1B1A2E]">
+                              KES {Number(fee.amount).toLocaleString("en-KE")} total
+                            </span>
+                            <span
+                              className={`text-xs font-semibold ${
+                                b.paymentStatus === "paid" ||
+                                b.paymentStatus === "success"
+                                  ? "text-emerald-700"
+                                  : b.paymentStatus === "refunded"
+                                    ? "text-amber-800"
+                                    : "text-gray-500"
+                              }`}
+                            >
+                              {b.paymentStatus === "paid" ||
+                              b.paymentStatus === "success"
+                                ? "Paid"
+                                : b.paymentStatus === "refunded"
+                                  ? "Refunded"
+                                  : "Unpaid"}
+                            </span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+
                 {latestDateChange && (
                   <div className="mb-3 border-l-4 border-[#E23E85] bg-[#FCE8F0] px-3 py-2.5 sm:px-4">
                     <p className="text-xs font-bold uppercase tracking-wide text-[#9C2454]">

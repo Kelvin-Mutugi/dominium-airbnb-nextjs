@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import type { BrowseCategory } from "@/app/lib/listing-categories";
 import { getPublicSupabaseClient } from "@/app/lib/supabase/public";
 import type { Listing } from "@/types/types";
 
@@ -91,6 +92,7 @@ function toCardListing(row: ListingRow): Listing {
     reviewCount: row.review_count ?? 0,
     verified: true,
     imageUrl: images[0]?.url ?? "",
+    imageUrls: images.flatMap((image) => image.url ? [image.url] : []),
   };
 }
 
@@ -106,7 +108,6 @@ async function fetchCountyListingPage(
     .eq("status", "published")
     .order("created_at", { ascending: false })
     .order("sort_order", { foreignTable: "listing_images", ascending: true })
-    .limit(1, { foreignTable: "listing_images" })
     .range(from, to);
 
   if (error) throw new Error("Unable to load published listings.");
@@ -124,12 +125,19 @@ async function fetchCatalogPage(
   guests: number,
   from: number,
   to: number,
+  category: BrowseCategory,
 ) {
   let query = getPublicSupabaseClient()
     .from("listings")
     .select(CARD_SELECT)
     .eq("status", "published")
     .gte("max_guests", guests);
+
+  if (category === "rare") {
+    query = query.eq("is_rare_find", true);
+  } else if (category !== "all") {
+    query = query.contains("categories", [category]);
+  }
 
   const terms = location
     .replace(/[%,]/g, " ")
@@ -150,7 +158,6 @@ async function fetchCatalogPage(
   const { data, error } = await query
     .order("created_at", { ascending: false })
     .order("sort_order", { foreignTable: "listing_images", ascending: true })
-    .limit(1, { foreignTable: "listing_images" })
     .range(from, to);
 
   if (error) throw new Error("Unable to load published listings.");
@@ -159,7 +166,7 @@ async function fetchCatalogPage(
 
 const getCachedCatalogPage = unstable_cache(
   fetchCatalogPage,
-  ["public-listing-catalog-v1"],
+  ["public-listing-catalog-v2"],
   { revalidate: 60, tags: ["public-listings"] },
 );
 
@@ -168,6 +175,7 @@ export function getPublicCatalogPage(
   guests: number,
   from: number,
   to: number,
+  category: BrowseCategory,
 ) {
   const normalizedLocation = location
     .replace(/[%,]/g, " ")
@@ -178,6 +186,7 @@ export function getPublicCatalogPage(
     Math.max(0, guests),
     from,
     to,
+    category,
   );
 }
 

@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { unsplashCardImageLoader } from "./unsplash-image-loader";
 import { useEffect, useState } from "react";
-import { BedDouble, Star, Gem, Users } from "lucide-react";
+import { BedDouble, Star, Users } from "lucide-react";
 import { supabase } from "@/app/lib/supabase/client";
 import SaveListingButton from "@/components/listings/SaveListingButton";
 import type { Amenity, Listing } from "./homeData";
@@ -57,6 +57,11 @@ function trustedImageUrl(url: string | undefined | null) {
     return null;
   }
 }
+
+// The card fills whatever width its parent gives it. Size it in the
+// carousel/grid wrapper, e.g. `w-[44%] shrink-0 snap-start sm:w-[200px] lg:w-[225px]`.
+// Keep the `sizes` value below in sync with those widths.
+const CARD_IMAGE_SIZES = "(min-width: 1024px) 225px, (min-width: 640px) 200px, 44vw";
 
 interface ListingCardProps {
   item?: Listing;
@@ -197,17 +202,16 @@ export default function MinimalListingCard({
     };
   }, [id, item]);
 
+  // Skeleton mirrors the real card (square image + three text lines)
+  // so nothing jumps when the listing loads.
   if (loading) {
     return (
-      <div className="w-full max-w-[180px] overflow-hidden rounded-[24px] border border-[#E9E6DD] bg-white shadow-sm">
-        <div aria-hidden="true">
-          <div className="shimmer size-[180px] rounded-2xl" />
-          <div className="space-y-3 p-4">
-            <div className="shimmer h-4 w-24 rounded" />
-            <div className="shimmer h-5 w-3/4 rounded" />
-            <div className="shimmer h-4 w-1/2 rounded" />
-            <div className="shimmer h-10 w-full rounded" />
-          </div>
+      <div className="w-full" aria-hidden="true">
+        <div className="shimmer aspect-square w-full rounded-xl" />
+        <div className="space-y-2 px-1.5 pt-3">
+          <div className="shimmer h-3 w-1/2 rounded" />
+          <div className="shimmer h-4 w-3/4 rounded" />
+          <div className="shimmer h-3 w-2/5 rounded" />
         </div>
       </div>
     );
@@ -246,33 +250,26 @@ export default function MinimalListingCard({
       href={`/apartments/${listing.id}`}
       target="_blank"
       aria-label={`View details for ${listing.name}`}
-      className="block w-full max-w-[180px] overflow-hidden rounded-2xl bg-white text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E89A1C] active:transform-none active:transition-none [-webkit-tap-highlight-color:transparent]"
+      className="block w-full overflow-hidden rounded-xl bg-white text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E89A1C] active:transform-none active:transition-none [-webkit-tap-highlight-color:transparent]"
     >
       <article>
-        <div className="relative size-[180px] overflow-hidden rounded-2xl">
+        <div className="relative aspect-square w-full overflow-hidden rounded-xl">
           <Image
             src={activeImage}
             alt={listing.name}
             loader={activeImage.includes("images.unsplash.com") ? unsplashCardImageLoader : undefined}
             fill
-            sizes="180px"
+            sizes={CARD_IMAGE_SIZES}
             quality={85}
             unoptimized={activeImage.includes("placehold.co") || activeImage === "/placeholder.svg"}
             onError={() => setImageError(true)}
             className="listing-image object-cover"
           />
 
-          <span className="absolute left-2.5 top-2.5 z-10 rounded-full bg-[#040720]/75 px-2 py-1 text-[10px] font-semibold text-[#FFFFFF] shadow-sm backdrop-blur-sm">
+          <span className="absolute left-2.5 top-2.5 z-10 rounded-full bg-[#040720]/75 px-2 py-1 text-[11px] font-semibold text-[#FFFFFF] shadow-sm backdrop-blur-sm">
             {pricePerNight}
             {/* <span className="ml-0.5 font-normal text-[#FFFFFF]/80">/ night</span> */}
           </span>
-
-          {listing.rareFind && (
-            <span className="absolute left-2.5 bottom-2.5 z-10 flex items-center gap-1 rounded-full bg-[#1B1A2E]/85 px-2 py-1 text-[10px] font-medium text-white backdrop-blur-sm">
-              <Gem size={12} />
-              Rare find
-            </span>
-          )}
 
           <SaveListingButton
             listingId={listing.id}
@@ -283,10 +280,12 @@ export default function MinimalListingCard({
 
         <div className="px-1.5 pt-3 pb-2">
           <div className="flex items-center justify-between gap-2">
-            <p className="truncate text-[11px] text-[#36454F]/90">{listing.loc}</p>
+            <p className="truncate text-[12px] text-[#36454F]/90 lg:text-[13px]">
+              {listing.loc}
+            </p>
             {ratingValue && (
-              <span className="flex shrink-0 items-center gap-0.5 text-[11px] font-medium">
-                <Star size={11} fill="currentColor" className="text-[#F7B500]" />
+              <span className="flex shrink-0 items-center gap-0.5 text-[12px] font-medium lg:text-[13px]">
+                <Star size={12} fill="currentColor" className="text-[#F7B500]" />
                 {ratingValue}
                 {typeof listing.reviewCount === "number" && (
                   <span className="text-[#36454F]/50">({listing.reviewCount})</span>
@@ -300,7 +299,7 @@ export default function MinimalListingCard({
           </h3>
 
           {(hasBeds || hasGuests) && (
-            <p className="mt-1 flex items-center gap-3 text-[11px] text-[#36454F]/90">
+            <p className="mt-1 flex items-center gap-3 text-[12px] text-[#36454F]/90 lg:text-[13px]">
               {hasBeds && (
                 <span className="inline-flex items-center gap-1">
                   <BedDouble size={12} aria-hidden="true" />

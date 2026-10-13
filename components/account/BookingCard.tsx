@@ -49,7 +49,7 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <h3 className="font-serif text-lg leading-snug text-neutral-900">
               {listing ? (
-                <Link href={routes.listing(listing.slug)} className="hover:underline">
+                <Link href={`/apartments/${listing.id}`}  className="hover:underline">
                   {listing.title}
                 </Link>
               ) : (

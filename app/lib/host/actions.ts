@@ -19,6 +19,7 @@ import type {
   HostDashboardStats,
   HostArrivalGuideDetails,
   HostBookingChangeRequest,
+  HostOptionalFee,
   HostDateChangeRecord,
   HostListingRequest,
   Listing,
@@ -32,6 +33,34 @@ const MPESA_REGEX = /^0\d{9}$/;
 const HOST_BOOKING_FIELDS =
   "id, booking_reference, listing_id, host_id, check_in, check_out, nights, adults_count, children_count, pets_count, rooms_count, status, completed_at, completion_source, host_payout_amount, guest_name, guest_country, special_requests";
 const HOST_BOOKING_WITH_LISTING = `${HOST_BOOKING_FIELDS}, listing:listings(id, title, town, county, check_out_time)`;
+
+function getSelectedOptionalFees(snapshot: unknown): HostOptionalFee[] | null {
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot))
+    return null;
+  const lineItems = (snapshot as { line_items?: unknown }).line_items;
+  if (!Array.isArray(lineItems)) return null;
+
+  return lineItems.flatMap((item): HostOptionalFee[] => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const line = item as Record<string, unknown>;
+    if (
+      line.type !== "host_charge" ||
+      line.required !== false ||
+      typeof line.name !== "string" ||
+      typeof line.total !== "number" ||
+      typeof line.unit_amount !== "number" ||
+      (line.frequency !== "per_night" && line.frequency !== "per_booking")
+    ) {
+      return [];
+    }
+    return [{
+      name: line.name,
+      amount: line.total,
+      unitAmount: line.unit_amount,
+      frequency: line.frequency,
+    }];
+  });
+}
 
 type HostUnreadThread = {
   booking_id: string;
@@ -785,6 +814,8 @@ export async function getHostBookingsData(
     dateChangesResult,
     refundRequestsResult,
     cancellationRefundsResult,
+    bookingSnapshotResult,
+    paymentResult,
   ] = await Promise.all([
     getHostUnreadSupportCounts(user.id, bookingIds),
     supabase
@@ -821,6 +852,15 @@ export async function getHostBookingsData(
         "not_eligible",
       ])
       .order("created_at", { ascending: false }),
+    admin
+      .from("bookings")
+      .select("id, pricing_snapshot")
+      .in("id", bookingIds),
+    admin
+      .from("payments")
+      .select("booking_id, status, paid_at, created_at")
+      .in("booking_id", bookingIds)
+      .order("created_at", { ascending: false }),
   ]);
   if (dateChangesResult.error)
     throw new Error("Unable to load booking date-change history.");
@@ -835,6 +875,28 @@ export async function getHostBookingsData(
       "Unable to load host cancellation refund progress:",
       cancellationRefundsResult.error,
     );
+  }
+  if (bookingSnapshotResult.error)
+    throw new Error("Unable to load selected optional fees.");
+  if (paymentResult.error)
+    throw new Error("Unable to load optional-fee payment status.");
+  const optionalFeesByBooking = new Map<string, HostOptionalFee[] | null>(
+    (bookingSnapshotResult.data ?? []).map((row) => [
+      row.id,
+      getSelectedOptionalFees(row.pricing_snapshot),
+    ]),
+  );
+  const paymentByBooking = new Map<
+    string,
+    { status: string; paid_at: string | null }
+  >();
+  for (const payment of paymentResult.data ?? []) {
+    if (!paymentByBooking.has(payment.booking_id)) {
+      paymentByBooking.set(payment.booking_id, {
+        status: payment.status,
+        paid_at: payment.paid_at,
+      });
+    }
   }
 
   const dateChangesByBooking = new Map<
@@ -883,6 +945,9 @@ export async function getHostBookingsData(
 
   return bookings.map((booking) => ({
     ...booking,
+    selectedOptionalFees: optionalFeesByBooking.get(booking.id) ?? null,
+    paymentStatus: paymentByBooking.get(booking.id)?.status ?? null,
+    paymentPaidAt: paymentByBooking.get(booking.id)?.paid_at ?? null,
     unreadSupportReplyCount: unreadByBooking[booking.id] ?? 0,
     dateChangeHistory: dateChangesByBooking.get(booking.id) ?? [],
     refundRequests: refundRequestsByBooking.get(booking.id) ?? [],

@@ -3,9 +3,10 @@ import { anton, fraunces, plex } from "./fonts";
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
 import SiteFooter from "@/components/SiteFooter";
+import CookieConsentBanner from "@/components/CookieConsentBanner";
 
 export const metadata: Metadata = {
-  title: "Dominium Airbnb",
+  title: "Dominium bnb",
 };
 
 export default function RootLayout({
@@ -21,6 +22,7 @@ export default function RootLayout({
       <body className="flex min-h-screen flex-col font-sans">
         <div className="flex-1">{children}</div>
         <SiteFooter />
+        <CookieConsentBanner />
       </body>
     </html>
   );

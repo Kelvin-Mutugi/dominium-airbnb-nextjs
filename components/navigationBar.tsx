@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import logo_icon from "@/app/assets/logo_icon1.png";
 import black_logo from "@/app/assets/logo2.png";
-import white_logo from "@/app/assets/logo3.png";
 import type { LucideIcon } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "@/app/lib/supabase/client";
@@ -30,7 +29,7 @@ import { supabase } from "@/app/lib/supabase/client";
 /*  Config                                                                    */
 /* -------------------------------------------------------------------------- */
 
-const NAV_HEIGHT = 72; // px, must match h-[72px] / lg:-mb-[72px] below
+const NAV_HEIGHT = 72; // px, must match the rendered navbar height below
 const HERO_ROUTES = ["/"]; // pages that start with a full-bleed hero
 const MAX_GUESTS = 16;
 
@@ -416,10 +415,8 @@ export default function Navbar() {
   const today = toISODate(new Date());
 
   const navSurface = overHero
-    ? "border-[#E9E6DD] bg-white lg:border-transparent lg:bg-transparent lg:[background-image:linear-gradient(to_bottom,rgba(0,0,0,0.55),rgba(0,0,0,0))]"
-    : `border-[#E9E6DD] bg-white ${
-        scrolled ? "shadow-[0_1px_14px_rgba(27,26,46,0.07)]" : ""
-      }`;
+    ? "border-[#E9E6DD] bg-white"
+    : "border-[#E9E6DD] bg-white";
 
   // On md+ every field is a fixed 64px-tall pill, so the row lines up with the
   // Search button no matter what the content does.
@@ -433,11 +430,10 @@ export default function Navbar() {
   /* --------------------------------- render ------------------------------- */
 
   return (
-    <div
-      className={`sticky top-0 z-[100] font-sans ${hasHero ? "lg:-mb-[72px]" : ""}`}
-    >
+    <div className="sticky top-0 z-[100] font-sans">
       <nav
-        className={`flex h-[72px] items-center gap-3 border-b px-4 transition-colors duration-300 sm:px-[5%] md:grid md:grid-cols-[1fr_auto_1fr] ${navSurface}`}
+        data-site-navbar
+        className={`flex h-[75px] items-center gap-3 border-b px-4 transition-colors duration-300 sm:px-[5%] md:grid md:grid-cols-[1fr_auto_1fr] ${navSurface}`}
       >
         {/* ---------------------------- Logo ---------------------------- */}
         <Link
@@ -460,7 +456,7 @@ export default function Navbar() {
             className="hidden h-12 w-40 object-contain md:block lg:hidden"
           />
           <Image
-            src={overHero ? white_logo : black_logo}
+            src={black_logo}
             alt=""
             width={200}
             height={58}
@@ -497,11 +493,11 @@ export default function Navbar() {
           </button>
 
           {/* Tablet and up: segmented pill */}
-          <div className="hidden h-12 items-center rounded-full border border-[#E1DDD6] bg-white pl-2 pr-1.5 shadow-[0_2px_10px_rgba(27,26,46,0.10)] transition-shadow hover:shadow-[0_4px_16px_rgba(27,26,46,0.16)] md:flex">
+          <div className="hidden h-[52px] items-center rounded-full border border-[#E1DDD6] bg-white pl-2.5 pr-2 shadow-[0_2px_10px_rgba(27,26,46,0.10)] transition-shadow hover:shadow-[0_4px_16px_rgba(27,26,46,0.16)] md:flex lg:h-[56px] lg:pl-3 lg:pr-2.5">
             <button
               type="button"
               onClick={() => openSearch("where")}
-              className={`max-w-[150px] truncate rounded-full px-4 py-2 text-sm hover:bg-[#F7F5F2] ${focusRing} ${
+              className={`max-w-[150px] truncate rounded-full px-4 py-2 text-sm hover:bg-[#F7F5F2] lg:max-w-[180px] lg:px-5 lg:py-2.5 lg:text-[15px] ${focusRing} ${
                 where.trim()
                   ? "font-semibold text-[#1B1A2E]"
                   : "font-medium text-[#3A3856]"
@@ -513,7 +509,7 @@ export default function Navbar() {
             <button
               type="button"
               onClick={() => openSearch("in")}
-              className={`max-w-[160px] truncate rounded-full px-4 py-2 text-sm hover:bg-[#F7F5F2] ${focusRing} ${
+              className={`max-w-[160px] truncate rounded-full px-4 py-2 text-sm hover:bg-[#F7F5F2] lg:max-w-[190px] lg:px-5 lg:py-2.5 lg:text-[15px] ${focusRing} ${
                 checkIn || checkOut
                   ? "font-semibold text-[#1B1A2E]"
                   : "font-medium text-[#3A3856]"
@@ -525,7 +521,7 @@ export default function Navbar() {
             <button
               type="button"
               onClick={() => openSearch("who")}
-              className={`max-w-[130px] truncate rounded-full px-4 py-2 text-sm hover:bg-[#F7F5F2] ${focusRing} ${
+              className={`max-w-[130px] truncate rounded-full px-4 py-2 text-sm hover:bg-[#F7F5F2] lg:max-w-[155px] lg:px-5 lg:py-2.5 lg:text-[15px] ${focusRing} ${
                 guests > 0
                   ? "font-semibold text-[#1B1A2E]"
                   : "font-medium text-[#6B6A78]"
@@ -537,9 +533,9 @@ export default function Navbar() {
               type="button"
               onClick={() => openSearch("where")}
               aria-label="Open search"
-              className={`ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-[#E23E85] text-white transition-colors hover:bg-[#cf2f74] ${focusRing}`}
+              className={`ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-[#E23E85] text-white transition-colors hover:bg-[#cf2f74] lg:ml-2 lg:h-11 lg:w-11 ${focusRing}`}
             >
-              <Search size={16} strokeWidth={2.4} />
+              <Search size={16} strokeWidth={2.4} className="lg:h-[18px] lg:w-[18px]" />
             </button>
           </div>
 
@@ -697,11 +693,7 @@ export default function Navbar() {
         <div className="flex shrink-0 items-center gap-1 md:justify-self-end">
           <Link
             href={isHost ? "/host" : "/host/onboarding"}
-            className={`hidden rounded-full px-4 py-2.5 text-sm font-semibold no-underline transition-colors lg:inline-block ${focusRing} ${
-              overHero
-                ? "text-[#1B1A2E] hover:bg-[#F7F5F2] lg:text-white lg:hover:bg-white/15"
-                : "text-[#1B1A2E] hover:bg-[#F7F5F2]"
-            }`}
+            className={`hidden rounded-full px-4 py-2.5 text-sm font-semibold text-[#1B1A2E] no-underline transition-colors hover:bg-[#F7F5F2] lg:inline-block ${focusRing}`}
           >
             {isHost ? "Host panel" : "Become a host"}
           </Link>

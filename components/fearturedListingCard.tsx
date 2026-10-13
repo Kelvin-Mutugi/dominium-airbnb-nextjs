@@ -21,6 +21,12 @@ interface FeaturedListingCardProps {
 const focusRing =
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E23E85]";
 
+// The card fills whatever width its parent gives it (grid column or carousel
+// wrapper). Keep this `sizes` value in sync with the grid in
+// FeaturedListingCardGridPreview below, or with your own layout.
+const CARD_IMAGE_SIZES =
+  "(min-width: 1440px) 20vw, (min-width: 1200px) 25vw, (min-width: 950px) 33vw, (min-width: 550px) 50vw, 100vw";
+
 export default function FeaturedListingCard({
   item,
   id,
@@ -143,18 +149,18 @@ export default function FeaturedListingCard({
     };
   }, [id, item]);
 
-  // Loading state
+  // Loading state: mirrors the real card (square image + text lines)
+  // so nothing jumps when the listing loads.
   if (loading) {
     return (
-      <div className="w-full max-w-[180px] overflow-hidden rounded-2xl">
-        <div>
-          <div className="shimmer aspect-square w-full rounded-2xl" />
+      <div className="w-full" aria-hidden="true">
+        <div className="shimmer aspect-square w-full rounded-xl" />
 
-          <div className="space-y-2 pt-3">
-            <div className="shimmer h-3 w-24 rounded" />
-            <div className="shimmer h-4 w-40 rounded" />
-            <div className="shimmer h-4 w-28 rounded" />
-          </div>
+        <div className="space-y-2 pt-3">
+          <div className="shimmer h-3 w-1/2 rounded" />
+          <div className="shimmer h-4 w-3/4 rounded" />
+          <div className="shimmer h-3 w-2/5 rounded" />
+          <div className="shimmer h-4 w-1/3 rounded" />
         </div>
       </div>
     );
@@ -185,23 +191,21 @@ export default function FeaturedListingCard({
   const guestsLabel = `${listing.guests} guest${listing.guests === 1 ? "" : "s"}`;
 
   return (
-    <article
-      className="relative w-full max-w-[180px]"
-    >
+    <article className="relative w-full">
       <Link
         href={`/apartments/${listing.id}`}
         target="_blank"
         aria-label={`${listing.name}, ${listing.loc}, ${listing.price} per night`}
-        className={`block rounded-2xl text-left no-underline active:transform-none active:transition-none [-webkit-tap-highlight-color:transparent] ${focusRing}`}
+        className={`block rounded-xl text-left no-underline active:transform-none active:transition-none [-webkit-tap-highlight-color:transparent] ${focusRing}`}
       >
         {/* Image */}
-        <div className="relative aspect-square w-full overflow-hidden rounded-2xl">
+        <div className="relative aspect-square w-full overflow-hidden rounded-xl">
           <Image
             src={activeImage}
             alt={listing.name}
             loader={activeImage.includes("images.unsplash.com") ? unsplashCardImageLoader : undefined}
             fill
-            sizes="180px"
+            sizes={CARD_IMAGE_SIZES}
             quality={85}
             unoptimized={activeImage.includes("placehold.co") || activeImage === "/placeholder.svg"}
             onError={() =>
@@ -228,14 +232,14 @@ export default function FeaturedListingCard({
         <div className="pt-3">
           {/* Location + Rating */}
           <div className="flex items-center justify-between gap-3">
-            <p className="truncate text-[11px] text-[#36454F]/90">
+            <p className="truncate text-[12px] text-[#36454F]/90 lg:text-[13px]">
               {listing.loc}
             </p>
 
             {rating && (
-              <span className="flex shrink-0 items-center gap-1 text-[11px] font-medium text-[#1B1A2E]">
+              <span className="flex shrink-0 items-center gap-1 text-[12px] font-medium text-[#1B1A2E] lg:text-[13px]">
                 <Star
-                  size={11}
+                  size={12}
                   fill="currentColor"
                   className="text-[#F7B500]"
                   aria-hidden="true"
@@ -258,7 +262,7 @@ export default function FeaturedListingCard({
 
           {/* Beds + guests */}
           {(hasBeds || hasGuests) && (
-            <p className="mt-1 flex items-center gap-3 text-[11px] text-[#36454F]/90">
+            <p className="mt-1 flex items-center gap-3 text-[12px] text-[#36454F]/90 lg:text-[13px]">
               {hasBeds && (
                 <span className="inline-flex items-center gap-1">
                   <BedDouble size={12} aria-hidden="true" />
@@ -275,14 +279,14 @@ export default function FeaturedListingCard({
           )}
 
           {/* Price */}
-          <p className="mt-1.5 text-[13px] font-semibold text-[#1B1A2E]">
+          <p className="mt-1.5 text-[14px] font-semibold text-[#1B1A2E]">
             {listing.price}
             <span className="ml-1 font-normal text-[#36454F]/55">/ night</span>
           </p>
 
-          {/* Description: w-full (was w-64, wider than the 240px card, which clipped the text) */}
+          {/* Description */}
           {listing.description ? (
-            <p className="mt-1 line-clamp-2 w-full text-[11px] leading-4 text-[#36454F]/90">
+            <p className="mt-1 line-clamp-2 w-full text-[12px] leading-4 text-[#36454F]/90">
               {listing.description}
             </p>
           ) : null}
@@ -303,7 +307,7 @@ export default function FeaturedListingCard({
 
 export function FeaturedListingCardGridPreview() {
   return (
-    <div className="grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-x-4 gap-y-8 min-[550px]:grid-cols-2 min-[950px]:grid-cols-3 min-[1200px]:grid-cols-4 min-[1440px]:grid-cols-5 sm:gap-x-6">
       {LISTINGS.map((listing) => (
         <FeaturedListingCard key={listing.id} item={listing} />
       ))}

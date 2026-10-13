@@ -7,7 +7,6 @@ import { useEffect, useState } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import {
   CarFront,
-  Check,
   Heart,
   Snowflake,
   Sparkles,
@@ -234,12 +233,6 @@ export default function ListingCard({ item, id, loading = false }: ListingCardPr
             onMouseLeave={() => setIsHovered(false)}
           />
 
-          {listing.rareFind && (
-            <div className="absolute left-3 top-3 z-10 rounded-full bg-[#1B1A2E] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white shadow-sm">
-              Rare find
-            </div>
-          )}
-
           <button
             type="button"
             aria-label={isSaved ? "Remove from saved listings" : "Save listing"}
@@ -257,12 +250,6 @@ export default function ListingCard({ item, id, loading = false }: ListingCardPr
           <div className="flex items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-1.5 text-[12px] text-[#36454F]/70">
               <span className="truncate font-medium text-[#36454F]">{listing.loc}</span>
-              {listing.verified && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
-                  <Check size={10} className="stroke-[2.5]" />
-                  Verified
-                </span>
-              )}
             </div>
 
             {ratingValue && (
