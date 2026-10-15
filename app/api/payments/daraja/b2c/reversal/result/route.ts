@@ -49,22 +49,26 @@ export async function POST(request: Request) {
     processing_status: reversal ? "received" : "unmatched",
     payload,
   });
-  if (eventError?.code === "23505") return accepted();
+  if (eventError?.code === "23505") {
+    console.info("Duplicate Daraja reversal result received; retrying settlement and ledger posting.", {
+      reversalId: reversal?.id,
+    });
+  }
   if (eventError) {
     console.error("Daraja reversal result event could not be recorded:", eventError);
     return NextResponse.json({ error: "Reversal result processing failed." }, { status: 500 });
   }
   if (!reversal) return accepted();
 
-  const { error } = await admin.rpc("settle_daraja_b2c_reversal_result", {
+  const { error: settlementError } = await admin.rpc("settle_daraja_b2c_reversal_result_with_financial_posting", {
     p_conversation_id: result.ConversationID,
     p_originator_conversation_id: result.OriginatorConversationID,
     p_result_code: String(result.ResultCode ?? ""),
     p_result_description: String(result.ResultDesc ?? ""),
     p_raw_response: payload,
   });
-  if (error) {
-    console.error("Daraja reversal result settlement failed:", error);
+  if (settlementError) {
+    console.error("Daraja reversal result settlement failed:", settlementError);
     await admin.rpc("mark_daraja_b2c_reversal_reconciliation_required", {
       p_reversal_id: reversal.id,
       p_description: "Safaricom returned a reversal result that could not be safely settled; reconcile before any ledger change.",

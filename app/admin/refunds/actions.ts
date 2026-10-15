@@ -319,7 +319,7 @@ export async function reconcileSafaricomB2CFee(input: {
   if (!UUID_PATTERN.test(input.attemptId)) throw new Error("Invalid B2C attempt.");
   if (!Number.isFinite(input.actualFee) || input.actualFee < 0) throw new Error("Enter a valid actual Safaricom fee.");
   const admin = getSupabaseAdmin();
-  const { data, error } = await admin.rpc("reconcile_daraja_b2c_fee", {
+  const { data, error } = await admin.rpc("reconcile_daraja_b2c_fee_with_financial_posting", {
     p_attempt_id: input.attemptId,
     p_actual_fee: input.actualFee,
     p_admin_id: actor.id,
@@ -353,7 +353,7 @@ export async function reconcileSafaricomCollectionFee(input: {
   if (!UUID_PATTERN.test(input.attemptId)) throw new Error("Invalid STK payment attempt.");
   if (!Number.isFinite(input.actualFee) || input.actualFee < 0) throw new Error("Enter a valid actual collection fee.");
   const admin = getSupabaseAdmin();
-  const { data, error } = await admin.rpc("reconcile_daraja_collection_fee", {
+  const { data, error } = await admin.rpc("reconcile_daraja_collection_fee_with_financial_posting", {
     p_attempt_id: input.attemptId,
     p_actual_fee: input.actualFee,
     p_admin_id: actor.id,

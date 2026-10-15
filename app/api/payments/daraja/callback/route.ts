@@ -157,10 +157,20 @@ export async function POST(request: Request) {
     console.error("Daraja callback event could not be recorded:", eventError);
     return NextResponse.json({ error: "Callback processing failed." }, { status: 500 });
   }
+  if (eventError?.code === "23505") {
+    console.info("Duplicate Daraja STK callback received; retrying settlement and ledger posting.", {
+      checkoutRequestId,
+    });
+  }
   if (!attempt) return accepted();
 
   try {
     if (["succeeded", "late_success"].includes(attempt.status)) {
+      const { error: ledgerError } = await admin.rpc(
+        "post_daraja_stk_financial_transaction",
+        { p_checkout_request_id: checkoutRequestId },
+      );
+      if (ledgerError) throw ledgerError;
       await markEvent(admin, fingerprint, "processed", attempt.id);
       return accepted();
     }
@@ -255,7 +265,7 @@ export async function POST(request: Request) {
 
     const rawResponse = { callback: payload, statusQuery: verifiedStatus };
     const { data: settlement, error: settlementError } = await admin.rpc(
-      "settle_daraja_stk_attempt",
+      "settle_daraja_stk_attempt_with_financial_posting",
       {
         p_checkout_request_id: checkoutRequestId,
         p_amount_minor: amount * 100,

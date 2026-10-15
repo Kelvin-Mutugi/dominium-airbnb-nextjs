@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 import { formatDate, formatMoney, humanize } from "@/app/lib/format";
 import { PaymentRefundRequestButton } from "@/components/admin/refunds/payment-refund-request-button";
+import { SafaricomPaymentReconciliation } from "@/components/admin/payments/safaricom-payment-reconciliation";
 
 type View = "payments" | "payouts";
 
@@ -20,6 +21,18 @@ type PaymentRecord = {
   created_at: string;
 };
 
+type DarajaAttemptRecord = {
+  id: string;
+  payment_id: string;
+  checkout_request_id: string;
+  phone_number: string;
+  amount: number | string;
+  status: string;
+  mpesa_receipt_number: string | null;
+  result_description: string | null;
+  created_at: string;
+};
+
 type PayoutRecord = {
   id: string;
   host_id: string;
@@ -33,6 +46,7 @@ type PayoutRecord = {
 
 type BookingRecord = {
   id: string;
+  booking_reference: string;
   listing_id: string;
   guest_id: string | null;
   host_id: string;
@@ -53,6 +67,7 @@ type ProfileRecord = {
 type LedgerRecord = {
   id: string;
   bookingId: string;
+  bookingReference: string | null;
   amount: number | string;
   providerFee?: number | string | null;
   status: string;
@@ -70,6 +85,7 @@ type LedgerRecord = {
   hostName?: string | null;
   payoutDestination?: string | null;
   refundRequestStatus?: string;
+  darajaAttempt?: DarajaAttemptRecord;
 };
 
 const PAYMENT_STATUSES = ["all", "pending", "paid", "failed", "refunded"];
@@ -136,6 +152,7 @@ function matchesQuery(record: LedgerRecord, query: string) {
   const haystack = [
     record.id,
     record.bookingId,
+    record.bookingReference,
     record.listingTitle,
     record.guestName,
     record.guestEmail,
@@ -215,18 +232,46 @@ export default async function AdminPaymentsPayoutsPage({
     const bookingIds = [
       ...new Set(payments.map((payment) => payment.booking_id).filter(Boolean)),
     ];
-    const { data: bookingData, error: bookingError } = bookingIds.length
-      ? await admin
-          .from("bookings")
-          .select(
-            "id, listing_id, guest_id, host_id, guest_name, guest_email, check_in, check_out",
-          )
-          .in("id", bookingIds)
-      : { data: [], error: null };
+    const [{ data: bookingData, error: bookingError }, { data: attemptData, error: attemptError }] =
+      await Promise.all([
+        bookingIds.length
+          ? admin
+              .from("bookings")
+              .select(
+                "id, booking_reference, listing_id, guest_id, host_id, guest_name, guest_email, check_in, check_out",
+              )
+              .in("id", bookingIds)
+          : Promise.resolve({ data: [], error: null }),
+        paymentIds.length
+          ? admin
+              .from("daraja_payment_attempts")
+              .select(
+                "id, payment_id, checkout_request_id, phone_number, amount, status, mpesa_receipt_number, result_description, created_at",
+              )
+              .in("payment_id", paymentIds)
+              .order("created_at", { ascending: false })
+          : Promise.resolve({ data: [], error: null }),
+      ]);
     if (bookingError)
       throw new Error("Unable to load payment booking details.");
+    if (attemptError)
+      throw new Error("Unable to load Safaricom payment attempt details.");
 
     const bookings = (bookingData ?? []) as unknown as BookingRecord[];
+    const attempts = (attemptData ?? []) as unknown as DarajaAttemptRecord[];
+    const attemptByPayment = new Map<string, DarajaAttemptRecord>();
+    for (const attempt of attempts) {
+      const existing = attemptByPayment.get(attempt.payment_id);
+      const active = ["pending", "reconciliation_required"].includes(
+        attempt.status,
+      );
+      const existingActive =
+        existing &&
+        ["pending", "reconciliation_required"].includes(existing.status);
+      if (!existing || (active && !existingActive)) {
+        attemptByPayment.set(attempt.payment_id, attempt);
+      }
+    }
     const listingIds = [
       ...new Set(bookings.map((booking) => booking.listing_id).filter(Boolean)),
     ];
@@ -276,6 +321,7 @@ export default async function AdminPaymentsPayoutsPage({
       return {
         id: payment.id,
         bookingId: payment.booking_id,
+        bookingReference: booking?.booking_reference ?? null,
         amount: payment.amount,
         providerFee: payment.provider_fee_amount,
         status: payment.status,
@@ -295,6 +341,7 @@ export default async function AdminPaymentsPayoutsPage({
         method: payment.payment_channel ?? payment.method,
         currency: payment.currency,
         refundRequestStatus: refundStatusByPayment.get(payment.id),
+        darajaAttempt: attemptByPayment.get(payment.id),
       };
     });
   } else {
@@ -322,7 +369,7 @@ export default async function AdminPaymentsPayoutsPage({
         ? admin
             .from("bookings")
             .select(
-              "id, listing_id, guest_id, host_id, guest_name, guest_email, check_in, check_out",
+              "id, booking_reference, listing_id, guest_id, host_id, guest_name, guest_email, check_in, check_out",
             )
             .in("id", bookingIds)
         : Promise.resolve({ data: [], error: null }),
@@ -363,6 +410,7 @@ export default async function AdminPaymentsPayoutsPage({
       return {
         id: payout.id,
         bookingId: payout.booking_id,
+        bookingReference: booking?.booking_reference ?? null,
         amount: payout.amount,
         status: payout.status,
         createdAt: payout.created_at,
@@ -529,9 +577,18 @@ export default async function AdminPaymentsPayoutsPage({
         </p>
       )}
 
-      <div className="overflow-x-auto border-y bg-white">
+      <div
+        role="region"
+        tabIndex={0}
+        aria-label={
+          view === "payments"
+            ? "Guest payment records. Scroll horizontally to see all columns."
+            : "Host payout records. Scroll horizontally to see all columns."
+        }
+        className="overflow-x-auto border-y bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E23E85]"
+      >
         {view === "payments" ? (
-          <table className="w-full min-w-[1080px] text-left text-sm">
+          <table className="w-max min-w-[1800px] text-left text-sm">
             <thead className="bg-gray-50 text-xs font-medium uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-4 py-3">Payment / Booking</th>
@@ -542,13 +599,14 @@ export default async function AdminPaymentsPayoutsPage({
                 <th className="px-4 py-3 text-right">Provider fee</th>
                 <th className="px-4 py-3">Paid</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Safaricom attempt</th>
                 <th className="px-4 py-3">Refund review</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filteredRecords.map((record) => (
                 <tr key={record.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
+                  <td className="whitespace-nowrap px-4 py-3">
                     <Link
                       href={`/admin/bookings/${record.bookingId}`}
                       className="font-medium text-[#1B1A2E] hover:text-[#E23E85]"
@@ -556,10 +614,10 @@ export default async function AdminPaymentsPayoutsPage({
                       {record.listingTitle ?? "Listing unavailable"}
                     </Link>
                     <span className="mt-0.5 block text-xs text-gray-500">
-                      Booking {record.bookingId.slice(0, 8)}
+                      Booking {record.bookingReference ?? "reference unavailable"}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="whitespace-nowrap px-4 py-3">
                     <span className="block text-gray-800">
                       {record.guestName ?? "Guest name unavailable"}
                     </span>
@@ -569,11 +627,11 @@ export default async function AdminPaymentsPayoutsPage({
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="whitespace-nowrap px-4 py-3 text-gray-600">
                     {humanize(record.provider ?? record.method) || "—"}
                   </td>
                   <td
-                    className="max-w-48 truncate px-4 py-3 font-mono text-xs text-gray-500"
+                    className="max-w-72 truncate whitespace-nowrap px-4 py-3 font-mono text-xs text-gray-500"
                     title={record.reference ?? undefined}
                   >
                     {record.reference ?? "—"}
@@ -590,10 +648,57 @@ export default async function AdminPaymentsPayoutsPage({
                   <td className="whitespace-nowrap px-4 py-3 text-gray-600">
                     {record.paidAt ? formatDate(record.paidAt, "short") : "—"}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="whitespace-nowrap px-4 py-3">
                     <StatusBadge status={record.status} />
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="whitespace-nowrap px-4 py-3">
+                    {record.darajaAttempt ? (
+                      <div className="max-w-72 space-y-1">
+                        <StatusBadge status={record.darajaAttempt.status} />
+                        <span className="block font-mono text-xs text-gray-600">
+                          {record.darajaAttempt.checkout_request_id}
+                        </span>
+                        {record.darajaAttempt.mpesa_receipt_number && (
+                          <span className="block font-mono text-xs text-gray-600">
+                            M-PESA receipt:{" "}
+                            {record.darajaAttempt.mpesa_receipt_number}
+                          </span>
+                        )}
+                        {record.darajaAttempt.result_description && (
+                          <span
+                            className="block max-w-80 truncate text-xs text-gray-500"
+                            title={record.darajaAttempt.result_description}
+                          >
+                            {record.darajaAttempt.result_description}
+                          </span>
+                        )}
+                        {record.darajaAttempt.status === "late_success" && (
+                          <p className="text-xs font-medium text-amber-800">
+                            Payment received, but the booking was not confirmed.
+                            Review the refund action for this payment.
+                          </p>
+                        )}
+                        {record.status === "pending" &&
+                          ["pending", "reconciliation_required"].includes(
+                            record.darajaAttempt.status,
+                          ) && (
+                            <SafaricomPaymentReconciliation
+                              paymentId={record.id}
+                              amount={Number(record.darajaAttempt.amount)}
+                              phoneNumber={record.darajaAttempt.phone_number}
+                              receiptFromSafaricom={
+                                record.darajaAttempt.mpesa_receipt_number
+                              }
+                            />
+                          )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-400">
+                        No Daraja attempt recorded
+                      </span>
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3">
                     {record.status === "paid" || record.status === "success" ? (
                       <PaymentRefundRequestButton
                         paymentId={record.id}
@@ -610,7 +715,7 @@ export default async function AdminPaymentsPayoutsPage({
               {filteredRecords.length === 0 && (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="px-4 py-12 text-center text-sm text-gray-500"
                   >
                     No payments match these filters.
@@ -643,7 +748,7 @@ export default async function AdminPaymentsPayoutsPage({
                       {record.listingTitle ?? "Listing unavailable"}
                     </Link>
                     <span className="mt-0.5 block text-xs text-gray-500">
-                      Booking {record.bookingId.slice(0, 8)}
+                      Booking {record.bookingReference ?? "reference unavailable"}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-gray-800">

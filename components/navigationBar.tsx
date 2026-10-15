@@ -106,10 +106,6 @@ function Avatar({
 }) {
   const [failed, setFailed] = useState(false);
 
-  useEffect(() => {
-    setFailed(false);
-  }, [url]);
-
   return (
     <span
       className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full text-white ${
@@ -119,6 +115,7 @@ function Avatar({
       {signedIn && url && !failed ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
+          key={url ?? "default-avatar"}
           src={url}
           alt={name}
           referrerPolicy="no-referrer"
@@ -287,11 +284,6 @@ export default function Navbar() {
     };
   }, []);
 
-  useEffect(() => {
-    setMenuOpen(false);
-    setSearchOpen(false);
-  }, [pathname]);
-
   // Full-screen search sheet on phones: stop the page scrolling behind it
   useEffect(() => {
     if (!searchOpen) return;
@@ -332,7 +324,6 @@ export default function Navbar() {
   // Track whether the hero section has scrolled out from under the navbar
   useEffect(() => {
     if (!hasHero) {
-      setPastHero(false);
       return;
     }
 
@@ -417,6 +408,7 @@ export default function Navbar() {
   const navSurface = overHero
     ? "border-[#E9E6DD] bg-white"
     : "border-[#E9E6DD] bg-white";
+  const navShadow = scrolled ? "shadow-[0_8px_24px_rgba(27,26,46,0.06)]" : "";
 
   // On md+ every field is a fixed 64px-tall pill, so the row lines up with the
   // Search button no matter what the content does.
@@ -433,7 +425,7 @@ export default function Navbar() {
     <div className="sticky top-0 z-[100] font-sans">
       <nav
         data-site-navbar
-        className={`flex h-[75px] items-center gap-3 border-b px-4 transition-colors duration-300 sm:px-[5%] md:grid md:grid-cols-[1fr_auto_1fr] ${navSurface}`}
+        className={`flex h-[75px] items-center gap-3 border-b px-4 transition-colors duration-300 sm:px-[5%] md:grid md:grid-cols-[1fr_auto_1fr] ${navSurface} ${navShadow}`}
       >
         {/* ---------------------------- Logo ---------------------------- */}
         <Link

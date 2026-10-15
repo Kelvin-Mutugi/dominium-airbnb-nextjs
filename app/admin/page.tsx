@@ -4,15 +4,115 @@ import Link from "next/link";
 
 async function getDashboardStats() {
   const admin = getSupabaseAdmin();
+  const [
+    paymentRefundReview,
+    cancellationRefundReview,
+    paymentRefundProcessing,
+    cancellationRefundProcessing,
+    failedPayments,
+    paymentSupportCases,
+  ] = await Promise.all([
+    admin
+      .from("payment_refund_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "awaiting_admin_review"),
+    admin
+      .from("booking_change_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("request_type", "cancellation")
+      .eq("status", "approved")
+      .eq("refund_processing_status", "awaiting_admin_review"),
+    admin
+      .from("payment_refund_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "awaiting_manual_processing"),
+    admin
+      .from("booking_change_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("request_type", "cancellation")
+      .eq("status", "approved")
+      .eq("refund_processing_status", "awaiting_manual_processing"),
+    admin
+      .from("payments")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "failed"),
+    admin
+      .from("support_cases")
+      .select("id", { count: "exact", head: true })
+      .eq("category", "payment_refund")
+      .in("status", ["new", "in_review", "waiting_on_user"]),
+  ]);
+
+  const financeQueries = [
+    ["payment refund requests", paymentRefundReview],
+    ["cancellation refund requests", cancellationRefundReview],
+    ["approved payment refunds", paymentRefundProcessing],
+    ["approved cancellation refunds", cancellationRefundProcessing],
+    ["failed payments", failedPayments],
+    ["payment support cases", paymentSupportCases],
+  ] as const;
+  for (const [label, result] of financeQueries) {
+    if (result.error) {
+      console.error(`Unable to load ${label} for the admin dashboard:`, result.error);
+      throw new Error(`Unable to load ${label} for the admin dashboard.`);
+    }
+  }
+
+  const now = new Date();
+  const currentMonth = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+  );
+  const months = Array.from({ length: 6 }, (_, index) => {
+    const start = new Date(
+      Date.UTC(
+        currentMonth.getUTCFullYear(),
+        currentMonth.getUTCMonth() - (5 - index),
+        1,
+      ),
+    );
+    const end = new Date(
+      Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1),
+    );
+    return {
+      start: start.toISOString(),
+      end: end.toISOString(),
+      label: start.toLocaleDateString("en", {
+        month: "short",
+        timeZone: "UTC",
+      }),
+    };
+  });
+  const paymentTrendResults = await Promise.all(
+    months.flatMap(({ start, end }) => [
+      admin
+        .from("payments")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "paid")
+        .gte("created_at", start)
+        .lt("created_at", end),
+      admin
+        .from("payments")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "failed")
+        .gte("created_at", start)
+        .lt("created_at", end),
+    ]),
+  );
+  const paymentTrend = months.map(({ label }, index) => {
+    const paid = paymentTrendResults[index * 2];
+    const failed = paymentTrendResults[index * 2 + 1];
+    if (paid.error || failed.error) {
+      console.error("Unable to load monthly payment activity:", paid.error ?? failed.error);
+      throw new Error("Unable to load monthly payment activity for the admin dashboard.");
+    }
+    return {
+      month: label,
+      paid: paid.count ?? 0,
+      failed: failed.count ?? 0,
+    };
+  });
 
   const [
-    { count: totalListings },
-    { count: publishedListings },
-    { count: confirmedBookings },
-    { count: totalUsers },
-    { count: activeUsers },
-    { count: suspendedUsers },
-    { data: payoutRows },
     { data: pendingListingQueue, count: pendingListingCount },
     { data: pendingBookingQueue, count: pendingBookingCount },
     { data: pendingHostQueue, count: pendingHostCount },
@@ -20,25 +120,6 @@ async function getDashboardStats() {
     { data: owedPayoutQueue, count: owedPayoutCount },
     { data: propertyRequestQueue, count: propertyRequestCount },
   ] = await Promise.all([
-    admin.from("listings").select("*", { count: "exact", head: true }),
-    admin
-      .from("listings")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "published"),
-    admin
-      .from("bookings")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "confirmed"),
-    admin.from("profiles").select("*", { count: "exact", head: true }),
-    admin
-      .from("profiles")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "active"),
-    admin
-      .from("profiles")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "suspended"),
-    admin.from("payouts").select("amount").eq("status", "owed"),
     admin
       .from("listings")
       .select("id, title, town, county, created_at", { count: "exact" })
@@ -78,20 +159,21 @@ async function getDashboardStats() {
       .limit(5),
   ]);
 
-  const payoutsOwed =
-    payoutRows?.reduce((sum, row) => sum + Number(row.amount), 0) ?? 0;
-
   return {
-    totalListings: totalListings ?? 0,
     pendingListings: pendingListingCount ?? 0,
-    publishedListings: publishedListings ?? 0,
     pendingBookings: pendingBookingCount ?? 0,
-    confirmedBookings: confirmedBookings ?? 0,
-    totalUsers: totalUsers ?? 0,
-    activeUsers: activeUsers ?? 0,
-    suspendedUsers: suspendedUsers ?? 0,
-    payoutsOwed,
     owedPayoutCount: owedPayoutCount ?? 0,
+    financeAttention: {
+      refundsAwaitingDecision:
+        (paymentRefundReview.count ?? 0) +
+        (cancellationRefundReview.count ?? 0),
+      refundsAwaitingProcessing:
+        (paymentRefundProcessing.count ?? 0) +
+        (cancellationRefundProcessing.count ?? 0),
+      failedPayments: failedPayments.count ?? 0,
+      paymentSupportCases: paymentSupportCases.count ?? 0,
+    },
+    paymentTrend,
     workQueues: [
       {
         id: "listings",
@@ -209,22 +291,180 @@ function QueuePanel({
   );
 }
 
-function StatCard({
-  label,
-  value,
-  href,
+function FinanceOverviewCharts({
+  financeAttention,
+  paymentTrend,
 }: {
-  label: string;
-  value: string | number;
-  href?: string;
+  financeAttention: {
+    refundsAwaitingDecision: number;
+    refundsAwaitingProcessing: number;
+    failedPayments: number;
+    paymentSupportCases: number;
+  };
+  paymentTrend: Array<{ month: string; paid: number; failed: number }>;
 }) {
-  const content = (
-    <div className="p-4 border rounded-lg bg-white shadow-sm hover:shadow transition">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-gray-500">{value}</p>
-    </div>
+  const maxCount = Math.max(
+    1,
+    ...paymentTrend.flatMap((month) => [month.paid, month.failed]),
   );
-  return href ? <Link href={href}>{content}</Link> : content;
+  const hasPaymentActivity = paymentTrend.some(
+    (month) => month.paid > 0 || month.failed > 0,
+  );
+  const queues = [
+    {
+      label: "Refunds awaiting decision",
+      count: financeAttention.refundsAwaitingDecision,
+      href: "/admin/refunds?view=review",
+      color: "bg-amber-500",
+    },
+    {
+      label: "Approved refunds to process",
+      count: financeAttention.refundsAwaitingProcessing,
+      href: "/admin/refunds?view=approved",
+      color: "bg-orange-500",
+    },
+    {
+      label: "Failed payments",
+      count: financeAttention.failedPayments,
+      href: "/admin/payouts?view=payments&status=failed",
+      color: "bg-rose-500",
+    },
+    {
+      label: "Guest payment support cases",
+      count: financeAttention.paymentSupportCases,
+      href: "/admin/support?category=payment_refund&status=open",
+      color: "bg-sky-500",
+    },
+  ];
+  const maxQueueCount = Math.max(1, ...queues.map((queue) => queue.count));
+  const totalQueueItems = queues.reduce((sum, queue) => sum + queue.count, 0);
+
+  return (
+    <section className="space-y-4">
+      <header>
+        <h2 className="text-xl font-semibold text-[#E23E85]">
+          Payments and refunds
+        </h2>
+        <p className="mt-1 text-sm text-gray-600">
+          Recent payment outcomes and finance work that needs attention.
+        </p>
+      </header>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(20rem,1fr)]">
+        <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+          <header className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-[#1B1A2E]">
+                Guest payment outcomes
+              </h3>
+              <p className="mt-1 text-xs text-gray-500">
+                Payment records created per month · last 6 months
+              </p>
+            </div>
+            <div className="flex gap-3 text-xs">
+              <span className="inline-flex items-center gap-1.5 text-gray-600">
+                <span className="size-2.5 rounded-sm bg-emerald-500" />
+                Paid
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-gray-600">
+                <span className="size-2.5 rounded-sm bg-rose-400" />
+                Failed
+              </span>
+            </div>
+          </header>
+          <div
+            role="img"
+            aria-label={`Monthly guest payment records: ${paymentTrend.map((month) => `${month.month}, ${month.paid} paid, ${month.failed} failed`).join("; ")}`}
+            className="mt-5"
+          >
+            {!hasPaymentActivity && (
+              <p className="mb-3 text-center text-xs text-gray-500">
+                No paid or failed payments were recorded in this period.
+              </p>
+            )}
+            <div className="grid h-44 grid-cols-6 items-end gap-2 border-b border-gray-200 px-1 sm:gap-4">
+              {paymentTrend.map((month) => (
+                <div
+                  key={month.month}
+                  className="flex h-full min-w-0 flex-col justify-end"
+                >
+                  <div className="mb-1 flex h-5 items-center justify-center gap-1 text-[10px] tabular-nums text-gray-500">
+                    <span>{month.paid || ""}</span>
+                    <span>{month.failed || ""}</span>
+                  </div>
+                  <div className="flex h-[calc(100%-1.5rem)] items-end justify-center gap-1">
+                    <div
+                      title={`${month.month}: ${month.paid} paid`}
+                      className="w-7 rounded-t-sm bg-emerald-500"
+                      style={{
+                        height: `${(month.paid / maxCount) * 100}%`,
+                      }}
+                    />
+                    <div
+                      title={`${month.month}: ${month.failed} failed`}
+                      className="w-7 rounded-t-sm bg-rose-400"
+                      style={{
+                        height: `${(month.failed / maxCount) * 100}%`,
+                      }}
+                    />
+                  </div>
+                  <span className="mt-2 text-center text-[11px] font-medium text-gray-500">
+                    {month.month}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-gray-500">
+            The current month is partial. Counts reflect payment records, not
+            transaction value.
+          </p>
+        </section>
+
+        <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+          <header>
+            <h3 className="font-semibold text-[#1B1A2E]">
+              Finance action queues
+            </h3>
+            <p className="mt-1 text-xs text-gray-500">
+              {totalQueueItems} outstanding items across these queues
+            </p>
+          </header>
+          <div className="mt-5 space-y-4">
+            {queues.map((queue) => (
+              <Link
+                key={queue.label}
+                href={queue.href}
+                aria-label={`${queue.label}: ${queue.count}. Open queue`}
+                className="group block rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#CF2F74]"
+              >
+                <span className="mb-1.5 flex items-center justify-between gap-3 text-xs">
+                  <span className="font-medium text-gray-700 group-hover:text-[#CF2F74]">
+                    {queue.label}
+                  </span>
+                  <span className="font-semibold tabular-nums text-gray-900">
+                    {queue.count}
+                  </span>
+                </span>
+                <span className="block h-2.5 overflow-hidden rounded-full bg-gray-100">
+                  <span
+                    className={`block h-full rounded-full ${queue.color}`}
+                    style={{
+                      width: `${queue.count > 0 ? Math.max(4, (queue.count / maxQueueCount) * 100) : 0}%`,
+                    }}
+                  />
+                </span>
+              </Link>
+            ))}
+          </div>
+          {totalQueueItems === 0 && (
+            <p className="mt-4 rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+              No finance items are currently waiting in these queues.
+            </p>
+          )}
+        </section>
+      </div>
+    </section>
+  );
 }
 
 export default async function AdminDashboardPage() {
@@ -235,48 +475,14 @@ export default async function AdminDashboardPage() {
       <div>
         <h1 className="text-2xl font-semibold text-[#E23E85]">Dashboard</h1>
         <p className="text-sm text-gray-600">
-          Overview of listings, bookings, and payouts.
+          Key operational queues, payment outcomes, and guest finance issues.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard
-          label="Total Listings"
-          value={stats.totalListings}
-          href="/admin/listings"
-        />
-        <StatCard
-          label="Pending Approval"
-          value={stats.pendingListings}
-          href="/admin/listings?status=pending_review"
-        />
-        <StatCard
-          label="Published Listings"
-          value={stats.publishedListings}
-          href="/admin/listings?status=published"
-        />
-        <StatCard
-          label="Pending Bookings"
-          value={stats.pendingBookings}
-          href="/admin/bookings?status=pending"
-        />
-        <StatCard
-          label="Active Users"
-          value={stats.activeUsers}
-          href="/admin/users"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Total Users" value={stats.totalUsers} href="/admin/users" />
-        <StatCard label="Suspended Users" value={stats.suspendedUsers} href="/admin/users" />
-        <StatCard label="Confirmed Bookings" value={stats.confirmedBookings} href="/admin/bookings?status=confirmed" />
-        <StatCard
-          label="Payouts Owed to Hosts"
-          value={`KES ${stats.payoutsOwed.toLocaleString()}`}
-          href="/admin/payouts"
-        />
-      </div>
+      <FinanceOverviewCharts
+        financeAttention={stats.financeAttention}
+        paymentTrend={stats.paymentTrend}
+      />
 
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">

@@ -954,6 +954,7 @@ export default function BookingCheckout({
         type="button"
         onClick={() => void pay()}
         disabled={isPaying || !userId}
+        
         className="inline-flex min-h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-4xl bg-[#d61a6b] px-4 py-3 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isPaying && (
