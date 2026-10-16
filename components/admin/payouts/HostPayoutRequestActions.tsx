@@ -21,6 +21,7 @@ export function HostPayoutRequestActions({
   processingBy,
   adminId,
   hostFeeBalance,
+  collectionFeeAmount,
   lastAttempt,
   lastReversal,
 }: {
@@ -32,6 +33,7 @@ export function HostPayoutRequestActions({
   processingBy: string | null;
   adminId: string;
   hostFeeBalance: number;
+  collectionFeeAmount: number | string | null;
   lastAttempt: {
     id: string;
     status: string;
@@ -51,6 +53,9 @@ export function HostPayoutRequestActions({
 }) {
   const router = useRouter();
   const [estimatedFee, setEstimatedFee] = useState("");
+  const [collectionFee, setCollectionFee] = useState(
+    collectionFeeAmount === null ? "" : String(collectionFeeAmount),
+  );
   const [actualFee, setActualFee] = useState("");
   const [reversalReason, setReversalReason] = useState("");
   const [reversalFee, setReversalFee] = useState("");
@@ -63,7 +68,10 @@ export function HostPayoutRequestActions({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const netAmount = Math.round(
-    amount - hostFeeBalance - Number(estimatedFee || 0),
+    amount -
+      hostFeeBalance -
+      (collectionFeeAmount === null ? Number(collectionFee || 0) : 0) -
+      Number(estimatedFee || 0),
   );
 
   async function claimRequest() {
@@ -89,11 +97,16 @@ export function HostPayoutRequestActions({
       estimatedFee === "" ||
       !Number.isInteger(Number(estimatedFee)) ||
       Number(estimatedFee) < 0 ||
+      collectionFee === "" ||
+      !Number.isFinite(Number(collectionFee)) ||
+      Number(collectionFee) < 0 ||
+      Number(collectionFee) > 1_000_000_000 ||
+      Number(Number(collectionFee).toFixed(2)) !== Number(collectionFee) ||
       netAmount <= 0 ||
       !detailsVerified
     ) {
       setError(
-        "Enter the whole-KES fee estimate, verify the destination, and check that the resulting amount is positive.",
+        "Enter a valid collection-fee total and whole-KES B2C fee estimate, verify the destination, and check that the resulting amount is positive.",
       );
       return;
     }
@@ -108,12 +121,14 @@ export function HostPayoutRequestActions({
       await initiateSafaricomHostPayout({
         requestId,
         estimatedFee: Number(estimatedFee),
+        collectionFee: Number(collectionFee),
         idempotencyKey: `${crypto.randomUUID()}-${crypto.randomUUID()}`,
         detailsVerified,
         note,
       });
       router.refresh();
     } catch (actionError) {
+      router.refresh();
       setError(
         actionError instanceof Error
           ? actionError.message
@@ -298,13 +313,31 @@ export function HostPayoutRequestActions({
         </dl>
       )}
       <p className="text-xs leading-5 text-amber-900">
-        Safaricom sends this payout directly to the saved M-Pesa number. The
-        request remains reserved until Safaricom returns a result. Estimate the
-        fee from the authoritative tariff source; actual fee variance adjusts
-        the host&apos;s signed balance for future payouts.
+        Record the combined actual STK fees for unreconciled collections
+        covered by this request. Exclude any fees already reflected in the
+        host&apos;s fee balance. The amount is charged once and deducted from
+        this transfer. Confirm it against Safaricom records.
       </p>
       {canInitiate && (
         <div className="grid gap-2 sm:grid-cols-2">
+          <label className="text-xs font-medium text-gray-600">
+            STK collection fee total (KES)
+            <input
+              type="number"
+              min="0"
+              max="1000000000"
+              step="0.01"
+              value={collectionFee}
+              onChange={(event) => setCollectionFee(event.target.value)}
+              disabled={collectionFeeAmount !== null}
+              className="mt-1 min-h-10 w-full rounded-md border border-gray-300 px-3 text-sm text-gray-900 disabled:bg-gray-100"
+            />
+            {collectionFeeAmount !== null && (
+              <span className="mt-1 block font-normal text-gray-500">
+                Saved for this request; it cannot be applied twice.
+              </span>
+            )}
+          </label>
           <label className="text-xs font-medium text-gray-600">
             Estimated B2C fee (whole KES)
             <input
@@ -317,7 +350,7 @@ export function HostPayoutRequestActions({
             />
           </label>
           <div className="text-xs font-medium text-gray-600">
-            Estimated amount to host
+            Estimated amount to send
             <p className="mt-1 min-h-10 rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-900">
               KES {Math.max(netAmount, 0).toLocaleString("en-KE")}
             </p>
@@ -409,15 +442,15 @@ export function HostPayoutRequestActions({
           onChange={(event) => setDetailsVerified(event.target.checked)}
           className="mt-1 accent-[#1769AA]"
         />
-        I verified the host destination and fee estimate against the approved
-        Safaricom B2C tariff.
+        I verified the host destination, STK fee total, and B2C fee estimate
+        against the relevant Safaricom records and tariff.
       </label>
       <div className="flex flex-wrap gap-2">
         {canInitiate && (
           <button
             type="button"
             onClick={() => void sendB2C()}
-            disabled={busy || estimatedFee === "" || !detailsVerified || netAmount <= 0}
+            disabled={busy || estimatedFee === "" || collectionFee === "" || !detailsVerified || netAmount <= 0}
             className="inline-flex min-h-10 items-center gap-2 rounded-md bg-[#1B1A2E] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
             <Banknote size={15} aria-hidden="true" />

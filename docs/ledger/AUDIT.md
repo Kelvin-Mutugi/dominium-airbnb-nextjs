@@ -125,7 +125,7 @@ The migrations define explicit admin-side reconciliation functions:
 - `reconcile_daraja_collection_fee(...)`
 - reversal and refund settlement functions
 
-These are important because the real provider fee is often not known until Safaricom confirms it. The app therefore carries a mutable financial state and later “reconciles” the difference into `profiles.host_fee_balance`, `bookings.collection_fee_amount`, `payments.provider_fee_amount`, and related request rows.
+The B2C transfer fee is reconciled after Safaricom confirms the payout. STK collection fees are now captured as one admin-entered aggregate on the host payout request, rather than requiring per-payment reconciliation before a host can request a payout. The request-level fee updates `profiles.host_fee_balance` and is posted to the financial ledger when the payout is prepared.
 
 ### Step 9: final money state
 
@@ -133,12 +133,12 @@ The “final” money state is spread across multiple database rows, not a singl
 
 - `bookings.total_amount` = guest total due
 - `payments.amount` = paid amount
-- `payments.provider_fee_amount` = collection fee
-- `bookings.collection_fee_amount` = confirmed collection fee
+- `payments.provider_fee_amount` / `bookings.collection_fee_amount` = legacy per-payment collection-fee values
 - `bookings.host_gross_amount` = host gross expected payout before fee debt
 - `payouts.amount` = what each host payout row is owed
 - `host_payout_requests.amount` = request total
-- `host_payout_requests.net_amount` = amount after transfer fee / outflow adjustments
+- `host_payout_requests.collection_fee_amount` = aggregate STK collection fee applied to the request
+- `host_payout_requests.net_amount` = amount after fee balance and estimated B2C fee adjustments
 - `profiles.host_fee_balance` = balancing / debt / fee ledger balance for hosts
 
 This is not a single immutable accounting ledger; it is a set of derived rows that can be updated by later reconciliation.
@@ -153,13 +153,13 @@ This is not a single immutable accounting ledger; it is a set of derived rows th
 - Transferred from guest to platform: actual collection is made via Daraja STK to the platform’s shortcode.
 - Authoritative source: the booking row at creation time, validated against the callback amount and payment attempt.
 
-### B. Platform / collection fee (`payments.provider_fee_amount`, `bookings.collection_fee_amount`)
+### B. Platform / collection fee (request-level STK fee)
 
-- Calculated in the provider callback and admin reconciliation layer, not at booking creation.
-- Stored in `payments.provider_fee_amount` and `bookings.collection_fee_amount`.
-- Updated by `reconcile_daraja_collection_fee(...)` when the actual provider fee is known.
-- The host balance is adjusted in `profiles.host_fee_balance`.
-- Authoritative source: the actual Daraja fee returned via callback and reconciled by admin function, not the initial estimate.
+- Captured by an admin as one aggregate amount for unreconciled STK collections in a host payout request, using Safaricom records.
+- Stored in `host_payout_requests.collection_fee_amount`, with admin and timestamp metadata.
+- Applied once to `profiles.host_fee_balance` and posted as a payment-processing expense when the B2C payout is prepared.
+- `payments.provider_fee_amount` and `bookings.collection_fee_amount` remain populated only by the legacy per-payment reconciliation path; they are not the current payout eligibility gate.
+- Actual B2C transfer fees continue to be reconciled separately after successful provider callbacks.
 
 ### C. Host gross / host payout base (`bookings.host_gross_amount`, `payouts.amount`)
 

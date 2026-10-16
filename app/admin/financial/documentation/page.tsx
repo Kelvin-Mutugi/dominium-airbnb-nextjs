@@ -191,7 +191,7 @@ export default async function FinancialDocumentationPage() {
                 <td className="px-4 py-3">A requested or submitted transfer is not confirmed as paid.</td>
               </tr>
               <tr>
-                <td className="px-4 py-3"><GuideLink href="/admin/payouts/fees">Payout Fee Reconciliation</GuideLink></td>
+                <td className="px-4 py-3"><GuideLink href="/admin/payouts/requests">Host Payout Requests</GuideLink></td>
                 <td className="px-4 py-3">Record actual provider fees against eligible transfer records.</td>
                 <td className="px-4 py-3">It must not be filled with an estimated fee.</td>
               </tr>
@@ -423,7 +423,7 @@ export default async function FinancialDocumentationPage() {
               <li>Confirm the payout destination and amount against the approved request. Check fees and net amount where shown.</li>
               <li>Use the page&apos;s available action for the appropriate workflow. Do not send a second transfer when the first result is processing, timed out, or ambiguous.</li>
               <li>Wait for the provider result before considering the request paid. Then compare the operational payout record with the <GuideLink href="/admin/financial/payouts">Host Settlement Journal</GuideLink>.</li>
-              <li>Record actual provider fees using <GuideLink href="/admin/payouts/fees">Payout Fee Reconciliation</GuideLink> and authoritative provider records only.</li>
+              <li>Record aggregate STK collection fees when initiating a host payout request, and reconcile actual B2C transfer fees after Safaricom confirms the result.</li>
             </ol>
           </details>
           <details className="rounded-lg border border-gray-200 bg-white p-4">

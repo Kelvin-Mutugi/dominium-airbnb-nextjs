@@ -12,6 +12,7 @@ import {
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 import { createClient } from "@/app/lib/supabase/server";
 import { todayISO } from "@/app/lib/format";
+import { normalizeDarajaPhone } from "@/app/lib/payments/daraja";
 import type {
   AvailabilityBlock,
   Booking,
@@ -1150,20 +1151,20 @@ export async function getHostPayoutsData() {
     admin
       .from("payouts")
       .select(
-        "*, booking:bookings(id, booking_reference, check_in, check_out, nights, adults_count, children_count, pets_count, rooms_count, status, host_payout_amount, host_gross_amount, collection_fee_amount, guest_name, guest_country, special_requests, listing:listings(id, title, town, county))",
+        "*, booking:bookings(id, booking_reference, check_in, check_out, nights, adults_count, children_count, pets_count, rooms_count, status, host_payout_amount, host_gross_amount, collection_fee_amount, collection_fee_reconciled, guest_name, guest_country, special_requests, listing:listings(id, title, town, county))",
       )
       .eq("host_id", user.id)
       .order("created_at", { ascending: false }),
     admin
       .from("host_payout_requests")
       .select(
-        "id, amount, transfer_fee, net_amount, destination_method, status, external_reference, requested_at, processed_at, admin_note",
+        "id, amount, net_amount, destination_method, destination_details, status, external_reference, requested_at, processed_at, admin_note",
       )
       .eq("host_id", user.id)
       .order("requested_at", { ascending: false }),
     admin
       .from("profiles")
-      .select("host_fee_balance, payout_method")
+      .select("host_fee_balance, payout_method, payout_details")
       .eq("id", user.id)
       .maybeSingle(),
   ]);
@@ -1171,61 +1172,126 @@ export async function getHostPayoutsData() {
     throw new Error("Unable to load payouts.");
 
   const requestIds = (requests ?? [])
-    .filter((request) => ["requested", "processing"].includes(request.status))
+    .filter((request) => ["requested", "processing", "paid"].includes(request.status))
     .map((request) => request.id);
   const { data: reservedItems, error: reservedError } = requestIds.length
     ? await admin
         .from("host_payout_request_items")
-        .select("payout_id")
+      .select("request_id, payout_id, amount")
         .in("request_id", requestIds)
     : { data: [], error: null };
   if (reservedError) throw new Error("Unable to load payout requests.");
 
-  const reservedPayoutIds = new Set(
-    (reservedItems ?? []).map((item) => item.payout_id),
+  const reservedByPayoutId = new Map<string, number>();
+  const paidByPayoutId = new Map<string, number>();
+  const requestStatusById = new Map(
+    (requests ?? []).map((request) => [request.id, request.status]),
   );
+  const paidRequestPayoutIds = new Set<string>();
+  for (const item of reservedItems ?? []) {
+    reservedByPayoutId.set(
+      item.payout_id,
+      (reservedByPayoutId.get(item.payout_id) ?? 0) + Number(item.amount),
+    );
+    if (requestStatusById.get(item.request_id) === "paid") {
+      paidRequestPayoutIds.add(item.payout_id);
+      paidByPayoutId.set(
+        item.payout_id,
+        (paidByPayoutId.get(item.payout_id) ?? 0) + Number(item.amount),
+      );
+    }
+  }
   const payouts = (data ?? []) as unknown as Payout[];
+  const remainingAmountByPayoutId = Object.fromEntries(
+    payouts.map((payout) => [
+      payout.id,
+      payout.status === "owed" && payout.eligible_for_withdrawal
+        ? Math.max(
+            Number(payout.amount) - (reservedByPayoutId.get(payout.id) ?? 0),
+            0,
+          )
+        : 0,
+    ]),
+  );
   const availableAmount = payouts
     .filter(
       (payout) =>
         payout.status === "owed" &&
-        payout.eligible_for_withdrawal &&
-        !reservedPayoutIds.has(payout.id),
+        payout.eligible_for_withdrawal,
     )
-    .reduce((sum, payout) => sum + Number(payout.amount), 0);
+    .reduce(
+      (sum, payout) =>
+        sum +
+        Math.max(
+          Number(payout.amount) - (reservedByPayoutId.get(payout.id) ?? 0),
+          0,
+        ),
+      0,
+    );
   const feeBalance = Number(profile?.host_fee_balance ?? 0);
+  const payoutDetails =
+    profile?.payout_details && typeof profile.payout_details === "object"
+      ? (profile.payout_details as Record<string, unknown>)
+      : {};
 
   return {
     payouts,
     requests: requests ?? [],
     availableAmount,
-    requestableAmount: Math.max(availableAmount - feeBalance, 0),
+    remainingAmountByPayoutId,
+    paidAmountByPayoutId: Object.fromEntries(paidByPayoutId),
+    paidRequestPayoutIds: [...paidRequestPayoutIds],
+    requestableAmount: Math.min(
+      availableAmount,
+      Math.max(availableAmount - feeBalance, 0),
+    ),
     feeBalance,
-    payoutMethodConfigured: profile?.payout_method === "mpesa",
+    payoutPhone: String(
+      payoutDetails.mpesa_number ?? payoutDetails.phone ?? payoutDetails.phone_number ?? "",
+    ),
   };
 }
 
-export async function requestHostPayout() {
+export async function requestHostPayout(input: {
+  amount: number;
+  mpesaNumber: string;
+}) {
   const { user } = await requireHost();
+  if (
+    !input ||
+    !Number.isFinite(input.amount) ||
+    input.amount <= 0 ||
+    Number(input.amount.toFixed(2)) !== input.amount
+  ) {
+    throw new Error("Enter a payout amount greater than zero.");
+  }
+  let mpesaNumber: string;
+  try {
+    mpesaNumber = normalizeDarajaPhone(input.mpesaNumber);
+  } catch {
+    throw new Error("Enter a valid Kenyan M-Pesa number.");
+  }
   const admin = getSupabaseAdmin();
-  const { data, error } = await admin.rpc("create_host_payout_request", {
+  const { data, error } = await admin.rpc("create_host_payout_request_with_amount", {
     p_host_id: user.id,
+    p_request_amount: input.amount,
+    p_mpesa_number: mpesaNumber,
   });
   if (error) {
-    if (error.message.includes("PAYOUT_DESTINATION_REQUIRED"))
-      throw new Error("Save your payout method before requesting a transfer.");
-    if (error.message.includes("HOST_FEE_DEBT_REMAINS"))
+    if (error.message.includes("PAYOUT_PROCESSING_FEES_EXCEED_REQUEST"))
       throw new Error(
-        "A payment-processing fee adjustment is still being applied to your balance.",
-      );
-    if (error.message.includes("HOST_FEE_BALANCE_EXCEEDS_PAYOUT"))
-      throw new Error(
-        "Your fee balance currently exceeds your available payout amount.",
+        "Choose an amount higher than any payout processing fees due.",
       );
     if (error.message.includes("NO_PAYOUTS_AVAILABLE"))
       throw new Error(
         "There are no available completed-booking payouts to request.",
       );
+    if (error.message.includes("INVALID_PAYOUT_REQUEST_AMOUNT"))
+      throw new Error(
+        "That amount is greater than your available payout. Refresh the page and try again.",
+      );
+    if (error.message.includes("INVALID_MPESA_DESTINATION"))
+      throw new Error("Enter a valid Kenyan M-Pesa number.");
     console.error("Host payout request failed:", error);
     throw new Error("Unable to request your payout. Please try again.");
   }

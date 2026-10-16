@@ -144,6 +144,7 @@ export interface Booking {
   additional_charges_amount: number | null;
   host_gross_amount?: number | null;
   collection_fee_amount?: number | null;
+  collection_fee_reconciled?: boolean;
   guest_name: string | null;
   guest_country: string | null;
   special_requests: string | null;
@@ -244,6 +245,7 @@ export interface Payout {
     | "host_payout_amount"
     | "host_gross_amount"
     | "collection_fee_amount"
+    | "collection_fee_reconciled"
     | "guest_name"
     | "guest_country"
     | "special_requests"

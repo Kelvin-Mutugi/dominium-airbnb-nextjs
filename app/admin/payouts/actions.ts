@@ -441,6 +441,7 @@ export async function reconcileSafaricomStkPayment(input: {
 export async function initiateSafaricomHostPayout(input: {
   requestId: string;
   estimatedFee: number;
+  collectionFee: number;
   idempotencyKey: string;
   detailsVerified: boolean;
   note?: string;
@@ -455,6 +456,14 @@ export async function initiateSafaricomHostPayout(input: {
   ) {
     throw new Error("Enter the whole-KES B2C fee estimate.");
   }
+  if (
+    !Number.isFinite(input.collectionFee) ||
+    input.collectionFee < 0 ||
+    input.collectionFee > 1_000_000_000 ||
+    Number(input.collectionFee.toFixed(2)) !== input.collectionFee
+  ) {
+    throw new Error("Enter a valid collection fee with no more than two decimal places.");
+  }
   if (input.idempotencyKey.length < 32 || input.idempotencyKey.length > 128) {
     throw new Error("Refresh the payout request and try again.");
   }
@@ -466,11 +475,13 @@ export async function initiateSafaricomHostPayout(input: {
   }
 
   const admin = getSupabaseAdmin();
-  const { data, error } = await admin.rpc("admin_prepare_daraja_host_payout", {
+  const { data, error } = await admin.rpc("admin_prepare_daraja_host_payout_with_collection_fee", {
     p_request_id: input.requestId,
     p_admin_id: actor.id,
     p_estimated_fee: input.estimatedFee,
+    p_collection_fee: input.collectionFee,
     p_idempotency_key: input.idempotencyKey,
+    p_admin_note: note || null,
   });
   if (error) {
     if (error.message.includes("PAYOUT_REQUEST_NOT_PENDING"))
@@ -483,6 +494,12 @@ export async function initiateSafaricomHostPayout(input: {
       throw new Error("The saved host M-Pesa number is invalid.");
     if (error.message.includes("INVALID_B2C_NET_AMOUNT"))
       throw new Error("The estimated fee leaves no valid whole-KES amount to send.");
+    if (error.message.includes("COLLECTION_FEE_ALREADY_RECORDED"))
+      throw new Error("The collection fee is already recorded for this request. Refresh before retrying.");
+    if (error.message.includes("INVALID_COLLECTION_FEE"))
+      throw new Error("Enter a valid collection fee with no more than two decimal places.");
+    if (error.code === "PGRST202")
+      throw new Error("Payout processing fee capture is unavailable because the required database migration has not been applied.");
     console.error("Unable to prepare Safaricom host payout:", error);
     throw new Error("Unable to prepare this Safaricom payout.");
   }
@@ -572,6 +589,7 @@ export async function initiateSafaricomHostPayout(input: {
       request_amount: Number(prepared.request_amount),
       net_amount: Number(prepared.transfer_amount),
       estimated_fee: input.estimatedFee,
+      collection_fee: input.collectionFee,
       conversation_id: submission.conversationId,
       destination_and_fee_verified: input.detailsVerified,
       admin_note: note || null,

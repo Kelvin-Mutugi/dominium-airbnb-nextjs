@@ -21,7 +21,6 @@ import {
   BadgeDollarSign,
   CreditCard,
   Banknote,
-  ReceiptText,
   BookOpen,
   ArrowLeftRight,
   ChartNoAxesCombined,
@@ -137,7 +136,7 @@ const NAV_GROUPS: {
   {
     heading: "Payments & Payouts",
     explanation:
-      "Use these pages to review guest payment records, process host withdrawal requests, and reconcile provider fees. A request or pending transfer is not proof that money moved.",
+      "Use these pages to review guest payment records and process host withdrawal requests. A request or pending transfer is not proof that money moved.",
     links: [
       {
         href: "/admin/payouts?view=payments",
@@ -155,11 +154,6 @@ const NAV_GROUPS: {
         href: "/admin/payouts/requests",
         label: "Host Payout Requests",
         icon: Banknote,
-      },
-      {
-        href: "/admin/payouts/fees",
-        label: "Payout Fee Reconciliation",
-        icon: ReceiptText,
       },
       {
         href: "/admin/refunds",
