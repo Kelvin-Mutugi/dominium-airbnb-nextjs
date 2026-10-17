@@ -123,6 +123,39 @@ export default function HostCalendarPage() {
     };
   }, [monthKey, reloadToken]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const blockDate = params.get("blockDate");
+    const listingId = params.get("listing");
+    if (!blockDate || !/^\d{4}-\d{2}-\d{2}$/.test(blockDate)) return;
+
+    const date = new Date(`${blockDate}T12:00:00Z`);
+    if (
+      Number.isNaN(date.getTime()) ||
+      date.toISOString().slice(0, 10) !== blockDate
+    ) {
+      return;
+    }
+    const endDate = new Date(date);
+    endDate.setUTCDate(endDate.getUTCDate() + 1);
+    // Initialize the existing block-date form from the date selected on the overview.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMonth(new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1)));
+    setStartDate(blockDate);
+    setEndDate(endDate.toISOString().slice(0, 10));
+    if (listingId) setBlockListingId(listingId);
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (loading && params.has("blockDate")) return;
+    if (!params.has("blockDate")) return;
+    document.getElementById("host-block-dates")?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  }, [loading]);
+
   const visibleBookings = bookings.filter(
     (booking) => selectedListingId === "all" || booking.listing_id === selectedListingId,
   );
@@ -561,7 +594,7 @@ export default function HostCalendarPage() {
           </section>
 
           <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.8fr)]">
-            <div className="space-y-3 rounded-xl bg-white p-5 shadow-sm">
+            <div id="host-block-dates" className="space-y-3 rounded-xl bg-white p-5 shadow-sm">
               <div>
                 <h2 className="font-semibold text-[#12231d]">Block off dates</h2>
                 <p className="mt-1 text-sm text-gray-500">The end date is the checkout date and is available again that day.</p>

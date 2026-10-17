@@ -84,9 +84,17 @@ export default async function HostListingDetailPage({
           <h1 className="mt-2 text-3xl font-semibold text-[#1B1A2E]">{displayValue(listing.title)}</h1>
           <p className="mt-1 text-sm text-gray-500">Listing ID: {listing.id}</p>
         </div>
-        <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium capitalize text-gray-700">
-          {displayValue(listing.status).replaceAll("_", " ")}
-        </span>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium capitalize text-gray-700">
+            {displayValue(listing.status).replaceAll("_", " ")}
+          </span>
+          <Link
+            href={`/host/listings/${id}/edit`}
+            className="inline-flex min-h-10 items-center rounded-lg bg-[#E23E85] px-4 py-2 text-sm font-semibold text-white hover:bg-[#c93075]"
+          >
+            Request a change
+          </Link>
+        </div>
       </div>
 
       {images.length > 0 && (

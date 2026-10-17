@@ -6,6 +6,15 @@ import type { RefundProgress } from "@/types/refunds";
 export type ListingStatus = "draft" | "published" | "suspended" | "archived";
 export type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
 export type PayoutStatus = "owed" | "paid" | "processing";
+export type HostBookingPayoutStatus =
+  | "not_released"
+  | "under_review"
+  | "available"
+  | "requested"
+  | "processing"
+  | "partially_requested"
+  | "partially_paid"
+  | "paid";
 
 export interface Listing {
   id: string;
@@ -146,6 +155,7 @@ export interface Booking {
   collection_fee_amount?: number | null;
   collection_fee_reconciled?: boolean;
   guest_name: string | null;
+  guest_phone?: string | null;
   guest_country: string | null;
   special_requests: string | null;
   created_at: string;
@@ -153,6 +163,7 @@ export interface Booking {
   selectedOptionalFees?: HostOptionalFee[] | null;
   paymentStatus?: string | null;
   paymentPaidAt?: string | null;
+  hostPayoutStatus?: HostBookingPayoutStatus;
   dateChangeHistory?: BookingDateChange[];
   refundRequests?: RefundProgress[];
   // joined

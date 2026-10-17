@@ -6,6 +6,7 @@ import { SupportCaseUpdateForm } from '@/components/admin/support/support-case-u
 type CaseRow = {
   id: string;
   user_id: string;
+  support_context: 'account' | 'host';
   booking_id: string | null;
   category: string;
   subject: string;
@@ -78,7 +79,7 @@ export default async function AdminSupportPage({
   const admin = getSupabaseAdmin();
   const { data, error } = await admin
     .from('support_cases')
-    .select('id, user_id, booking_id, category, subject, message, status, public_reply, admin_notes, created_at, updated_at')
+    .select('id, user_id, support_context, booking_id, category, subject, message, status, public_reply, admin_notes, created_at, updated_at')
     .order('updated_at', { ascending: false })
     .limit(200);
   if (error) throw new Error('Unable to load support cases. Apply the support_cases migration and try again.');
@@ -214,6 +215,11 @@ export default async function AdminSupportPage({
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-base font-semibold text-[#1B1A2E]">{item.subject}</h2>
                     <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${CASE_STATUS_STYLES[item.status] ?? 'bg-gray-100 text-gray-700'}`}>{humanize(item.status)}</span>
+                    {item.support_context === 'host' && (
+                      <span className="rounded-full bg-[#FCE8F0] px-2.5 py-1 text-xs font-medium text-[#9C2454]">
+                        Host request
+                      </span>
+                    )}
                   </div>
                   <p className="mt-1 text-xs text-gray-500">
                     {humanize(item.category)} · {formatDate(item.created_at, 'long')} · from{" "}

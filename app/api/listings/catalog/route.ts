@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       category,
     );
     return NextResponse.json(listings, {
-      headers: { "Cache-Control": "public, max-age=30, stale-while-revalidate=120" },
+      headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
     console.error("Public listing catalog error:", error);

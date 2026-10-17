@@ -54,9 +54,14 @@ const NAV_GROUPS: {
   {
     heading: "Marketplace",
     explanation:
-      "Manage property listings and follow requests from hosts who want a property reviewed.",
+      "Manage property listings, review host-submitted live changes, and follow property visit requests.",
     links: [
       { href: "/admin/listings", label: "Listings", icon: Home },
+      {
+        href: "/admin/listing-changes",
+        label: "Listing Changes",
+        icon: ClipboardCheck,
+      },
       {
         href: "/admin/listing-requests",
         label: "Property Visit Requests",

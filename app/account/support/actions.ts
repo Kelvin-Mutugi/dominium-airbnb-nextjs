@@ -101,5 +101,6 @@ export async function sendSupportCaseMessage(caseId: string, body: string) {
   if (updateError) console.error('Unable to refresh support case status after requester reply:', updateError);
 
   revalidatePath('/account/support');
+  revalidatePath('/host/support');
   revalidatePath('/admin/support');
 }
