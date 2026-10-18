@@ -487,7 +487,7 @@ export default function HostListingsPage() {
                           <p className="min-w-0 flex-1 text-sm text-[#565c57]">{guidance.detail}</p>
                           <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2">
                             <Link href={`/host/listings/${listing.id}/edit`} className={linkAccent}>
-                              Request a change
+                              Edit listing
                             </Link>
                             <Link
                               href={`/host/listings/${listing.id}/arrival-guide`}

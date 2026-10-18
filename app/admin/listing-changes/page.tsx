@@ -46,11 +46,44 @@ const FIELD_LABELS: Record<string, string> = {
   check_out_time: "Check-out time",
   min_nights: "Minimum nights",
   instant_book: "Instant book",
+  photo_gallery: "Photo gallery",
+  arrival_address: "Arrival address",
+  arrival_directions: "Directions",
+  check_in_instructions: "Check-in instructions",
+  wifi_name: "Wi-Fi network",
+  wifi_password: "Wi-Fi password",
+  arrival_contact: "Arrival contact",
+  local_tips: "Local tips",
   cancellation_policy: "Legacy listing cancellation note (does not change refund estimates)",
 };
 
+function photoGallerySummary(value: unknown) {
+  if (!Array.isArray(value)) return "No photos";
+  if (value.length === 0) return "No photos";
+  const descriptions = value.slice(0, 5).map((photo) => {
+    if (!photo || typeof photo !== "object") return "Photo";
+    const item = photo as Record<string, unknown>;
+    const room =
+      typeof item.category === "string"
+        ? item.category === "bedroom" || item.category === "bathroom"
+          ? `${item.category === "bedroom" ? "Bedroom" : "Bathroom"} ${String(item.room_index ?? "")}`.trim()
+          : item.category.replaceAll("_", " ")
+        : "Photo";
+    const caption =
+      typeof item.caption === "string" && item.caption.trim()
+        ? ` — ${item.caption.trim()}`
+        : "";
+    return `${item.is_cover ? "Cover: " : ""}${room}${caption}`;
+  });
+  const remaining = value.length > descriptions.length
+    ? `, +${value.length - descriptions.length} more`
+    : "";
+  return `${value.length} ${value.length === 1 ? "photo" : "photos"} (${descriptions.join("; ")}${remaining})`;
+}
+
 function valueForDisplay(field: string, value: unknown) {
   if (value === null || value === undefined || value === "") return "Not set";
+  if (field === "photo_gallery") return photoGallerySummary(value);
   if (field === "price_per_night") {
     return `KES ${Number(value).toLocaleString("en-KE")}/night`;
   }

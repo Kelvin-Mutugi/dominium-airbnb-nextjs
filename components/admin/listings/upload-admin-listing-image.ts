@@ -5,6 +5,7 @@ import {
   registerAdminListingImage,
 } from "@/app/admin/listings/actions";
 import { createClient } from "@/app/lib/supabase/client";
+import type { ListingImageMetadata } from "@/components/admin/listings/image-categories";
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -13,6 +14,7 @@ export async function uploadAdminListingImage(
   listingId: string,
   file: File,
   onProgress?: (loadedBytes: number) => void,
+  metadata?: ListingImageMetadata,
 ) {
   if (!IMAGE_TYPES.has(file.type)) {
     throw new Error("Choose a JPG, PNG, or WebP image.");
@@ -50,5 +52,5 @@ export async function uploadAdminListingImage(
     request.send(file);
   });
 
-  return registerAdminListingImage(listingId, upload.path);
+  return registerAdminListingImage(listingId, upload.path, metadata);
 }

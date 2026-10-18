@@ -20,7 +20,12 @@ interface ListingRow {
   amenities: unknown;
   average_rating: number | null;
   review_count: number | null;
-  listing_images: { url: string | null; sort_order: number }[] | null;
+  listing_images: {
+    url: string | null;
+    sort_order: number;
+    position: number;
+    is_cover: boolean;
+  }[] | null;
 }
 
 export interface PublicListingDetail {
@@ -52,13 +57,24 @@ export interface PublicListingDetail {
   rare_find_note: string | null;
   average_rating: number | null;
   review_count: number | null;
-  listing_images: { url: string | null; sort_order: number }[] | null;
+  listing_images: {
+    id: string;
+    url: string | null;
+    sort_order: number;
+    position: number;
+    category: string | null;
+    room_index: number | null;
+    caption: string | null;
+    is_cover: boolean;
+    width: number | null;
+    height: number | null;
+  }[] | null;
 }
 
 const CARD_SELECT = `
   id, title, description, county, town, price_per_night, platform_fee_per_night, max_guests,
   bedrooms, amenities, average_rating, review_count,
-  listing_images ( url, sort_order )
+  listing_images ( url, sort_order, position, is_cover )
 `;
 
 const DETAIL_SELECT = `
@@ -67,13 +83,19 @@ const DETAIL_SELECT = `
   booking_terms, latitude, longitude,
   check_in_time, check_out_time, min_nights, service_fee_percent,
   platform_fee_per_night, additional_charges, is_rare_find, rare_find_note,
-  average_rating, review_count, listing_images ( url, sort_order )
+  average_rating, review_count,
+  listing_images (
+    id, url, sort_order, position, category, room_index, caption, is_cover, width, height
+  )
 `;
 
 function toCardListing(row: ListingRow): Listing {
   const images = Array.isArray(row.listing_images)
     ? [...row.listing_images].sort(
-        (first, second) => first.sort_order - second.sort_order,
+        (first, second) =>
+          Number(second.is_cover) - Number(first.is_cover) ||
+          first.position - second.position ||
+          first.sort_order - second.sort_order,
       )
     : [];
   const amenities = Array.isArray(row.amenities)
@@ -111,7 +133,7 @@ async function fetchCountyListingPage(
     .eq("county", county)
     .eq("status", "published")
     .order("created_at", { ascending: false })
-    .order("sort_order", { foreignTable: "listing_images", ascending: true })
+    .order("position", { foreignTable: "listing_images", ascending: true })
     .range(from, to);
 
   if (error) throw new Error("Unable to load published listings.");
@@ -170,7 +192,7 @@ async function fetchCatalogPage(
 
   const { data, error } = await query
     .order("created_at", { ascending: false })
-    .order("sort_order", { foreignTable: "listing_images", ascending: true })
+    .order("position", { foreignTable: "listing_images", ascending: true })
     .range(from, to);
 
   if (error) throw new Error("Unable to load published listings.");
@@ -211,7 +233,7 @@ async function fetchPublicListingDetail(
     .select(DETAIL_SELECT)
     .eq("id", id)
     .eq("status", "published")
-    .order("sort_order", { foreignTable: "listing_images", ascending: true })
+    .order("position", { foreignTable: "listing_images", ascending: true })
     .maybeSingle();
 
   if (error) throw new Error("Unable to load published listing details.");

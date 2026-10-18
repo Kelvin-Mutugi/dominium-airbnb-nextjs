@@ -93,7 +93,7 @@ export default async function HostListingDetailPage({
             href={`/host/listings/${id}/edit`}
             className="inline-flex min-h-10 items-center rounded-lg bg-[#E23E85] px-4 py-2 text-sm font-semibold text-white hover:bg-[#c93075]"
           >
-            Request a change
+            Edit listing
           </Link>
         </div>
       </div>

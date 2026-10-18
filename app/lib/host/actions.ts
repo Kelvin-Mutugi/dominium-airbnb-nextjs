@@ -29,6 +29,7 @@ import type {
   ListingImage,
   Payout,
 } from "./types";
+import type { ListingImageMetadata } from "@/components/admin/listings/image-categories";
 import type { RefundListItem, RefundProgress } from "@/types/refunds";
 
 const MPESA_REGEX = /^0\d{9}$/;
@@ -342,6 +343,35 @@ async function saveArrivalGuide(
       onConflict: "listing_id",
     });
   if (error) throw new Error("Unable to save arrival guide details.");
+}
+
+async function recordHostListingChange(
+  listingId: string,
+  hostId: string,
+  beforeValues: Record<string, unknown>,
+  afterValues: Record<string, unknown>,
+) {
+  const changed = Object.keys(afterValues).some(
+    (field) =>
+      JSON.stringify(beforeValues[field]) !== JSON.stringify(afterValues[field]),
+  );
+  if (!changed) return;
+
+  const admin = getSupabaseAdmin();
+  const { error } = await admin.from("host_listing_change_requests").insert({
+    listing_id: listingId,
+    host_id: hostId,
+    before_values: beforeValues,
+    after_values: afterValues,
+  });
+  if (error) {
+    console.error("Failed to add host listing edit to admin history:", error);
+    throw new Error(
+      "Your changes were saved, but could not be added to the admin change history. Please contact support.",
+    );
+  }
+  revalidatePath("/admin/listing-changes");
+  revalidatePath("/admin");
 }
 
 export async function createHostListing(values: ListingFormValues) {
@@ -1619,7 +1649,7 @@ export async function getHostListingData(id: string) {
   const { data, error } = await supabase
     .from("listings")
     .select(
-      "id, host_id, title, description, county, town, address, property_type, categories, price_per_night, additional_charges, max_guests, bedrooms, bathrooms, amenities, features, house_rules, status, slug, latitude, longitude, check_in_time, check_out_time, min_nights, cancellation_policy, instant_book, is_publish_ready, created_at, updated_at, listing_images(id, url, sort_order)",
+      "id, host_id, title, description, county, town, address, property_type, categories, price_per_night, additional_charges, max_guests, bedrooms, bathrooms, amenities, features, house_rules, status, slug, latitude, longitude, check_in_time, check_out_time, min_nights, cancellation_policy, instant_book, is_publish_ready, created_at, updated_at, listing_images(id, url, sort_order, position, category, room_index, caption, is_cover, width, height)",
     )
     .eq("id", id)
     .eq("host_id", user.id)
@@ -1663,6 +1693,44 @@ const HOST_LISTING_IMAGE_TYPES: Record<string, string> = {
   "image/webp": "webp",
 };
 
+const HOST_LISTING_IMAGE_CATEGORIES = new Set([
+  "exterior",
+  "living",
+  "kitchen",
+  "bedroom",
+  "bathroom",
+  "outdoor",
+  "amenities",
+  "neighborhood",
+]);
+
+function validateHostListingImageMetadata(metadata: ListingImageMetadata) {
+  const usesRoomIndex =
+    metadata.category === "bedroom" || metadata.category === "bathroom";
+  const hasValidRoomIndex = usesRoomIndex
+    ? Number.isInteger(metadata.roomIndex) &&
+      metadata.roomIndex !== null &&
+      metadata.roomIndex >= 1 &&
+      metadata.roomIndex <= 10
+    : metadata.roomIndex === null;
+
+  if (
+    !HOST_LISTING_IMAGE_CATEGORIES.has(metadata.category) ||
+    !Number.isInteger(metadata.position) ||
+    metadata.position < 0 ||
+    typeof metadata.isCover !== "boolean" ||
+    typeof metadata.caption !== "string" ||
+    metadata.caption.trim().length > 80 ||
+    !Number.isInteger(metadata.width) ||
+    metadata.width < 1 ||
+    !Number.isInteger(metadata.height) ||
+    metadata.height < 1 ||
+    !hasValidRoomIndex
+  ) {
+    throw new Error("Invalid listing image details.");
+  }
+}
+
 export async function createHostListingImageUploadUrl(
   listingId: string,
   contentType: string,
@@ -1700,7 +1768,11 @@ export async function createHostListingImageUploadUrl(
   return { path, signedUrl: data.signedUrl };
 }
 
-export async function registerHostListingImage(listingId: string, path: string) {
+export async function registerHostListingImage(
+  listingId: string,
+  path: string,
+  metadata?: ListingImageMetadata,
+) {
   const { user } = await requireHost();
   if (
     !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -1734,14 +1806,19 @@ export async function registerHostListingImage(listingId: string, path: string) 
     throw new Error("Uploaded image could not be found.");
   }
 
-  const { data: latestImage, error: latestImageError } = await admin
-    .from("listing_images")
-    .select("sort_order")
-    .eq("listing_id", listingId)
-    .order("sort_order", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (latestImageError) throw new Error("Unable to determine image order.");
+  if (metadata) validateHostListingImageMetadata(metadata);
+  let nextPosition = metadata?.position;
+  if (nextPosition === undefined) {
+    const { data: latestImage, error: latestImageError } = await admin
+      .from("listing_images")
+      .select("position")
+      .eq("listing_id", listingId)
+      .order("position", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (latestImageError) throw new Error("Unable to determine image order.");
+    nextPosition = (latestImage?.position ?? -1) + 1;
+  }
 
   const { data: publicUrl } = admin.storage
     .from("listing-images")
@@ -1751,9 +1828,20 @@ export async function registerHostListingImage(listingId: string, path: string) 
     .insert({
       listing_id: listingId,
       url: publicUrl.publicUrl,
-      sort_order: (latestImage?.sort_order ?? -1) + 1,
+      sort_order: nextPosition,
+      position: nextPosition,
+      ...(metadata
+        ? {
+            category: metadata.category,
+            room_index: metadata.roomIndex,
+            caption: metadata.caption.trim(),
+            is_cover: metadata.isCover,
+            width: metadata.width,
+            height: metadata.height,
+          }
+        : {}),
     })
-    .select("id, url, sort_order")
+    .select("id, url, sort_order, position")
     .single();
 
   if (insertError) {
@@ -1773,6 +1861,177 @@ export async function registerHostListingImage(listingId: string, path: string) 
   revalidatePath(`/admin/listings/${listingId}/edit`);
   updateTag("public-listings");
   return image;
+}
+
+export type HostListingImageArrangement = ListingImageMetadata & {
+  id: string;
+};
+
+export async function saveHostListingImageArrangement(
+  listingId: string,
+  arrangement: HostListingImageArrangement[],
+) {
+  const { user } = await requireHost();
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      listingId,
+    )
+  ) {
+    throw new Error("Invalid listing.");
+  }
+  if (!Array.isArray(arrangement) || arrangement.length > 40) {
+    throw new Error("A listing can have no more than 40 photos.");
+  }
+  if (
+    new Set(arrangement.map((image) => image.id)).size !== arrangement.length
+  ) {
+    throw new Error("A photo appears more than once in the gallery.");
+  }
+
+  arrangement.forEach((image, index) => {
+    validateHostListingImageMetadata(image);
+    if (image.position !== index || image.isCover !== (index === 0)) {
+      throw new Error("Invalid listing photo order or cover.");
+    }
+  });
+
+  const admin = getSupabaseAdmin();
+  const { data: listing, error: listingError } = await admin
+    .from("listings")
+    .select("id, host_id")
+    .eq("id", listingId)
+    .eq("host_id", user.id)
+    .maybeSingle();
+  if (listingError || !listing) throw new Error("Listing not found.");
+
+  const { data: existingImages, error: imagesError } = await admin
+    .from("listing_images")
+    .select(
+      "id, url, position, sort_order, category, room_index, caption, is_cover",
+    )
+    .eq("listing_id", listingId);
+  if (imagesError) throw new Error("Unable to load listing photos.");
+
+  const currentImages = existingImages ?? [];
+  const currentById = new Map(currentImages.map((image) => [image.id, image]));
+  if (arrangement.some((image) => !currentById.has(image.id))) {
+    throw new Error("One or more photos no longer belong to this listing.");
+  }
+
+  const keptIds = new Set(arrangement.map((image) => image.id));
+  const removedImages = currentImages.filter((image) => !keptIds.has(image.id));
+  const expectedFolder = `${user.id}/${listingId}/`;
+  const marker = "/storage/v1/object/public/listing-images/";
+
+  for (const image of removedImages) {
+    let objectPath = "";
+    try {
+      const imageUrl = new URL(image.url);
+      const markerIndex = imageUrl.pathname.indexOf(marker);
+      if (markerIndex >= 0) {
+        objectPath = decodeURIComponent(
+          imageUrl.pathname.slice(markerIndex + marker.length),
+        );
+      }
+    } catch (error) {
+      if (!(error instanceof TypeError) && !(error instanceof URIError)) {
+        throw error;
+      }
+    }
+    if (!objectPath.startsWith(expectedFolder)) continue;
+
+    const { error: removeError } = await admin.storage
+      .from("listing-images")
+      .remove([objectPath]);
+    if (removeError) {
+      throw new Error("Unable to remove a deleted listing photo.");
+    }
+  }
+
+  if (removedImages.length > 0) {
+    const { error: deleteError } = await admin
+      .from("listing_images")
+      .delete()
+      .eq("listing_id", listingId)
+      .in(
+        "id",
+        removedImages.map((image) => image.id),
+      );
+    if (deleteError) {
+      throw new Error(deleteError.message || "Unable to remove listing photos.");
+    }
+  }
+
+  const { error: coverError } = await admin
+    .from("listing_images")
+    .update({ is_cover: false })
+    .eq("listing_id", listingId);
+  if (coverError) throw new Error("Unable to update the listing cover photo.");
+
+  const maxPosition = currentImages.reduce(
+    (maximum, image) => Math.max(maximum, image.position ?? -1),
+    -1,
+  );
+  for (const [index, image] of arrangement.entries()) {
+    const temporaryPosition = maxPosition + arrangement.length + index + 1;
+    const { error: temporaryOrderError } = await admin
+      .from("listing_images")
+      .update({ position: temporaryPosition, sort_order: temporaryPosition })
+      .eq("listing_id", listingId)
+      .eq("id", image.id);
+    if (temporaryOrderError) {
+      throw new Error("Unable to prepare the new photo order.");
+    }
+  }
+
+  for (const image of arrangement) {
+    const { error: updateError } = await admin
+      .from("listing_images")
+      .update({
+        category: image.category,
+        room_index: image.roomIndex,
+        caption: image.caption.trim(),
+        is_cover: image.isCover,
+        width: image.width,
+        height: image.height,
+        position: image.position,
+        sort_order: image.position,
+      })
+      .eq("listing_id", listingId)
+      .eq("id", image.id);
+    if (updateError) {
+      throw new Error(updateError.message || "Unable to save listing photos.");
+    }
+  }
+
+  const beforePhotoGallery = currentImages.map((image, index) => ({
+    id: image.id,
+    category: image.category ?? null,
+    room_index: image.room_index ?? null,
+    caption: image.caption ?? "",
+    position: image.position ?? image.sort_order ?? index,
+    is_cover: image.is_cover === true,
+  }));
+  const afterPhotoGallery = arrangement.map((image) => ({
+      id: image.id,
+      category: image.category ?? null,
+      room_index: image.roomIndex,
+      caption: image.caption ?? "",
+      position: image.position,
+      is_cover: image.isCover,
+    }));
+  revalidatePath("/host/listings");
+  revalidatePath(`/host/listings/${listingId}`);
+  revalidatePath(`/host/listings/${listingId}/edit`);
+  revalidatePath(`/admin/listings/${listingId}`);
+  revalidatePath(`/admin/listings/${listingId}/edit`);
+  updateTag("public-listings");
+  await recordHostListingChange(
+    listingId,
+    user.id,
+    { photo_gallery: beforePhotoGallery },
+    { photo_gallery: afterPhotoGallery },
+  );
 }
 
 export async function deleteHostListingImage(imageId: string) {
@@ -2134,10 +2393,42 @@ export async function updateHostArrivalGuide(
     .maybeSingle();
   if (listingError || !listing) throw new Error("Listing not found.");
 
+  const { data: previousGuide, error: guideError } = await supabase
+    .from("listing_arrival_guides")
+    .select(
+      "arrival_address, arrival_directions, check_in_instructions, wifi_name, wifi_password, arrival_contact, local_tips",
+    )
+    .eq("listing_id", listingId)
+    .eq("host_id", user.id)
+    .maybeSingle();
+  if (guideError) throw new Error("Unable to load the current arrival guide.");
+
+  const beforeValues = {
+    arrival_address: previousGuide?.arrival_address ?? null,
+    arrival_directions: previousGuide?.arrival_directions ?? null,
+    check_in_instructions: previousGuide?.check_in_instructions ?? null,
+    wifi_name: previousGuide?.wifi_name ?? null,
+    wifi_password: previousGuide?.wifi_password ? "Saved" : "Not set",
+    arrival_contact: previousGuide?.arrival_contact ?? null,
+    local_tips: previousGuide?.local_tips ?? null,
+  };
+  const payload = arrivalGuidePayload(listingId, user.id, values);
+  const afterValues = {
+    arrival_address: payload.arrival_address,
+    arrival_directions: payload.arrival_directions,
+    check_in_instructions: payload.check_in_instructions,
+    wifi_name: payload.wifi_name,
+    wifi_password: payload.wifi_password ? "Saved" : "Not set",
+    arrival_contact: payload.arrival_contact,
+    local_tips: payload.local_tips,
+  };
+
   await saveArrivalGuide(listingId, user.id, values);
+  await recordHostListingChange(listingId, user.id, beforeValues, afterValues);
   revalidatePath("/host");
   revalidatePath(`/host/listings/${listingId}/arrival-guide`);
   revalidatePath(`/host/listings/${listingId}`);
+  revalidatePath(`/host/listings/${listingId}/edit`);
   revalidatePath(`/account/bookings`);
 }
 

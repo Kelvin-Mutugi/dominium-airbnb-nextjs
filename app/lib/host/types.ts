@@ -61,6 +61,13 @@ export interface ListingImage {
   listing_id: string;
   url: string;
   sort_order: number;
+  position?: number | null;
+  category?: string | null;
+  room_index?: number | null;
+  caption?: string | null;
+  is_cover?: boolean | null;
+  width?: number | null;
+  height?: number | null;
 }
 
 export interface ListingArrivalGuide {

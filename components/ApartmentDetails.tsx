@@ -9,7 +9,10 @@ import { AvailabilityCalendar } from "./appartmentDetails/AvailabilityCalendar";
 import { PriceBreakdown } from "./appartmentDetails/PriceBreakdown";
 import { ReviewsSection } from "./appartmentDetails/ReviewsSection";
 import { LocationMap } from "./appartmentDetails/LocationMap";
-import { PhotoLightbox } from "./appartmentDetails/PhotoLightbox";
+import {
+  ListingPhotoGallery,
+  WhereYoullSleep,
+} from "./appartmentDetails/ListingPhotoGallery";
 import { StickyPriceBar } from "./appartmentDetails/StickyPriceBar";
 import { RelatedListings } from "./appartmentDetails/RelatedListings";
 import SaveListingButton from "@/components/listings/SaveListingButton";
@@ -75,7 +78,6 @@ export default function ApartmentDetails({
       guestCapacity - safeInitialChildren,
     ),
   );
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [stayRange, setStayRange] = useState<{
     checkIn: Date;
     checkOut: Date;
@@ -163,7 +165,6 @@ export default function ApartmentDetails({
     );
   }
 
-  const gallery = listing.gallery.filter(Boolean);
   const hostName = listing.hostProfile?.displayName || listing.host || "Host";
   const hostBio = listing.hostProfile?.bio?.trim();
   const bookingPrice = calculateBookingPrice({
@@ -198,54 +199,20 @@ export default function ApartmentDetails({
             <div className="contents lg:col-start-1 lg:flex lg:min-w-0 lg:flex-col">
               <div className="order-1 min-w-0 lg:order-1">
                 <div className="p-4 md:p-5">
-                  {gallery.length > 0 ? (
-                    <div className="grid aspect-[4/3] grid-cols-2 grid-rows-[2fr_1fr] gap-2 overflow-hidden rounded-xl bg-[#F3F1EE] md:aspect-[2/1] md:grid-cols-4 md:grid-rows-2">
-                      {gallery.slice(0, 5).map((image, index) => {
-                        const isMobileGalleryAction =
-                          index === Math.min(gallery.length - 1, 2);
-                        const isDesktopGalleryAction =
-                          index === gallery.length - 1;
-                        return (
-                          <button
-                            key={`${listing.id}-photo-${index}`}
-                            type="button"
-                            onClick={() => setLightboxIndex(index)}
-                            aria-label={`View photo ${index + 1} of ${gallery.length}`}
-                            className={`group relative min-h-0 min-w-0 overflow-hidden bg-[#F3F1EE] focus:outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#E23E85] ${
-                              index === 0
-                                ? "col-span-2 row-span-1 md:row-span-2"
-                                : index > 2
-                                  ? "hidden md:block"
-                                  : ""
-                            }`}
-                          >
-                            <img
-                              src={image}
-                              alt={`${listing.name}, photo ${index + 1}`}
-                              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                            />
-                            {gallery.length > 1 &&
-                              (isMobileGalleryAction ||
-                                isDesktopGalleryAction) && (
-                                <span
-                                  className={`absolute bottom-3 right-3 rounded-md bg-white/95 px-3 py-2 text-xs font-semibold text-[#12231d] shadow-sm ${isMobileGalleryAction ? "md:hidden" : "hidden md:inline-flex"}`}
-                                >
-                                  View all {gallery.length} photos
-                                </span>
-                              )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="flex aspect-[4/3] items-center justify-center rounded-xl bg-[#F3F1EE] text-sm text-gray-500 md:aspect-[2/1]">
-                      Photos are not available for this listing.
-                    </div>
-                  )}
+                  <ListingPhotoGallery
+                    listingName={listing.name}
+                    photos={listing.galleryPhotos}
+                    legacyGallery={listing.gallery}
+                  />
                 </div>
               </div>
 
               <div className="order-3 min-w-0 lg:order-3">
+                <WhereYoullSleep
+                  photos={listing.galleryPhotos}
+                  legacyGallery={listing.gallery}
+                  bedroomCount={listing.bedrooms ?? listing.beds ?? 0}
+                />
                 <section className="mt-6 min-w-0 rounded-[24px] bg-white p-6 shadow-[0_2px_50px_rgba(0,0,0,0.08)] md:mt-10">
                   <h2 className="mb-4 text-[28px] font-semibold text-[#1B1A2E] md:mb-5">
                     About this place
@@ -570,14 +537,6 @@ export default function ApartmentDetails({
           </div>
         </div>
       </div>
-
-      {lightboxIndex !== null && gallery.length > 0 && (
-        <PhotoLightbox
-          images={gallery}
-          startIndex={lightboxIndex}
-          onClose={() => setLightboxIndex(null)}
-        />
-      )}
 
       <StickyPriceBar
         price={formatPrice(listing.pricePerNight)}

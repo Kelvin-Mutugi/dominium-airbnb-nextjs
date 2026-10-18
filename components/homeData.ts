@@ -37,6 +37,19 @@ export interface PublicHostProfile {
   bio?: string | null;
 }
 
+export interface ListingPhoto {
+  id?: string;
+  url: string;
+  position?: number | null;
+  sortOrder?: number | null;
+  category?: string | null;
+  roomIndex?: number | null;
+  caption?: string | null;
+  isCover?: boolean | null;
+  width?: number | null;
+  height?: number | null;
+}
+
 export interface Listing {
   id: string;
   name: string;
@@ -45,6 +58,7 @@ export interface Listing {
   detail: string;
   img: string;
   gallery: string[];
+  galleryPhotos?: ListingPhoto[];
   description: string;
   features: string[];
   host: string;
