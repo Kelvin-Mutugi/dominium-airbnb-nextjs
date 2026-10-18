@@ -45,6 +45,7 @@ export default async function AccountSupportPage({
       .from('support_cases')
       .select('id, booking_id, category, subject, message, status, public_reply, created_at')
       .eq('user_id', user.id)
+      .eq('support_context', 'account')
       .order('created_at', { ascending: false })
       .limit(50),
     supabase

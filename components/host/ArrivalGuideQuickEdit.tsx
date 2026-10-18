@@ -11,7 +11,7 @@ export default function ArrivalGuideQuickEdit({
 }: {
   listingId: string;
   initialGuide: HostArrivalGuideDetails | null;
-  onSaved: (guide: HostArrivalGuideDetails) => void;
+  onSaved?: (guide: HostArrivalGuideDetails) => void;
 }) {
   const [guide, setGuide] = useState<HostArrivalGuideDetails>(initialGuide ?? {
     arrival_address: "",
@@ -37,7 +37,7 @@ export default function ArrivalGuideQuickEdit({
     setError(null);
     try {
       await updateHostArrivalGuide(listingId, guide);
-      onSaved(guide);
+      onSaved?.(guide);
       setSaved(true);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "We couldn't save the arrival guide.");

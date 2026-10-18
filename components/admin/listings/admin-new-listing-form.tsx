@@ -2,13 +2,30 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState, type ChangeEvent } from "react";
-import { Images, Trash2, Upload } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { createAdminListing } from "@/app/admin/listings/actions";
 import { linkCreatedListingToHostRequest } from "@/app/admin/listing-requests/actions";
 import type { ListingFormValues } from "@/app/lib/host/types";
 import { uploadAdminListingImage } from "@/components/admin/listings/upload-admin-listing-image";
+import { ListingImageManager } from "@/components/admin/listings/Listingimagemanager";
+import {
+  buildSlots,
+  buildUploadPlan,
+  type RoomCounts,
+  type StagedImage,
+} from "@/components/admin/listings/image-categories";
 import ListingForm from "@/components/host/ListingForm";
+
+const UPLOAD_CONCURRENCY = 3;
+
+type UploadProgress = {
+  phase: "creating" | "uploading" | "finalizing";
+  completedBytes: number;
+  inFlightBytes: number;
+  completedFiles: number;
+  totalBytes: number;
+  totalFiles: number;
+};
 
 export function AdminNewListingForm({
   initialHostId,
@@ -21,21 +38,26 @@ export function AdminNewListingForm({
   const [hostId, setHostId] = useState(initialHostId);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [images, setImages] = useState<StagedImage[]>([]);
+  const [rooms, setRooms] = useState<RoomCounts>({ bedrooms: 1, bathrooms: 1 });
   const [createdListingId, setCreatedListingId] = useState<string | null>(null);
   const [createdListingNotice, setCreatedListingNotice] = useState<string | null>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
 
-  function selectImages(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []);
-    event.target.value = "";
-    const validFiles = files.filter(
-      (file) => ["image/jpeg", "image/png", "image/webp"].includes(file.type) && file.size > 0 && file.size <= 10 * 1024 * 1024,
-    );
+  const slots = useMemo(() => buildSlots(rooms), [rooms]);
+  const hasStagedImages = images.length > 0;
 
-    setSelectedImages((current) => [...current, ...validFiles]);
-    setError(validFiles.length === files.length ? null : "Choose JPG, PNG, or WebP images up to 10 MB each.");
-  }
+  useEffect(() => {
+    if (!submitting && !hasStagedImages) return;
+
+    function warnBeforeLeaving(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", warnBeforeLeaving);
+    return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
+  }, [submitting, hasStagedImages]);
 
   async function handleSubmit(values: ListingFormValues) {
     if (!hostId.trim()) {
@@ -43,23 +65,99 @@ export function AdminNewListingForm({
       return;
     }
 
+    const unsortedCount = images.filter((image) => !image.slot).length;
+    if (unsortedCount > 0) {
+      setError(
+        `Sort ${unsortedCount} photo${unsortedCount === 1 ? "" : "s"} into a room first. Guests browse the gallery room by room.`,
+      );
+      return;
+    }
+
+    const plan = buildUploadPlan(images, slots);
+
     try {
       setSubmitting(true);
       setError(null);
+      setUploadProgress({
+        phase: "creating",
+        completedBytes: 0,
+        inFlightBytes: 0,
+        completedFiles: 0,
+        totalBytes: plan.reduce((total, item) => total + item.file.size, 0),
+        totalFiles: plan.length,
+      });
       const listing = await createAdminListing(hostId, values);
 
-      try {
-        for (const file of selectedImages) {
-          await uploadAdminListingImage(listing.id, file);
+      let completedBytes = 0;
+      let completedFiles = 0;
+      let cursor = 0;
+      const inFlight = new Map<number, number>();
+      const failedNames: string[] = [];
+      let lastFailure: unknown = null;
+
+      const publish = () =>
+        setUploadProgress((current) =>
+          current && {
+            ...current,
+            phase: "uploading",
+            completedBytes,
+            completedFiles,
+            inFlightBytes: [...inFlight.values()].reduce((sum, bytes) => sum + bytes, 0),
+          },
+        );
+
+      async function worker() {
+        while (cursor < plan.length) {
+          const index = cursor++;
+          const item = plan[index];
+          try {
+            await uploadAdminListingImage(
+              listing.id,
+              item.file,
+              (currentFileBytes: number) => {
+                inFlight.set(index, currentFileBytes);
+                publish();
+              },
+              {
+                category: item.category,
+                roomIndex: item.roomIndex,
+                caption: item.caption,
+                position: item.position,
+                isCover: item.isCover,
+                width: item.width,
+                height: item.height,
+              },
+            );
+            completedBytes += item.file.size;
+            completedFiles += 1;
+          } catch (uploadError) {
+            console.error("Image upload failed:", item.file.name, uploadError);
+            failedNames.push(item.file.name);
+            lastFailure = uploadError;
+          } finally {
+            inFlight.delete(index);
+            publish();
+          }
         }
-      } catch (uploadError) {
-        console.error("Listing created, but image upload failed:", uploadError);
+      }
+
+      if (plan.length > 0) {
+        publish();
+        await Promise.all(Array.from({ length: Math.min(UPLOAD_CONCURRENCY, plan.length) }, worker));
+      }
+
+      if (failedNames.length > 0) {
+        const shown = failedNames.slice(0, 3).join(", ");
+        const extra = failedNames.length > 3 ? ` and ${failedNames.length - 3} more` : "";
         setCreatedListingId(listing.id);
-        setCreatedListingNotice("The listing was created, but an image did not upload. Add the remaining images from the listing editor.");
-        setError(uploadError instanceof Error ? uploadError.message : "Unable to upload listing images.");
+        setCreatedListingNotice(
+          `The listing was created, but ${failedNames.length} of ${plan.length} photos did not upload (${shown}${extra}). Add them from the listing editor.`,
+        );
+        setError(lastFailure instanceof Error ? lastFailure.message : "Unable to upload some listing images.");
         return;
       }
 
+      setUploadProgress((current) => current && { ...current, phase: "finalizing" });
       if (intakeRequestId) {
         try {
           await linkCreatedListingToHostRequest(intakeRequestId, listing.id);
@@ -78,6 +176,7 @@ export function AdminNewListingForm({
       setError(err instanceof Error ? err.message : "Unable to create listing.");
     } finally {
       setSubmitting(false);
+      setUploadProgress(null);
     }
   }
 
@@ -106,6 +205,11 @@ export function AdminNewListingForm({
     );
   }
 
+  const percent =
+    uploadProgress && uploadProgress.totalBytes > 0
+      ? Math.min(100, Math.round(((uploadProgress.completedBytes + uploadProgress.inFlightBytes) / uploadProgress.totalBytes) * 100))
+      : 0;
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
@@ -116,64 +220,56 @@ export function AdminNewListingForm({
         <p className="text-gray-500">Admin fills in the property details on behalf of the host and submits it for review.</p>
       </div>
 
+      {uploadProgress && (
+        <div role="status" aria-live="polite" className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          <p className="font-semibold">
+            {uploadProgress.phase === "creating" && "Saving listing details..."}
+            {uploadProgress.phase === "uploading" &&
+              `Uploading photos (${uploadProgress.completedFiles} of ${uploadProgress.totalFiles} done)...`}
+            {uploadProgress.phase === "finalizing" && "Finishing listing setup..."}
+          </p>
+          <div
+            role="progressbar"
+            aria-label="Listing upload progress"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={uploadProgress.phase === "uploading" && uploadProgress.totalBytes > 0 ? percent : undefined}
+            aria-valuetext={uploadProgress.phase === "uploading" && uploadProgress.totalBytes > 0 ? `${percent}% uploaded` : "In progress"}
+            className="mt-2 h-2 overflow-hidden rounded-full bg-amber-200"
+          >
+            <div
+              className={`h-full rounded-full bg-[#E23E85] transition-[width] duration-150 motion-reduce:transition-none ${uploadProgress.phase === "creating" ? "w-1/3 animate-pulse" : ""}`}
+              style={
+                uploadProgress.phase === "uploading" && uploadProgress.totalBytes > 0
+                  ? { width: `${percent}%` }
+                  : uploadProgress.phase === "finalizing"
+                    ? { width: "100%" }
+                    : undefined
+              }
+            />
+          </div>
+          <p className="mt-2 text-xs">Please keep this page open until the listing finishes uploading.</p>
+        </div>
+      )}
+
       <div className="rounded-2xl bg-white p-4 shadow-sm">
         <label className="mb-2 block text-sm font-medium text-[#12231d]">Host ID</label>
         <input
           value={hostId}
           onChange={(event) => setHostId(event.target.value)}
+          disabled={submitting}
           placeholder="Paste host user ID"
           className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-[#12231d] placeholder:text-gray-400 focus:border-[#ec1561] focus:outline-none focus:ring-1 focus:ring-[#ec1561]"
         />
       </div>
 
-      <section className="rounded-2xl bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Images size={18} className="text-gray-500" aria-hidden="true" />
-            <h2 className="text-sm font-semibold text-[#12231d]">Listing images</h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => imageInputRef.current?.click()}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-[#1B1A2E] hover:bg-gray-50"
-          >
-            <Upload size={16} aria-hidden="true" />
-            Choose images
-          </button>
-          <input
-            ref={imageInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            multiple
-            onChange={selectImages}
-            className="sr-only"
-            tabIndex={-1}
-          />
-        </div>
-        <p className="mt-1 text-xs text-gray-500">JPG, PNG, or WebP. Maximum 10 MB per image.</p>
-        {selectedImages.length > 0 && (
-          <ul className="mt-3 divide-y divide-gray-100 rounded-md border border-gray-100">
-            {selectedImages.map((file, index) => (
-              <li key={`${file.name}-${file.size}-${file.lastModified}-${index}`} className="flex items-center justify-between gap-3 px-3 py-2">
-                <span className="flex min-w-0 items-center gap-2 text-sm text-gray-700">
-                  <Images size={16} className="shrink-0 text-gray-400" aria-hidden="true" />
-                  <span className="truncate">{file.name}</span>
-                  <span className="shrink-0 text-xs text-gray-400">{(file.size / (1024 * 1024)).toFixed(1)} MB</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setSelectedImages((current) => current.filter((_, imageIndex) => imageIndex !== index))}
-                  aria-label={`Remove ${file.name}`}
-                  title="Remove image"
-                  className="rounded p-1 text-gray-500 hover:bg-red-50 hover:text-red-600"
-                >
-                  <Trash2 size={16} aria-hidden="true" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <ListingImageManager
+        images={images}
+        setImages={setImages}
+        rooms={rooms}
+        setRooms={setRooms}
+        disabled={submitting}
+      />
 
       {error && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>}
 

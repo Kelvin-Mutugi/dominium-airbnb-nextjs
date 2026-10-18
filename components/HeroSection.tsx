@@ -5,9 +5,16 @@ import Image from "next/image";
 import unsplashImageLoader from "./unsplash-image-loader";
 import { HERO_IMAGES } from "./homeData";
 import SearchBar from "./SearchBar";
+import { ArrowUpRight, MapPin } from "lucide-react";
 
 // Shortcuts into /allListings. The `location` param matches what the navbar search uses.
-const HERO_COUNTIES = ["Nairobi", "Mombasa", "Kilifi", "Nakuru", "Kisumu"];
+const HERO_COUNTIES = [
+  "Nairobi",
+  "Mombasa",
+  "Kilifi",
+  "Nakuru",
+  "Kisumu",
+];
 
 interface HeroSectionProps {
   selectedRoute: string;
@@ -24,49 +31,42 @@ export default function HeroSection({
   onCheckInChange,
   onSearch,
 }: HeroSectionProps) {
+  const heroImage = HERO_IMAGES[0];
+
   return (
     <section
       id="home"
-      // Below lg: the navbar sits in normal flow above the hero, so no extra top padding.
-      // lg and up: the navbar overlaps the hero (lg:-mb-[72px]), so pt-[104px] keeps
-      // the content clear of it (72px navbar + 32px breathing room).
-      className="relative flex flex-col items-center justify-center bg-[#000000] px-4 py-12 sm:px-[6%] sm:py-14 lg:min-h-[clamp(380px,48vh,520px)] lg:pb-14 lg:pt-[104px]"
+      className="relative flex flex-col items-center justify-center bg-[#000000] px-4 py-6 sm:px-[6%] sm:py-8 lg:min-h-[clamp(280px,36vh,380px)] lg:py-8"
     >
       {/* Sliding background images — clipped to the hero only */}
       <div className="absolute inset-0 z-0 overflow-hidden">
-        {HERO_IMAGES.map((src: string, index: number) => (
-          <Image
-            key={src}
-            src={src || "/placeholder.svg"}
-            alt=""
-            loader={unsplashImageLoader}
-            fill
-            sizes="100vw"
-            quality={85}
-            preload={index === 0}
-            loading={index === 0 ? undefined : "lazy"}
-            className="hero-slide"
-            style={{
-              animationDelay:
-                index === 0 ? "0s" : index === 1 ? "-6s" : "-12s",
-            }}
-            onError={(event) => { event.currentTarget.src = "/placeholder.svg"; }}
-          />
-        ))}
-        <div className="absolute inset-0 bg-[rgba(10,9,20,0.55)]" />
+        <Image
+          src={heroImage || "/placeholder.svg"}
+          alt="Nairobi skyline overview"
+          loader={unsplashImageLoader}
+          fill
+          sizes="100vw"
+          quality={85}
+          preload
+          className="object-cover"
+          onError={(event) => {
+            event.currentTarget.src = "/placeholder.svg";
+          }}
+        />
+        <div className="absolute inset-0 bg-[rgba(10,9,20,0.68)]" />
       </div>
 
       <div className="relative z-[2] mx-auto w-full max-w-[1120px] text-center lg:py-2">
-        {/* <h1 className="mx-auto max-w-[720px] text-[30px] font-bold leading-[1.1] tracking-[0.3px] text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.35)] sm:text-[38px] lg:text-[48px] lg:leading-[1.06]">
-          Find your next few nights in Kenya
-        </h1> */}
-        <h1 className="mx-auto max-w-[720px] text-[30px] font-bold leading-[1.1] tracking-[0.3px] text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.35)] sm:text-[38px] lg:text-[48px] lg:leading-[1.06]">
-          This website is under maintenance. Please do not make any Payments
+        <h1 className="mx-auto hidden max-w-full whitespace-nowrap text-[14px] font-bold leading-[1.1] tracking-[0.3px] text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.35)] sm:block sm:text-[30px] lg:text-[42px] lg:leading-[1.06]">
+          Stay somewhere worth remembering
         </h1>
+        {/* <h1 className="mx-auto max-w-[720px] text-[30px] font-bold leading-[1.1] tracking-[0.3px] text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.35)] sm:text-[38px] lg:text-[48px] lg:leading-[1.06]">
+          This website is under maintenance. Please do not make any Payments
+        </h1> */}
 
-        {/* <p className="mx-auto mt-4 max-w-[500px] text-[15px] leading-[1.55] text-white/85 sm:text-base">
-          verified b&bs in kenya. search by county,pick your dates and book securely.
-        </p> */}
+        <p className="mt-1.5 hidden text-[13px] text-neutral-400 sm:block sm:text-sm">
+          Hand-checked stays · Pay with M-Pesa · Book in minutes
+        </p>
 
         {/* <div className="mt-7 flex justify-center">
           <SearchBar
@@ -82,21 +82,31 @@ export default function HeroSection({
           {/* <span className="mr-1 text-[13px] font-medium text-white/70">
             Popular:
           </span> */}
-          {HERO_COUNTIES.map((county) => (
+          {HERO_COUNTIES.map((name, index) => (
             <Link
-              key={county}
-              href={`/allListings?location=${encodeURIComponent(county)}`}
-              className="rounded-full border border-white/35 bg-white/10 px-4 py-1.5 text-[13px] font-medium text-white no-underline backdrop-blur-sm transition-colors hover:bg-white/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              key={name}
+              href={`/allListings?location=${encodeURIComponent(name)}`}
+              className="group inline-flex min-h-10 items-center gap-2 rounded-full border border-white/30 bg-black/20 py-1.5 pl-2 pr-3.5 text-white no-underline backdrop-blur-sm transition-colors hover:border-white/70 hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
-              {county}
+              <span className="flex size-6 items-center justify-center text-white">
+                <MapPin size={13} strokeWidth={2.2} aria-hidden="true" />
+              </span>
+              <span className="text-[13px] font-medium">{name}</span>
+              <span className="border-l border-white/25 pl-2 text-[10px] tabular-nums text-white/55">
+                {String(index + 1).padStart(2, "0")}
+              </span>
             </Link>
-            
           ))}
-          <Link 
+          <Link
             href="/allListings"
-            className="rounded-full border border-white/35 bg-white/10 px-4 py-1.5 text-[13px] font-medium text-white no-underline backdrop-blur-sm transition-colors hover:bg-white/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-           >
-            All Listings
+            className="group inline-flex min-h-10 items-center gap-2 rounded-full bg-white px-4 py-1.5 text-[13px] font-semibold text-neutral-900 no-underline transition-colors hover:bg-[#FBE8EF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          >
+            All stays
+            <ArrowUpRight
+              size={15}
+              className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+              aria-hidden="true"
+            />
           </Link>
         </div>
       </div>

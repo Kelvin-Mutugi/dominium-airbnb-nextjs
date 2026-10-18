@@ -8,6 +8,7 @@ import {
   normalizeListingAdditionalCharges,
 } from '@/app/lib/listing-charges';
 import { todayISO } from '@/app/lib/format';
+import { calculateCancellationRefund } from '@/app/lib/cancellation-policy';
 
 type ActionError = { ok: false; error: string };
 type CancellationPreview = {
@@ -17,7 +18,6 @@ type CancellationPreview = {
   estimatedRefund: number;
   daysUntilCheckIn: number;
   refundTiming: string;
-  listingPolicy: string | null;
 };
 
 function isValidISODate(value: string) {
@@ -36,7 +36,7 @@ async function cancellationDetails(bookingId: string, guestId: string) {
   const admin = getSupabaseAdmin();
   const { data: booking, error } = await admin
     .from('bookings')
-    .select('id, guest_id, host_id, status, check_in, check_out, listing:listings(cancellation_policy, refund_policy)')
+    .select('id, guest_id, host_id, status, check_in, check_out')
     .eq('id', bookingId)
     .eq('guest_id', guestId)
     .maybeSingle();
@@ -55,9 +55,7 @@ async function cancellationDetails(bookingId: string, guestId: string) {
 
   const paidAmount = (payments ?? []).reduce((sum, payment) => sum + Number(payment.amount), 0);
   const daysUntilCheckIn = Math.floor((Date.parse(`${booking.check_in}T00:00:00Z`) - Date.parse(`${todayISO()}T00:00:00Z`)) / 86_400_000);
-  const refundPercent = daysUntilCheckIn >= 14 ? 100 : daysUntilCheckIn >= 7 ? 50 : 0;
-  const estimatedRefund = Math.round(paidAmount * (refundPercent / 100) * 100) / 100;
-  const listing = Array.isArray(booking.listing) ? booking.listing[0] : booking.listing;
+  const { refundPercent, estimatedRefund } = calculateCancellationRefund(paidAmount, daysUntilCheckIn);
 
   return {
     booking,
@@ -65,7 +63,6 @@ async function cancellationDetails(bookingId: string, guestId: string) {
     refundPercent,
     estimatedRefund,
     daysUntilCheckIn,
-    listingPolicy: listing?.cancellation_policy || listing?.refund_policy || null,
   } as const;
 }
 
@@ -81,8 +78,7 @@ export async function getCancellationPreview(bookingId: string): Promise<Cancell
     refundPercent: details.refundPercent,
     estimatedRefund: details.estimatedRefund,
     daysUntilCheckIn: details.daysUntilCheckIn,
-    refundTiming: 'If approved, the refund is sent to the M-Pesa number on your booking after admin review. We will update the booking when Safaricom confirms it.',
-    listingPolicy: details.listingPolicy,
+    refundTiming: 'If approved, the refund is sent to the M-Pesa number on your booking and marked complete after Safaricom confirms the transfer.',
   };
 }
 

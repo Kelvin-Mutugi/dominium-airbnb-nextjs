@@ -319,7 +319,7 @@ export async function reconcileSafaricomB2CFee(input: {
   if (!UUID_PATTERN.test(input.attemptId)) throw new Error("Invalid B2C attempt.");
   if (!Number.isFinite(input.actualFee) || input.actualFee < 0) throw new Error("Enter a valid actual Safaricom fee.");
   const admin = getSupabaseAdmin();
-  const { data, error } = await admin.rpc("reconcile_daraja_b2c_fee", {
+  const { data, error } = await admin.rpc("reconcile_daraja_b2c_fee_with_financial_posting", {
     p_attempt_id: input.attemptId,
     p_actual_fee: input.actualFee,
     p_admin_id: actor.id,
@@ -342,38 +342,4 @@ export async function reconcileSafaricomB2CFee(input: {
   revalidatePath("/admin/refunds");
   revalidatePath("/admin/payouts/requests");
   revalidatePath("/host/payouts");
-}
-
-export async function reconcileSafaricomCollectionFee(input: {
-  attemptId: string;
-  actualFee: number;
-  note?: string;
-}) {
-  const actor = await requireAdmin();
-  if (!UUID_PATTERN.test(input.attemptId)) throw new Error("Invalid STK payment attempt.");
-  if (!Number.isFinite(input.actualFee) || input.actualFee < 0) throw new Error("Enter a valid actual collection fee.");
-  const admin = getSupabaseAdmin();
-  const { data, error } = await admin.rpc("reconcile_daraja_collection_fee", {
-    p_attempt_id: input.attemptId,
-    p_actual_fee: input.actualFee,
-    p_admin_id: actor.id,
-    p_admin_note: String(input.note ?? "").trim() || null,
-  });
-  if (error) {
-    if (error.message.includes("DARAJA_PAYMENT_NOT_SUCCESSFUL")) throw new Error("Only a successful STK payment can be reconciled.");
-    console.error("Safaricom collection fee reconciliation failed:", error);
-    throw new Error("Unable to reconcile this collection fee.");
-  }
-  const result = Array.isArray(data) ? data[0] : data;
-  await recordAdminAuditEvent({
-    actorId: actor.id,
-    action: "safaricom.stk_fee_reconciled",
-    entityType: "booking",
-    entityId: result?.booking_id ?? input.attemptId,
-    summary: `Recorded Safaricom STK fee of KES ${input.actualFee.toFixed(2)}.`,
-    after: { host_id: result?.host_id, actual_fee: input.actualFee, host_fee_balance: Number(result?.host_fee_balance ?? 0) },
-  });
-  revalidatePath("/admin/payouts/fees");
-  revalidatePath("/host/payouts");
-  revalidatePath("/admin/bookings");
 }

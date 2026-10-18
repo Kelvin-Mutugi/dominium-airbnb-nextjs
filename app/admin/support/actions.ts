@@ -78,4 +78,5 @@ export async function updateSupportCase(formData: FormData) {
 
   revalidatePath('/admin/support');
   revalidatePath('/account/support');
+  revalidatePath('/host/support');
 }

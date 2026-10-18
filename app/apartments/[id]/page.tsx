@@ -153,12 +153,33 @@ export default function ApartmentPage() {
       }));
       setRelatedListings(relatedListings);
 
-      const gallery = Array.isArray(data.listing_images)
+      const galleryPhotos = Array.isArray(data.listing_images)
         ? [...data.listing_images]
-            .sort((first, second) => first.sort_order - second.sort_order)
-            .map((image) => image.url)
-            .filter((url): url is string => Boolean(url))
+            .sort(
+              (first, second) =>
+                first.position - second.position ||
+                first.sort_order - second.sort_order,
+            )
+            .flatMap((image) =>
+              image.url
+                ? [
+                    {
+                      id: image.id,
+                      url: image.url,
+                      position: image.position,
+                      sortOrder: image.sort_order,
+                      category: image.category,
+                      roomIndex: image.room_index,
+                      caption: image.caption,
+                      isCover: image.is_cover,
+                      width: image.width,
+                      height: image.height,
+                    },
+                  ]
+                : [],
+            )
         : [];
+      const gallery = galleryPhotos.map((image) => image.url);
       const price = Number(data.price_per_night);
       const guestNightlyPrice =
         price + Number(data.platform_fee_per_night ?? 0);
@@ -179,6 +200,7 @@ export default function ApartmentPage() {
         detail: `Max guests: ${data.max_guests}`,
         img: gallery[0] ?? "",
         gallery,
+        galleryPhotos,
         description: data.description ?? "",
         features: normalizeAmenities(data.features),
         host: hostProfile?.displayName ?? "Host",

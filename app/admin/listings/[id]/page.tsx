@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
+import { PLATFORM_CANCELLATION_POLICY } from "@/app/lib/cancellation-policy";
 import type { ListingAdditionalCharge } from "@/app/lib/host/types";
 import { ListingPublicationToggle } from "@/components/admin/listings/listing-publication-toggle";
 
@@ -254,10 +255,9 @@ export default async function AdminListingDetailPage({
         <dl className="mt-5 grid gap-5 sm:grid-cols-2">
           <DetailField label="Booking terms" value={listing.booking_terms} />
           <DetailField
-            label="Cancellation policy"
-            value={listing.cancellation_policy}
+            label="Platform cancellation and refund policy"
+            value={PLATFORM_CANCELLATION_POLICY}
           />
-          <DetailField label="Refund policy" value={listing.refund_policy} />
         </dl>
       </section>
 

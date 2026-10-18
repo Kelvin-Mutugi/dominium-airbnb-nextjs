@@ -49,7 +49,7 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <h3 className="font-serif text-lg leading-snug text-neutral-900">
               {listing ? (
-                <Link href={routes.listing(listing.slug)} className="hover:underline">
+                <Link href={`/apartments/${listing.id}`}  className="hover:underline">
                   {listing.title}
                 </Link>
               ) : (
@@ -93,7 +93,7 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
             <>
               <p className="mt-1">
                 Estimated refund: {formatMoney(cr.estimated_refund_amount)} ({cr.refund_percent}% of{' '}
-                {formatMoney(cr.amount_paid)} paid). This amount is an estimate and may change under the property cancellation terms.
+                {formatMoney(cr.amount_paid)} paid), under the platform cancellation schedule.
               </p>
               <p className="mt-1">
                 {cr.status === 'pending'
@@ -107,7 +107,7 @@ export function BookingCard({ booking: b }: { booking: BookingView }) {
                         : cr.refund_processing_status === 'processed'
                           ? `Refund sent: ${formatMoney(cr.actual_refund_amount ?? 0)}${cr.refund_processed_at ? ` on ${formatDate(cr.refund_processed_at, 'short')}` : ''}. Your bank or mobile-money provider may take additional time to post it.`
                     : cr.refund_processing_status === 'awaiting_manual_processing'
-                      ? `Refund approved: your booking is cancelled, but the money has not been sent yet. The admin team must process it manually. Allow 3–5 business days after it is sent.`
+                      ? 'Refund approved: your booking is cancelled, but the money has not been sent yet. The admin team must process it manually. The refund status will update after Safaricom confirms the transfer.'
                       : cr.refund_processing_status === 'not_eligible'
                         ? 'Approved: your booking is cancelled. The estimated policy calculation indicates no refund is due.'
                         : 'Your cancellation request has been reviewed.'}

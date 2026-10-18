@@ -6,11 +6,13 @@ import { useRouter } from "next/navigation";
 import Navbar from "@/components/navigationBar";
 import HeroSection from "@/components/HeroSection";
 import FeaturedListings from "@/components/listings/Feartured/FeaturedListings";
+import CategoryBar from "@/components/home/CategoryBar";
 import BookingProcess from "@/components/BookingProcess";
 import PopularDestinations, { type Home } from "@/components/Populardestinations";
 import WhyBookUs from "@/components/WhyBookUs";
 import MagicalKenya from "@/components/MagicalKenya";
 import { ROUTES, type Listing } from "@/components/homeData";
+import type { BrowseCategory } from "@/app/lib/listing-categories";
 
 export default function HomePageClient({
   listings,
@@ -54,23 +56,32 @@ export default function HomePageClient({
     document.getElementById("listings")?.scrollIntoView({ behavior: "smooth" });
   }
 
+  function selectCategory(category: BrowseCategory) {
+    router.push(`/allListings?category=${encodeURIComponent(category)}`);
+  }
+
   return (
     <>
       <Navbar />
-      <HeroSection
+      {/* <HeroSection
         selectedRoute={selectedRoute}
         onRouteChange={setSelectedRoute}
         checkIn={checkIn}
         onCheckInChange={setCheckIn}
         onSearch={scrollToListings}
-      />
+      /> */}
+      
       <MagicalKenya />
-      <FeaturedListings listings={featuredListings} isLoading={isLoading} />
+      <CategoryBar activeCategory="all" onChange={selectCategory} />
+      <FeaturedListings
+        listings={featuredListings}
+        isLoading={isLoading}
+      />
       {children}
-      <PopularDestinations
+      {/* <PopularDestinations
         homes={homes}
         onView={(home) => router.push(`/apartments/${home.id}`)}
-      />
+      /> */}
       <WhyBookUs />
       <BookingProcess />
     </>

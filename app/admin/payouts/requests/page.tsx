@@ -13,6 +13,7 @@ type PayoutRequest = {
   status: string;
   processing_by: string | null;
   transfer_fee: number | string | null;
+  collection_fee_amount: number | string | null;
   net_amount: number | string | null;
   external_reference: string | null;
   last_attempt: {
@@ -47,7 +48,7 @@ export default async function AdminPayoutRequestsPage() {
   const { id: adminId } = await requireAdmin();
   const admin = getSupabaseAdmin();
   const requestFields =
-    "id, host_id, amount, destination_method, destination_details, status, processing_by, transfer_fee, net_amount, external_reference, requested_at, processed_at, admin_note, last_attempt:daraja_b2c_attempts!host_payout_requests_last_daraja_attempt_id_fkey(id, status, amount, estimated_fee, actual_fee, transaction_id), last_reversal:daraja_b2c_reversals!host_payout_requests_last_daraja_reversal_id_fkey(id, status, amount, actual_fee, original_transaction_id, reason)";
+    "id, host_id, amount, destination_method, destination_details, status, processing_by, transfer_fee, collection_fee_amount, net_amount, external_reference, requested_at, processed_at, admin_note, last_attempt:daraja_b2c_attempts!host_payout_requests_last_daraja_attempt_id_fkey(id, status, amount, estimated_fee, actual_fee, transaction_id), last_reversal:daraja_b2c_reversals!host_payout_requests_last_daraja_reversal_id_fkey(id, status, amount, actual_fee, original_transaction_id, reason)";
   const [activeResult, historyResult] = await Promise.all([
     admin
       .from("host_payout_requests")
@@ -62,7 +63,16 @@ export default async function AdminPayoutRequestsPage() {
       .order("requested_at", { ascending: false })
       .limit(100),
   ]);
-  if (activeResult.error || historyResult.error)
+  const requestLoadError = activeResult.error ?? historyResult.error;
+  if (
+    requestLoadError?.code === "PGRST204" ||
+    requestLoadError?.message.includes("collection_fee_amount")
+  ) {
+    throw new Error(
+      "Host payout processing is unavailable because its database migrations have not been applied. Apply migrations through 20261015120000_host_partial_payout_requests.sql.",
+    );
+  }
+  if (requestLoadError)
     throw new Error("Unable to load host payout requests.");
 
   const requests = [
@@ -89,12 +99,13 @@ export default async function AdminPayoutRequestsPage() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-[#E23E85]">
-            Host withdrawal requests
+            Host Payout Requests
           </h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-600">
             Verify the reserved amount and M-Pesa destination, then initiate a
-            Safaricom B2C transfer. Payouts settle only after Safaricom returns
-            a successful result; actual fees are reconciled afterwards.
+            Safaricom B2C transfer. Record the aggregate STK collection fee
+            here; B2C transfers settle only after Safaricom returns a successful
+            result.
           </p>
         </div>
         <Link
@@ -108,8 +119,9 @@ export default async function AdminPayoutRequestsPage() {
       <p className="border-l-2 border-amber-500 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
         Request amounts are host liabilities from the database ledger, not the
         available Safaricom B2C float. Confirm the saved destination and
-        estimated fee before sending. Submitted or uncertain transfers remain
-        reserved until their Safaricom result is reconciled.
+        collection-fee total and B2C fee estimate before sending. Submitted or
+        uncertain transfers remain reserved until their Safaricom result is
+        reconciled.
       </p>
 
       {requests.length === 0 ? (
@@ -135,29 +147,46 @@ export default async function AdminPayoutRequestsPage() {
                   </p>
                   <dl className="mt-4 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
                     <div>
-                      <dt className="text-xs uppercase text-gray-500">
+                      <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
                         Reserved host balance
                       </dt>
-                      <dd className="mt-1 font-semibold">
+                      <dd className="mt-1 font-semibold text-emerald-700">
                         {formatMoney(request.amount)}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-xs uppercase text-gray-500">
+                      <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
                         Destination method
                       </dt>
-                      <dd className="mt-1 capitalize">
+                      <dd className="mt-1">
+                        <span className="mt-1 font-semibold text-emerald-700">
                         {request.destination_method === "mpesa"
                           ? "M-Pesa"
                           : "Bank transfer"}
+                        </span>
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-xs uppercase text-gray-500">
+                      <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
                         Status
                       </dt>
-                      <dd className="mt-1 font-medium capitalize">
+                      <dd className="mt-1">
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1 ring-inset ${
+                            request.status === "paid"
+                              ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
+                              : request.status === "processing"
+                                ? "bg-amber-50 text-amber-700 ring-amber-600/20"
+                                : request.status === "requested"
+                                  ? "bg-sky-50 text-sky-700 ring-sky-600/20"
+                                  : request.status === "reversed" ||
+                                      request.status === "cancelled"
+                                    ? "bg-rose-50 text-rose-700 ring-rose-600/20"
+                                    : "bg-slate-100 text-slate-700 ring-slate-600/20"
+                          }`}
+                        >
                         {request.status}
+                        </span>
                       </dd>
                     </div>
                     {["paid", "reversed"].includes(request.status) && (
@@ -168,6 +197,16 @@ export default async function AdminPayoutRequestsPage() {
                         <dd className="mt-1">
                           {formatMoney(request.transfer_fee ?? 0)} /{" "}
                           {formatMoney(request.net_amount ?? 0)}
+                        </dd>
+                      </div>
+                    )}
+                    {request.collection_fee_amount !== null && (
+                      <div>
+                        <dt className="text-xs uppercase text-gray-500">
+                          STK collection fee recorded for this request
+                        </dt>
+                        <dd className="mt-1">
+                          {formatMoney(request.collection_fee_amount)}
                         </dd>
                       </div>
                     )}
@@ -205,6 +244,7 @@ export default async function AdminPayoutRequestsPage() {
                   (request.status === "paid" && request.last_attempt?.status === "succeeded") ||
                   (request.status === "reversed" && request.last_reversal?.status === "reversed" && request.last_reversal.actual_fee == null)) && (
                   <HostPayoutRequestActions
+                    key={`${request.id}-${request.collection_fee_amount ?? "not-recorded"}`}
                     requestId={request.id}
                     amount={Number(request.amount)}
                     destinationMethod={request.destination_method}
@@ -213,6 +253,7 @@ export default async function AdminPayoutRequestsPage() {
                     processingBy={request.processing_by}
                     adminId={adminId}
                     hostFeeBalance={Number(host?.host_fee_balance ?? 0)}
+                    collectionFeeAmount={request.collection_fee_amount}
                     lastAttempt={request.last_attempt ?? null}
                     lastReversal={request.last_reversal ?? null}
                   />

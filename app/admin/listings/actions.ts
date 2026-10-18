@@ -5,7 +5,9 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAdmin } from "@/app/lib/admin-auth";
 import { recordAdminAuditEvent } from "@/app/lib/admin-audit";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
+import { isListingCategory, LISTING_CATEGORIES } from "@/app/lib/listing-categories";
 import type { ListingFormValues } from "@/app/lib/host/types";
+import type { ListingImageMetadata } from "@/components/admin/listings/image-categories";
 
 function listingPayload(values: Partial<ListingFormValues>) {
   return {
@@ -17,6 +19,10 @@ function listingPayload(values: Partial<ListingFormValues>) {
     latitude: values.latitude == null ? null : Number(values.latitude),
     longitude: values.longitude == null ? null : Number(values.longitude),
     property_type: String(values.property_type ?? "").trim(),
+    categories: Array.isArray(values.categories)
+      ? [...new Set(values.categories)]
+      : [],
+    is_rare_find: Boolean(values.is_rare_find),
     price_per_night: Number(values.price_per_night),
     platform_fee_per_night: Number(values.platform_fee_per_night),
     service_fee_percent: 0,
@@ -56,6 +62,12 @@ function validateListing(
   }
   if (values.property_type.length > 80)
     throw new Error("Property type must be 80 characters or fewer.");
+  if (
+    values.categories.length > LISTING_CATEGORIES.length ||
+    values.categories.some((category) => !isListingCategory(category))
+  ) {
+    throw new Error("Choose valid listing categories.");
+  }
   if (!Number.isFinite(values.price_per_night) || values.price_per_night <= 0) {
     throw new Error("Price per night must be greater than zero.");
   }
@@ -142,6 +154,31 @@ export async function createAdminListing(
     .single();
 
   if (error) throw new Error(error.message || "Unable to create listing.");
+
+  const { error: guideError } = await admin
+    .from("listing_arrival_guides")
+    .upsert(
+      {
+        listing_id: data.id,
+        host_id: normalizedHostId,
+        arrival_address:
+          String(values.arrival_address ?? "").trim() || payload.address,
+        arrival_directions:
+          String(values.arrival_directions ?? "").trim() || null,
+        check_in_instructions:
+          String(values.check_in_instructions ?? "").trim() || null,
+        wifi_name: String(values.wifi_name ?? "").trim() || null,
+        wifi_password: String(values.wifi_password ?? "").trim() || null,
+        arrival_contact: String(values.arrival_contact ?? "").trim() || null,
+        local_tips: String(values.local_tips ?? "").trim() || null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "listing_id" },
+    );
+
+  if (guideError)
+    throw new Error(guideError.message || "Unable to save arrival guide.");
+
   await recordAdminAuditEvent({
     actorId: actor.id,
     action: "listing.created",
@@ -151,6 +188,8 @@ export async function createAdminListing(
     after: {
       title: payload.title,
       property_type: payload.property_type,
+      categories: payload.categories,
+      is_rare_find: payload.is_rare_find,
       price_per_night: payload.price_per_night,
       platform_fee_per_night: payload.platform_fee_per_night,
       additional_charges: payload.additional_charges,
@@ -174,7 +213,7 @@ export async function updateAdminListing(
   const { data: existingListing, error: lookupError } = await admin
     .from("listings")
     .select(
-      "host_id, title, county, town, property_type, price_per_night, platform_fee_per_night, additional_charges, status",
+      "host_id, title, county, town, property_type, categories, is_rare_find, price_per_night, platform_fee_per_night, additional_charges, status",
     )
     .eq("id", listingId)
     .maybeSingle();
@@ -224,6 +263,8 @@ export async function updateAdminListing(
       county: existingListing.county,
       town: existingListing.town,
       property_type: existingListing.property_type,
+      categories: existingListing.categories,
+      is_rare_find: existingListing.is_rare_find,
       price_per_night: existingListing.price_per_night,
       platform_fee_per_night: existingListing.platform_fee_per_night,
       additional_charges: existingListing.additional_charges,
@@ -234,6 +275,8 @@ export async function updateAdminListing(
       county: payload.county,
       town: payload.town,
       property_type: payload.property_type,
+      categories: payload.categories,
+      is_rare_find: payload.is_rare_find,
       price_per_night: payload.price_per_night,
       platform_fee_per_night: payload.platform_fee_per_night,
       additional_charges: payload.additional_charges,
@@ -251,6 +294,21 @@ const ADMIN_LISTING_IMAGE_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
+};
+
+const ADMIN_LISTING_IMAGE_CATEGORIES = new Set([
+  "exterior",
+  "living",
+  "kitchen",
+  "bedroom",
+  "bathroom",
+  "outdoor",
+  "amenities",
+  "neighborhood",
+]);
+
+export type AdminListingImageArrangement = ListingImageMetadata & {
+  id: string;
 };
 
 export async function createAdminListingImageUploadUrl(
@@ -283,12 +341,13 @@ export async function createAdminListingImageUploadUrl(
     .createSignedUploadUrl(path);
   if (error || !data) throw new Error("Unable to prepare image upload.");
 
-  return { path, token: data.token };
+  return { path, signedUrl: data.signedUrl };
 }
 
 export async function registerAdminListingImage(
   listingId: string,
   path: string,
+  metadata?: ListingImageMetadata,
 ) {
   const actor = await requireAdmin();
   const admin = getSupabaseAdmin();
@@ -307,6 +366,33 @@ export async function registerAdminListingImage(
     throw new Error("Invalid image upload path.");
   }
 
+  if (metadata) {
+    const usesRoomIndex =
+      metadata.category === "bedroom" || metadata.category === "bathroom";
+    const hasValidRoomIndex = usesRoomIndex
+      ? Number.isInteger(metadata.roomIndex) &&
+        metadata.roomIndex !== null &&
+        metadata.roomIndex >= 1 &&
+        metadata.roomIndex <= 10
+      : metadata.roomIndex === null;
+
+    if (
+      !ADMIN_LISTING_IMAGE_CATEGORIES.has(metadata.category) ||
+      !Number.isInteger(metadata.position) ||
+      metadata.position < 0 ||
+      typeof metadata.isCover !== "boolean" ||
+      typeof metadata.caption !== "string" ||
+      metadata.caption.trim().length > 80 ||
+      !Number.isInteger(metadata.width) ||
+      metadata.width < 1 ||
+      !Number.isInteger(metadata.height) ||
+      metadata.height < 1 ||
+      !hasValidRoomIndex
+    ) {
+      throw new Error("Invalid listing image details.");
+    }
+  }
+
   const { data: files, error: storageError } = await admin.storage
     .from("listing-images")
     .list(folder, { search: fileName, limit: 10 });
@@ -314,14 +400,18 @@ export async function registerAdminListingImage(
     throw new Error("Uploaded image could not be found.");
   }
 
-  const { data: latestImage, error: latestImageError } = await admin
-    .from("listing_images")
-    .select("sort_order")
-    .eq("listing_id", listingId)
-    .order("sort_order", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (latestImageError) throw new Error("Unable to determine image order.");
+  let sortOrder = metadata?.position;
+  if (sortOrder === undefined) {
+    const { data: latestImage, error: latestImageError } = await admin
+      .from("listing_images")
+      .select("sort_order")
+      .eq("listing_id", listingId)
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (latestImageError) throw new Error("Unable to determine image order.");
+    sortOrder = (latestImage?.sort_order ?? -1) + 1;
+  }
 
   const { data: publicUrl } = admin.storage
     .from("listing-images")
@@ -331,7 +421,18 @@ export async function registerAdminListingImage(
     .insert({
       listing_id: listingId,
       url: publicUrl.publicUrl,
-      sort_order: (latestImage?.sort_order ?? -1) + 1,
+      sort_order: sortOrder,
+      position: sortOrder,
+      ...(metadata
+        ? {
+            category: metadata.category,
+            room_index: metadata.roomIndex,
+            caption: metadata.caption.trim(),
+            is_cover: metadata.isCover,
+            width: metadata.width,
+            height: metadata.height,
+          }
+        : {}),
     })
     .select("id, url, sort_order")
     .single();
@@ -347,7 +448,17 @@ export async function registerAdminListingImage(
     entityType: "listing",
     entityId: listingId,
     summary: "Added an image to the listing.",
-    after: { image_id: image.id, sort_order: image.sort_order },
+    after: {
+      image_id: image.id,
+      sort_order: image.sort_order,
+      ...(metadata
+        ? {
+            category: metadata.category,
+            room_index: metadata.roomIndex,
+            is_cover: metadata.isCover,
+          }
+        : {}),
+    },
   });
 
   revalidatePath(`/admin/listings/${listingId}`);
@@ -409,6 +520,162 @@ export async function deleteAdminListingImage(imageId: string) {
 
   revalidatePath(`/admin/listings/${image.listing_id}`);
   revalidatePath(`/admin/listings/${image.listing_id}/edit`);
+  revalidatePath("/admin/listings");
+  revalidateTag("public-listings", "max");
+}
+
+export async function saveAdminListingImageArrangement(
+  listingId: string,
+  arrangement: AdminListingImageArrangement[],
+) {
+  const actor = await requireAdmin();
+  if (!Array.isArray(arrangement) || arrangement.length > 40) {
+    throw new Error("A listing can have no more than 40 photos.");
+  }
+  if (
+    new Set(arrangement.map((image) => image.id)).size !== arrangement.length
+  ) {
+    throw new Error("A photo appears more than once in the gallery.");
+  }
+
+  arrangement.forEach((image, index) => {
+    const usesRoomIndex =
+      image.category === "bedroom" || image.category === "bathroom";
+    const hasValidRoomIndex = usesRoomIndex
+      ? Number.isInteger(image.roomIndex) &&
+        image.roomIndex !== null &&
+        image.roomIndex >= 1 &&
+        image.roomIndex <= 10
+      : image.roomIndex === null;
+
+    if (
+      !ADMIN_LISTING_IMAGE_CATEGORIES.has(image.category) ||
+      image.position !== index ||
+      image.isCover !== (index === 0) ||
+      typeof image.caption !== "string" ||
+      image.caption.trim().length > 80 ||
+      !Number.isInteger(image.width) ||
+      image.width < 1 ||
+      !Number.isInteger(image.height) ||
+      image.height < 1 ||
+      !hasValidRoomIndex
+    ) {
+      throw new Error("Invalid listing photo details.");
+    }
+  });
+
+  const admin = getSupabaseAdmin();
+  const { data: listing, error: listingError } = await admin
+    .from("listings")
+    .select("host_id")
+    .eq("id", listingId)
+    .maybeSingle();
+  if (listingError || !listing) throw new Error("Listing not found.");
+
+  const { data: existingImages, error: imagesError } = await admin
+    .from("listing_images")
+    .select("id, url, position")
+    .eq("listing_id", listingId);
+  if (imagesError) throw new Error("Unable to load listing photos.");
+
+  const currentImages = existingImages ?? [];
+  const currentById = new Map(currentImages.map((image) => [image.id, image]));
+  if (arrangement.some((image) => !currentById.has(image.id))) {
+    throw new Error("One or more photos no longer belong to this listing.");
+  }
+
+  const keptIds = new Set(arrangement.map((image) => image.id));
+  const removedImages = currentImages.filter((image) => !keptIds.has(image.id));
+  const expectedFolder = `${listing.host_id}/${listingId}/`;
+  const marker = "/storage/v1/object/public/listing-images/";
+
+  for (const image of removedImages) {
+    const imageUrl = new URL(image.url);
+    const markerIndex = imageUrl.pathname.indexOf(marker);
+    const objectPath =
+      markerIndex >= 0
+        ? decodeURIComponent(imageUrl.pathname.slice(markerIndex + marker.length))
+        : "";
+    if (!objectPath.startsWith(expectedFolder)) continue;
+
+    const { error: removeError } = await admin.storage
+      .from("listing-images")
+      .remove([objectPath]);
+    if (removeError) throw new Error("Unable to remove a deleted listing photo.");
+  }
+
+  if (removedImages.length > 0) {
+    const { error: deleteError } = await admin
+      .from("listing_images")
+      .delete()
+      .eq("listing_id", listingId)
+      .in(
+        "id",
+        removedImages.map((image) => image.id),
+      );
+    if (deleteError) {
+      throw new Error(deleteError.message || "Unable to remove listing photos.");
+    }
+  }
+
+  const { error: coverError } = await admin
+    .from("listing_images")
+    .update({ is_cover: false })
+    .eq("listing_id", listingId);
+  if (coverError) throw new Error("Unable to update the listing cover photo.");
+
+  const maxPosition = currentImages.reduce(
+    (maximum, image) => Math.max(maximum, image.position ?? -1),
+    -1,
+  );
+  for (const [index, image] of arrangement.entries()) {
+    const { error: temporaryOrderError } = await admin
+      .from("listing_images")
+      .update({
+        position: maxPosition + arrangement.length + index + 1,
+        sort_order: maxPosition + arrangement.length + index + 1,
+      })
+      .eq("listing_id", listingId)
+      .eq("id", image.id);
+    if (temporaryOrderError) {
+      throw new Error("Unable to prepare the new photo order.");
+    }
+  }
+
+  for (const image of arrangement) {
+    const { error: updateError } = await admin
+      .from("listing_images")
+      .update({
+        category: image.category,
+        room_index: image.roomIndex,
+        caption: image.caption.trim(),
+        is_cover: image.isCover,
+        width: image.width,
+        height: image.height,
+        position: image.position,
+        sort_order: image.position,
+      })
+      .eq("listing_id", listingId)
+      .eq("id", image.id);
+    if (updateError) {
+      throw new Error(updateError.message || "Unable to save listing photos.");
+    }
+  }
+
+  await recordAdminAuditEvent({
+    actorId: actor.id,
+    action: "listing.images_updated",
+    entityType: "listing",
+    entityId: listingId,
+    summary: `Updated the photo gallery for listing ${listingId}.`,
+    after: {
+      photo_count: arrangement.length,
+      cover_image_id: arrangement[0]?.id ?? null,
+    },
+  });
+
+  revalidatePath(`/admin/listings/${listingId}`);
+  revalidatePath(`/admin/listings/${listingId}/edit`);
   revalidatePath("/admin/listings");
   revalidateTag("public-listings", "max");
 }

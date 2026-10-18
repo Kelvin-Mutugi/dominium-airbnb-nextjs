@@ -24,11 +24,58 @@ export interface BookingPrice {
   >["lines"];
   total: number;
   hostPayout: number;
+  financialSnapshot?: BookingFinancialSnapshot;
 }
 
 export interface GuestPriceSnapshot {
   line_items: Array<Record<string, unknown> & { name: string; total: number }>;
   totals: Record<string, unknown> & { guest_nightly_subtotal?: number };
+}
+
+export interface BookingFinancialSnapshot {
+  guest_total: number;
+  host_earnings: number;
+  platform_markup: number;
+  discount_total: number;
+  payment_processing_fee: number;
+  tax_total: number;
+  amount_refunded: number;
+  host_amount_payable: number;
+  actual_host_paid: number;
+}
+
+export function createBookingFinancialSnapshot({
+  guestTotal,
+  hostEarnings,
+  platformMarkup,
+  discountTotal = 0,
+  paymentProcessingFee = 0,
+  taxTotal = 0,
+  amountRefunded = 0,
+  hostAmountPayable = 0,
+  actualHostPaid = 0,
+}: {
+  guestTotal: number | string;
+  hostEarnings: number | string;
+  platformMarkup: number | string;
+  discountTotal?: number | string;
+  paymentProcessingFee?: number | string;
+  taxTotal?: number | string;
+  amountRefunded?: number | string;
+  hostAmountPayable?: number | string;
+  actualHostPaid?: number | string;
+}): BookingFinancialSnapshot {
+  return {
+    guest_total: money(Number(guestTotal ?? 0)),
+    host_earnings: money(Number(hostEarnings ?? 0)),
+    platform_markup: money(Number(platformMarkup ?? 0)),
+    discount_total: money(Number(discountTotal ?? 0)),
+    payment_processing_fee: money(Number(paymentProcessingFee ?? 0)),
+    tax_total: money(Number(taxTotal ?? 0)),
+    amount_refunded: money(Number(amountRefunded ?? 0)),
+    host_amount_payable: money(Number(hostAmountPayable ?? 0)),
+    actual_host_paid: money(Number(actualHostPaid ?? 0)),
+  };
 }
 
 function money(value: number): number {
@@ -138,6 +185,7 @@ export function calculateBookingPrice(input: BookingPriceInput): BookingPrice {
   const additionalFees = money(charges.total);
   const unroundedTotal = money(subtotal + additionalFees);
   const total = Math.round(unroundedTotal);
+  const hostPayout = money(hostSubtotal + additionalFees);
 
   return {
     nights,
@@ -149,6 +197,14 @@ export function calculateBookingPrice(input: BookingPriceInput): BookingPrice {
     roundingAdjustment: money(total - unroundedTotal),
     additionalChargeLines: charges.lines,
     total,
-    hostPayout: money(hostSubtotal + additionalFees),
+    hostPayout,
+    financialSnapshot: createBookingFinancialSnapshot({
+      guestTotal: total,
+      hostEarnings: hostSubtotal,
+      platformMarkup: serviceFee,
+      paymentProcessingFee: 0,
+      hostAmountPayable: hostPayout,
+      actualHostPaid: 0,
+    }),
   };
 }

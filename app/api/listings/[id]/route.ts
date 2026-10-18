@@ -14,7 +14,7 @@ export async function GET(
     const listing = await getCachedPublicListingDetail(id);
     if (!listing) return NextResponse.json({ error: "Listing not found." }, { status: 404 });
     return NextResponse.json(listing, {
-      headers: { "Cache-Control": "public, max-age=60, stale-while-revalidate=300" },
+      headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
     console.error("Public listing detail error:", error);

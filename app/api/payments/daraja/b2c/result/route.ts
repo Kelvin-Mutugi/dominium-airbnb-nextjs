@@ -61,7 +61,11 @@ export async function POST(request: Request) {
       processing_status: attempt ? "received" : "unmatched",
       payload,
     });
-  if (eventError?.code === "23505") return accepted();
+  if (eventError?.code === "23505") {
+    console.info("Duplicate Daraja B2C result received; retrying settlement and ledger posting.", {
+      attemptId: attempt?.id,
+    });
+  }
   if (eventError) {
     console.error("Daraja B2C result event could not be saved:", eventError);
     return NextResponse.json({ error: "Result processing failed." }, { status: 500 });
@@ -70,7 +74,7 @@ export async function POST(request: Request) {
 
   const transactionId =
     result.TransactionID ?? resultParameter(result, "TransactionID");
-  const { error } = await admin.rpc("settle_daraja_b2c_result", {
+  const { error: settlementError } = await admin.rpc("settle_daraja_b2c_result_with_financial_posting", {
     p_conversation_id: result.ConversationID,
     p_originator_conversation_id: result.OriginatorConversationID,
     p_result_code: String(result.ResultCode ?? ""),
@@ -78,8 +82,8 @@ export async function POST(request: Request) {
     p_transaction_id: transactionId == null ? null : String(transactionId),
     p_raw_response: payload,
   });
-  if (error) {
-    console.error("Daraja B2C result settlement failed:", error);
+  if (settlementError) {
+    console.error("Daraja B2C result settlement failed:", settlementError);
     await admin
       .from("daraja_b2c_attempts")
       .update({

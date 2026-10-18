@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getHostListingData } from "@/app/lib/host/actions";
+import { PLATFORM_CANCELLATION_POLICY } from "@/app/lib/cancellation-policy";
 
 type ListingImage = {
   id: string;
@@ -84,9 +85,17 @@ export default async function HostListingDetailPage({
           <h1 className="mt-2 text-3xl font-semibold text-[#1B1A2E]">{displayValue(listing.title)}</h1>
           <p className="mt-1 text-sm text-gray-500">Listing ID: {listing.id}</p>
         </div>
-        <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium capitalize text-gray-700">
-          {displayValue(listing.status).replaceAll("_", " ")}
-        </span>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium capitalize text-gray-700">
+            {displayValue(listing.status).replaceAll("_", " ")}
+          </span>
+          <Link
+            href={`/host/listings/${id}/edit`}
+            className="inline-flex min-h-10 items-center rounded-lg bg-[#E23E85] px-4 py-2 text-sm font-semibold text-white hover:bg-[#c93075]"
+          >
+            Edit listing
+          </Link>
+        </div>
       </div>
 
       {images.length > 0 && (
@@ -135,7 +144,10 @@ export default async function HostListingDetailPage({
       <section className="mt-6 rounded-lg bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-[#1B1A2E]">Policies</h2>
         <dl className="mt-5 grid gap-5 sm:grid-cols-2">
-          <DetailField label="Cancellation policy" value={listing.cancellation_policy} />
+          <DetailField
+            label="Platform cancellation and refund policy"
+            value={PLATFORM_CANCELLATION_POLICY}
+          />
         </dl>
       </section>
     </div>

@@ -73,7 +73,7 @@ export default async function AdminCancellationRequestsPage() {
                   <p className="text-sm text-gray-600">Guest: {booking?.guest_name ?? "Guest"}</p>
                   <p className="text-sm text-gray-600">Stay: {request.current_check_in} to {request.current_check_out}</p>
                   <p className="text-sm text-gray-600">
-                    Estimated refund: KES {Number(request.estimated_refund_amount).toLocaleString("en-KE")} ({request.refund_percent}% of KES {Number(request.amount_paid).toLocaleString("en-KE")})
+                    Estimated refund: KES {Number(request.estimated_refund_amount).toLocaleString("en-KE")} ({request.refund_percent}% of KES {Number(request.amount_paid).toLocaleString("en-KE")} paid, under the platform cancellation schedule)
                   </p>
                   <p className="text-xs text-gray-500">
                     Requested {new Intl.DateTimeFormat("en-KE", { dateStyle: "medium" }).format(new Date(request.created_at))}

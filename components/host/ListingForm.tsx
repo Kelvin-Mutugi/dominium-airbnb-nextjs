@@ -7,6 +7,7 @@ import type {
   ListingAdditionalCharge,
   ListingFormValues,
 } from "@/app/lib/host/types";
+import { LISTING_CATEGORIES } from "@/app/lib/listing-categories";
 
 const ListingMapPicker = dynamic(
   () =>
@@ -45,6 +46,8 @@ const DEFAULTS: ListingFormValues = {
   latitude: null,
   longitude: null,
   property_type: "",
+  categories: [],
+  is_rare_find: false,
   price_per_night: 0,
   platform_fee_per_night: 0,
   additional_charges: [],
@@ -600,13 +603,11 @@ export default function ListingForm({
           </div>
         </div>
         <div>
-          <label className={labelClass}>Cancellation policy</label>
-          <textarea
-            className={inputClass}
-            rows={3}
-            value={values.cancellation_policy}
-            onChange={(e) => set("cancellation_policy", e.target.value)}
-          />
+          <p className={labelClass}>Cancellation and refund terms</p>
+          <p className="text-sm text-gray-600">
+            The platform-wide cancellation schedule applies to every listing.
+            Property-specific refund terms are not offered.
+          </p>
         </div>
         <div>
           <label className={labelClass}>House rules</label>
@@ -745,6 +746,44 @@ export default function ListingForm({
             onChange={(e) => set("local_tips", e.target.value)}
             placeholder="Nearby shops, food, transport, or useful local advice"
           />
+        </div>
+      </section>
+
+      <section className="space-y-3 rounded-2xl bg-white p-5 shadow-sm">
+        <div>
+          <h2 className="font-semibold text-[#12231d]">Browse categories</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Select only categories that accurately describe this property.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {LISTING_CATEGORIES.map((category) => (
+            <label key={category.id} className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={values.categories.includes(category.id)}
+                onChange={() =>
+                  set(
+                    "categories",
+                    values.categories.includes(category.id)
+                      ? values.categories.filter((value) => value !== category.id)
+                      : [...values.categories, category.id],
+                  )
+                }
+                className="size-4 accent-[#E23E85]"
+              />
+              {category.label}
+            </label>
+          ))}
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={values.is_rare_find}
+              onChange={(event) => set("is_rare_find", event.target.checked)}
+              className="size-4 accent-[#E23E85]"
+            />
+            Rare find
+          </label>
         </div>
       </section>
 

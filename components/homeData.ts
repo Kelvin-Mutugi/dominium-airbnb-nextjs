@@ -1,5 +1,6 @@
 import { Wifi } from "lucide-react";
 import type { ListingAdditionalCharge } from "@/app/lib/host/types";
+import type { ListingCategory } from "@/app/lib/listing-categories";
 
 export const HERO_IMAGES: string[] = [
   // City: Nairobi skyline with KICC (Kenny Murgor)
@@ -36,6 +37,19 @@ export interface PublicHostProfile {
   bio?: string | null;
 }
 
+export interface ListingPhoto {
+  id?: string;
+  url: string;
+  position?: number | null;
+  sortOrder?: number | null;
+  category?: string | null;
+  roomIndex?: number | null;
+  caption?: string | null;
+  isCover?: boolean | null;
+  width?: number | null;
+  height?: number | null;
+}
+
 export interface Listing {
   id: string;
   name: string;
@@ -44,6 +58,7 @@ export interface Listing {
   detail: string;
   img: string;
   gallery: string[];
+  galleryPhotos?: ListingPhoto[];
   description: string;
   features: string[];
   host: string;
@@ -64,6 +79,7 @@ export interface Listing {
   serviceFeePercent: number;
   serviceFeePerNight?: number;
   propertyType?: string;
+  categories?: ListingCategory[];
   additionalCharges?: ListingAdditionalCharge[];
   cancellationDeadline?: string;
 

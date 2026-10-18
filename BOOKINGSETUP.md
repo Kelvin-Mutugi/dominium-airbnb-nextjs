@@ -2,15 +2,15 @@
 
 ## Database
 
-Apply migrations in order through `20261009160000_paystack_retirement.sql` before enabling Daraja collection, host disbursements, refunds, or payout reversals. The final migration removes obsolete Paystack payment-attempts and fee columns/RPCs; it preserves `auth.users`, profiles, and user rows. Existing dummy payment-attempt data in the retired Paystack table is discarded when that migration is applied.
+Apply all migrations in filename order through `20261017170000_grant_booking_hold_expiry_select.sql` before enabling host calendar, Daraja collection, host disbursements, refunds, or payout reversals. The latest migration grants authenticated hosts read access to `hold_expires_at`, which is required by host calendar and booking queries. Hosts can request part or all of their available earnings and choose an M-Pesa number for each request. The request-specific number does not change the number saved to their account. Admins record one aggregate STK collection fee while processing each payout request; hosts do not wait for per-payment STK fee reconciliation. Migration `20261009160000_paystack_retirement.sql` removes obsolete Paystack payment-attempts and fee columns/RPCs; it preserves `auth.users`, profiles, and user rows. Existing dummy payment-attempt data in the retired Paystack table is discarded when that migration is applied.
 
-Guest checkout accepts M-Pesa only. The final booking total is rounded to the nearest whole KES and the adjustment is displayed as its own line. Safaricom collection fees are intended to reduce host earnings, but new Daraja bookings remain ineligible for host withdrawal until actual collection fees are reconciled. Host payouts use Safaricom B2C, with actual payout fees reconciled after the result callback.
+Guest checkout accepts M-Pesa only. The final booking total is rounded to the nearest whole KES and the adjustment is displayed as its own line. Admins record the aggregate Safaricom STK collection fee once while processing each host payout request; this amount reduces that host's transfer and is journaled against the payout request. Host payouts use Safaricom B2C, with actual B2C transfer fees still reconciled after the result callback.
 
 ### Resetting test bookings
 
 For a deliberate test-data reset, `supabase/testing/reset_test_booking_data.sql` is a one-off script, not an automatically applied migration. Verify the active Supabase project is the intended test project before running it. It removes bookings and booking-linked payment, payout, refund, support, notification, and test audit/review records. It preserves `auth.users`, profile rows and personal fields, listings, storage objects, and unrelated support/contact/audit records; it sets `host_fee_balance` to zero only for hosts linked to the deleted bookings. It has not been applied to any database by this repository change.
 
-Keep Daraja checkout in sandbox until the fee-reconciliation workflow is implemented. Do not switch production traffic to this flow while new host payouts are intentionally blocked awaiting actual collection-fee reconciliation.
+Keep Daraja checkout in sandbox until collection and payout processing have been tested end to end in a non-production project.
 
 ## Environment
 
@@ -70,5 +70,5 @@ The initiator name and encrypted security credential must match Safaricom's B2C 
 3. The server initializes one Daraja STK Push attempt using the saved Kenyan phone number. Duplicate attempts for the same booking are prevented while a request is active or needs reconciliation.
 4. The guest approves the prompt on their phone. The confirmation page polls booking state; only the server callback and Daraja status check can settle the payment.
 5. A callback received after the hold expires is recorded as a late success and does not automatically confirm the booking.
-6. Collection fees remain unreconciled until their actual amount is confirmed, so the associated host payout cannot be withdrawn yet.
-7. Host B2C payouts, approved guest refunds, and payout reversals require matching Safaricom result callbacks before their ledgers are changed. Admins reconcile actual collection, transfer, and reversal fees from the authoritative Safaricom fee source; these costs are carried against host earnings.
+6. Hosts request any amount up to their available earnings and can enter a different M-Pesa number for that request. Their saved account number is unchanged.
+7. Admins enter the aggregate STK collection fee while processing a payout request. Host B2C payouts, approved guest refunds, and payout reversals require matching Safaricom result callbacks before their ledgers are changed. Admins reconcile actual transfer and reversal fees from the authoritative Safaricom fee source; these costs are carried against host earnings.

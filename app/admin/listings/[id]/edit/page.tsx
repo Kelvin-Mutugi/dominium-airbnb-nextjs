@@ -4,9 +4,10 @@ import type {
   ListingAdditionalCharge,
   ListingFormValues,
 } from "@/app/lib/host/types";
+import { isListingCategory } from "@/app/lib/listing-categories";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 import { AdminListingEditForm } from "@/components/admin/listings/admin-listing-edit-form";
-import { AdminListingImages } from "@/components/admin/listings/admin-listing-images";
+import type { ListingPhoto } from "@/components/homeData";
 
 export default async function AdminEditListingPage({
   params,
@@ -27,12 +28,47 @@ export default async function AdminEditListingPage({
         .maybeSingle(),
       admin
         .from("listing_images")
-        .select("id, url, sort_order")
+        .select(
+          "id, url, sort_order, position, category, room_index, caption, is_cover, width, height",
+        )
         .eq("listing_id", id)
-        .order("sort_order", { ascending: true }),
+        .order("position", { ascending: true }),
     ]);
 
   if (error || !listing) notFound();
+
+  const initialImages: (ListingPhoto & { id: string })[] = (images ?? [])
+    .map((image) => ({
+      id: image.id,
+      url: image.url,
+      position: image.position,
+      sortOrder: image.sort_order,
+      category: image.category,
+      roomIndex: image.room_index,
+      caption: image.caption,
+      isCover: image.is_cover,
+      width: image.width,
+      height: image.height,
+    }))
+    .sort(
+      (first, second) =>
+        (first.position ?? first.sortOrder ?? 0) -
+        (second.position ?? second.sortOrder ?? 0),
+    );
+
+  const photoStateKey = JSON.stringify(
+    initialImages.map((image) => [
+      image.id,
+      image.url,
+      image.position,
+      image.category,
+      image.roomIndex,
+      image.caption,
+      image.isCover,
+      image.width,
+      image.height,
+    ]),
+  );
 
   const initialValues: ListingFormValues = {
     title: listing.title ?? "",
@@ -43,6 +79,10 @@ export default async function AdminEditListingPage({
     latitude: listing.latitude == null ? null : Number(listing.latitude),
     longitude: listing.longitude == null ? null : Number(listing.longitude),
     property_type: listing.property_type ?? "",
+    categories: Array.isArray(listing.categories)
+      ? listing.categories.filter(isListingCategory)
+      : [],
+    is_rare_find: listing.is_rare_find === true,
     price_per_night: Number(listing.price_per_night ?? 0),
     platform_fee_per_night: Number(
       listing.platform_fee_per_night ??
@@ -96,8 +136,12 @@ export default async function AdminEditListingPage({
           Update property details and arrival information.
         </p>
       </div>
-      <AdminListingImages listingId={id} initialImages={images ?? []} />
-      <AdminListingEditForm listingId={id} initialValues={initialValues} />
+      <AdminListingEditForm
+        key={`${listing.updated_at}:${photoStateKey}`}
+        listingId={id}
+        initialValues={initialValues}
+        initialImages={initialImages}
+      />
     </div>
   );
 }

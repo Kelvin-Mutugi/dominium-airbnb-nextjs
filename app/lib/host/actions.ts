@@ -1,8 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { randomBytes } from "node:crypto";
 import { requireHost } from "@/app/lib/host-auth";
+import { activeBookingFilter } from "@/app/lib/booking/availability";
 import {
   hashCalendarToken,
   syncCalendarConnection,
@@ -12,6 +13,7 @@ import {
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 import { createClient } from "@/app/lib/supabase/server";
 import { todayISO } from "@/app/lib/format";
+import { normalizeDarajaPhone } from "@/app/lib/payments/daraja";
 import type {
   AvailabilityBlock,
   Booking,
@@ -19,6 +21,7 @@ import type {
   HostDashboardStats,
   HostArrivalGuideDetails,
   HostBookingChangeRequest,
+  HostOptionalFee,
   HostDateChangeRecord,
   HostListingRequest,
   Listing,
@@ -26,12 +29,41 @@ import type {
   ListingImage,
   Payout,
 } from "./types";
+import type { ListingImageMetadata } from "@/components/admin/listings/image-categories";
 import type { RefundListItem, RefundProgress } from "@/types/refunds";
 
 const MPESA_REGEX = /^0\d{9}$/;
 const HOST_BOOKING_FIELDS =
-  "id, booking_reference, listing_id, host_id, check_in, check_out, nights, adults_count, children_count, pets_count, rooms_count, status, completed_at, completion_source, host_payout_amount, guest_name, guest_country, special_requests";
+  "id, booking_reference, listing_id, host_id, check_in, check_out, nights, adults_count, children_count, pets_count, rooms_count, status, completed_at, completion_source, host_payout_amount, guest_name, guest_country, special_requests, hold_expires_at";
 const HOST_BOOKING_WITH_LISTING = `${HOST_BOOKING_FIELDS}, listing:listings(id, title, town, county, check_out_time)`;
+
+function getSelectedOptionalFees(snapshot: unknown): HostOptionalFee[] | null {
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot))
+    return null;
+  const lineItems = (snapshot as { line_items?: unknown }).line_items;
+  if (!Array.isArray(lineItems)) return null;
+
+  return lineItems.flatMap((item): HostOptionalFee[] => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const line = item as Record<string, unknown>;
+    if (
+      line.type !== "host_charge" ||
+      line.required !== false ||
+      typeof line.name !== "string" ||
+      typeof line.total !== "number" ||
+      typeof line.unit_amount !== "number" ||
+      (line.frequency !== "per_night" && line.frequency !== "per_booking")
+    ) {
+      return [];
+    }
+    return [{
+      name: line.name,
+      amount: line.total,
+      unitAmount: line.unit_amount,
+      frequency: line.frequency,
+    }];
+  });
+}
 
 type HostUnreadThread = {
   booking_id: string;
@@ -313,6 +345,35 @@ async function saveArrivalGuide(
   if (error) throw new Error("Unable to save arrival guide details.");
 }
 
+async function recordHostListingChange(
+  listingId: string,
+  hostId: string,
+  beforeValues: Record<string, unknown>,
+  afterValues: Record<string, unknown>,
+) {
+  const changed = Object.keys(afterValues).some(
+    (field) =>
+      JSON.stringify(beforeValues[field]) !== JSON.stringify(afterValues[field]),
+  );
+  if (!changed) return;
+
+  const admin = getSupabaseAdmin();
+  const { error } = await admin.from("host_listing_change_requests").insert({
+    listing_id: listingId,
+    host_id: hostId,
+    before_values: beforeValues,
+    after_values: afterValues,
+  });
+  if (error) {
+    console.error("Failed to add host listing edit to admin history:", error);
+    throw new Error(
+      "Your changes were saved, but could not be added to the admin change history. Please contact support.",
+    );
+  }
+  revalidatePath("/admin/listing-changes");
+  revalidatePath("/admin");
+}
+
 export async function createHostListing(values: ListingFormValues) {
   await requireHost();
   throw new Error(
@@ -350,111 +411,58 @@ export async function deleteHostListing(id: string) {
 export async function updateHostBookingStatus(
   id: string,
   status: BookingStatus,
-  declineReason = "",
 ) {
-  const { user } = await requireHost();
-  if (!["confirmed", "cancelled", "completed"].includes(status))
-    throw new Error("Invalid booking status.");
-  const normalizedReason = declineReason.trim();
-  if (status === "cancelled" && normalizedReason.length > 500) {
-    throw new Error("Decline reason must be 500 characters or fewer.");
+  await requireHost();
+  if (status !== "completed") {
+    throw new Error(
+      "Hosts cannot manually confirm or decline a payment hold. Bookings are confirmed after successful payment verification.",
+    );
   }
 
   const supabase = await createClient();
-  if (status === "completed") {
-    const { error } = await supabase.rpc("host_mark_booking_completed", {
-      p_booking_id: id,
-    });
-    if (error) {
-      if (error.message.includes("CHECKOUT_TIME_NOT_REACHED")) {
-        throw new Error("The listing's check-out time has not passed yet.");
-      }
-      if (error.message.includes("PENDING_GUEST_REQUEST")) {
-        throw new Error(
-          "Resolve the pending guest request before marking this stay completed.",
-        );
-      }
-      if (error.message.includes("BOOKING_NOT_CONFIRMED")) {
-        throw new Error("Only confirmed bookings can be marked completed.");
-      }
-      if (error.message.includes("BOOKING_NOT_FOUND"))
-        throw new Error("Booking not found.");
-      console.error("Host booking completion RPC failed:", {
-        error: String(error),
-        ownProperties: Object.getOwnPropertyNames(error),
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-      });
+  const { error } = await supabase.rpc("host_mark_booking_completed", {
+    p_booking_id: id,
+  });
+  if (error) {
+    if (error.message.includes("CHECKOUT_TIME_NOT_REACHED")) {
+      throw new Error("The listing's check-out time has not passed yet.");
+    }
+    if (error.message.includes("PENDING_GUEST_REQUEST")) {
       throw new Error(
-        "We couldn't mark this stay as completed. Please try again. If it still fails, contact support.",
+        "Resolve the pending guest request before marking this stay completed.",
       );
     }
-
-    revalidatePath("/host/bookings");
-    revalidatePath("/host/payouts");
-    revalidatePath("/host");
-    revalidatePath("/account/bookings");
-    revalidatePath("/admin/bookings");
-    return;
-  }
-
-  const { data: booking, error: lookupError } = await supabase
-    .from("bookings")
-    .select("status")
-    .eq("id", id)
-    .eq("host_id", user.id)
-    .maybeSingle();
-  if (lookupError || !booking) throw new Error("Booking not found.");
-
-  const isAllowedTransition =
-    booking.status === "pending" &&
-    (status === "confirmed" || status === "cancelled");
-  if (!isAllowedTransition) {
-    throw new Error("This booking can no longer be changed to that status.");
-  }
-
-  const { data: updated, error } = await supabase
-    .from("bookings")
-    .update({ status })
-    .eq("id", id)
-    .eq("host_id", user.id)
-    .eq("status", booking.status)
-    .select("id")
-    .maybeSingle();
-  if (error) throw new Error("Unable to update booking status.");
-  if (!updated)
-    throw new Error("Booking status changed. Refresh and try again.");
-
-  if (status === "cancelled" && normalizedReason) {
-    const admin = getSupabaseAdmin();
-    const { error: updateLogError } = await admin
-      .from("booking_updates")
-      .insert({
-        booking_id: id,
-        actor_id: user.id,
-        event_type: "booking_status_changed",
-        summary: `Host declined booking request: ${normalizedReason}`,
-        details: {
-          old_status: booking.status,
-          new_status: status,
-          decline_reason: normalizedReason,
-        },
-      });
-    if (updateLogError)
-      console.error("Failed to record host decline reason:", updateLogError);
+    if (error.message.includes("BOOKING_NOT_CONFIRMED")) {
+      throw new Error("Only confirmed bookings can be marked completed.");
+    }
+    if (error.message.includes("BOOKING_NOT_FOUND"))
+      throw new Error("Booking not found.");
+    console.error("Host booking completion RPC failed:", {
+      error: String(error),
+      ownProperties: Object.getOwnPropertyNames(error),
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    throw new Error(
+      "We couldn't mark this stay as completed. Please try again. If it still fails, contact support.",
+    );
   }
 
   revalidatePath("/host/bookings");
   revalidatePath("/host/payouts");
   revalidatePath("/host");
+  revalidatePath("/host/calendar");
+  revalidatePath("/account/bookings");
+  revalidatePath("/admin/bookings");
 }
 
 export async function getHostDashboardData() {
   const { user } = await requireHost();
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
+  const now = new Date().toISOString();
   const [stats, pending, upcoming, payouts] = await Promise.all([
     supabase
       .from("host_dashboard_stats")
@@ -466,6 +474,7 @@ export async function getHostDashboardData() {
       .select(HOST_BOOKING_WITH_LISTING)
       .eq("host_id", user.id)
       .eq("status", "pending")
+      .gt("hold_expires_at", now)
       .order("check_in", { ascending: true }),
     supabase
       .from("bookings")
@@ -506,18 +515,45 @@ export async function getHostOverviewData() {
   const { user } = await requireHost();
   const supabase = await createClient();
   const today = todayISO();
+  const now = new Date().toISOString();
+  const todayDate = new Date(`${today}T12:00:00Z`);
+  const monthStart = `${today.slice(0, 7)}-01`;
+  const nextMonthStart = new Date(
+    Date.UTC(todayDate.getUTCFullYear(), todayDate.getUTCMonth() + 1, 1),
+  )
+    .toISOString()
+    .slice(0, 10);
+  const previewDates = Array.from({ length: 14 }, (_, index) => {
+    const date = new Date(todayDate);
+    date.setUTCDate(date.getUTCDate() + index);
+    return date.toISOString().slice(0, 10);
+  });
+  const previewMonthKeys = [
+    ...new Set(previewDates.map((date) => date.slice(0, 7))),
+  ];
   const [
     listingCountResult,
+    publishedListingCountResult,
     upcomingResult,
+    pendingBookingsResult,
+    listingsResult,
+    monthBookingsResult,
     verificationResult,
     changesResult,
     unreadSupportCounts,
+    payoutData,
+    calendarData,
   ] = await Promise.all([
     supabase
       .from("listings")
       .select("id", { count: "exact", head: true })
       .eq("host_id", user.id)
-      .in("status", ["draft", "published"]),
+      .in("status", ["draft", "published", "suspended"]),
+    supabase
+      .from("listings")
+      .select("id", { count: "exact", head: true })
+      .eq("host_id", user.id)
+      .eq("status", "published"),
     supabase
       .from("bookings")
       .select(HOST_BOOKING_WITH_LISTING)
@@ -527,8 +563,29 @@ export async function getHostOverviewData() {
       .order("check_in", { ascending: true })
       .limit(5),
     supabase
+      .from("bookings")
+      .select(HOST_BOOKING_WITH_LISTING)
+      .eq("host_id", user.id)
+      .eq("status", "pending")
+      .gt("hold_expires_at", now)
+      .order("check_in", { ascending: true }),
+    supabase
+      .from("listings")
+      .select("id, title, status, average_rating, review_count, is_publish_ready, listing_images(url, sort_order)")
+      .eq("host_id", user.id)
+      .in("status", ["draft", "published", "suspended"])
+      .order("created_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("bookings")
+      .select("listing_id, check_in, check_out, status, host_payout_amount")
+      .eq("host_id", user.id)
+      .in("status", ["confirmed", "completed"])
+      .lt("check_in", nextMonthStart)
+      .gt("check_out", monthStart),
+    supabase
       .from("profiles")
-      .select("kyc_status, kyc_rejection_reason, host_verified_at")
+      .select("kyc_status, kyc_rejection_reason, host_verified_at, full_name, payout_details")
       .eq("id", user.id)
       .maybeSingle(),
     supabase
@@ -542,19 +599,165 @@ export async function getHostOverviewData() {
       .order("created_at", { ascending: true })
       .limit(10),
     getHostUnreadSupportCounts(user.id).catch(() => null),
+    getHostPayoutsData(),
+    Promise.all(previewMonthKeys.map((month) => getHostCalendarData(month))),
   ]);
 
-  if (upcomingResult.error) {
-    throw new Error("Unable to load host dashboard.");
+  const failedQueries = [
+    { name: "published listing count", error: publishedListingCountResult.error },
+    { name: "upcoming bookings", error: upcomingResult.error },
+    { name: "pending bookings", error: pendingBookingsResult.error },
+    { name: "listing summaries", error: listingsResult.error },
+    { name: "monthly bookings", error: monthBookingsResult.error },
+  ].filter((query) => query.error !== null);
+  if (failedQueries.length > 0) {
+    console.error(
+      "Host dashboard queries failed:",
+      failedQueries.map(({ name, error }) => ({
+        query: name,
+        code: error?.code,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+      })),
+    );
+    throw new Error(
+      `Unable to load host dashboard (${failedQueries.map(({ name }) => name).join(", ")}).`,
+    );
   }
 
   const upcomingRows = (upcomingResult.data ?? []) as unknown as Booking[];
+  const pendingBookingRows = (pendingBookingsResult.data ?? []) as unknown as Booking[];
+  const contactBookingIds = [
+    ...new Set([...upcomingRows, ...pendingBookingRows].map((booking) => booking.id)),
+  ];
+  const guestPhonesResult = contactBookingIds.length
+    ? await supabase
+        .from("bookings")
+        .select("id, guest_phone")
+        .eq("host_id", user.id)
+        .in("id", contactBookingIds)
+    : { data: [], error: null };
+  if (guestPhonesResult.error) {
+    console.warn("Host dashboard guest phone numbers are unavailable:", {
+      code: guestPhonesResult.error.code,
+      message: guestPhonesResult.error.message,
+    });
+  }
+  const guestPhoneByBookingId = new Map(
+    (guestPhonesResult.data ?? []).map((booking) => [
+      booking.id,
+      booking.guest_phone as string | null,
+    ]),
+  );
+  const pendingBookings = pendingBookingRows.map((booking) => ({
+    ...booking,
+    guest_phone: guestPhoneByBookingId.get(booking.id) ?? null,
+  }));
+  const upcomingRowsWithPhones = upcomingRows.map((booking) => ({
+    ...booking,
+    guest_phone: guestPhoneByBookingId.get(booking.id) ?? null,
+  }));
   const changeRequests = changesResult.error
     ? null
     : ((changesResult.data ?? []) as unknown as HostBookingChangeRequest[]);
   const onboardingStatus = verificationResult.error
     ? null
     : verificationResult.data;
+
+  const listingSummaries = listingsResult.data ?? [];
+  const monthBookings = monthBookingsResult.data ?? [];
+  const daysInMonth = new Date(
+    Date.UTC(todayDate.getUTCFullYear(), todayDate.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  const bookedNights = monthBookings.reduce((total, booking) => {
+    const start = booking.check_in < monthStart ? monthStart : booking.check_in;
+    const end = booking.check_out > nextMonthStart ? nextMonthStart : booking.check_out;
+    const nights = Math.max(
+      0,
+      (Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) /
+        86_400_000,
+    );
+    return total + nights;
+  }, 0);
+  const publishedListingCount = publishedListingCountResult.count ?? 0;
+  const occupancyRate =
+    publishedListingCount > 0
+      ? Math.min(
+          100,
+          Math.round(
+            (bookedNights / (publishedListingCount * daysInMonth)) * 100,
+          ),
+        )
+      : 0;
+  const payoutDetails =
+    onboardingStatus?.payout_details &&
+    typeof onboardingStatus.payout_details === "object"
+      ? (onboardingStatus.payout_details as Record<string, unknown>)
+      : {};
+  const payoutPhone = String(
+    payoutDetails.mpesa_number ??
+      payoutDetails.phone ??
+      payoutDetails.phone_number ??
+      "",
+  ).trim();
+  const paidRequestPayoutIds = new Set(payoutData.paidRequestPayoutIds);
+  const monthlyEarnings = payoutData.payouts.reduce((total, payout) => {
+    const checkout = payout.booking?.check_out;
+    if (!checkout || checkout < monthStart || checkout >= nextMonthStart) {
+      return total;
+    }
+
+    if (payout.status === "paid") {
+      const paidAmount = paidRequestPayoutIds.has(payout.id)
+        ? payoutData.paidAmountByPayoutId[payout.id] ?? 0
+        : Number(payout.amount);
+      return total + paidAmount;
+    }
+
+    if (payout.status === "owed" && payout.eligible_for_withdrawal) {
+      return total + (payoutData.remainingAmountByPayoutId[payout.id] ?? 0);
+    }
+
+    return total;
+  }, 0);
+  const pendingPayout = payoutData.payouts.reduce((total, payout) => {
+    if (payout.status !== "owed" && payout.status !== "processing") return total;
+    const paidAmount = payoutData.paidAmountByPayoutId[payout.id] ?? 0;
+    return total + Math.max(Number(payout.amount) - paidAmount, 0);
+  }, 0);
+  const calendarBookings = calendarData.flatMap((calendar) => calendar.bookings);
+  const calendarBlocks = calendarData.flatMap((calendar) => calendar.blocks);
+  const externalCalendarBlocks = calendarData.flatMap(
+    (calendar) => calendar.externalBlocks,
+  );
+  const calendarPreview = listingSummaries.map((listing) => ({
+    id: listing.id,
+    days: previewDates.map((date) => {
+      const isBooked = calendarBookings.some(
+        (booking) =>
+          booking.listing_id === listing.id &&
+          booking.check_in <= date &&
+          booking.check_out > date,
+      );
+      if (isBooked) return "booked" as const;
+      const isBlocked = calendarBlocks.some(
+        (block) =>
+          block.listing_id === listing.id &&
+          block.start_date <= date &&
+          block.end_date > date,
+      );
+      const isExternallyBlocked = externalCalendarBlocks.some(
+        (block) =>
+          block.listing_id === listing.id &&
+          block.start_date <= date &&
+          block.end_date > date,
+      );
+      return isBlocked || isExternallyBlocked
+        ? ("blocked" as const)
+        : ("available" as const);
+    }),
+  }));
 
   const upcomingBookingIds = upcomingRows.map((booking) => booking.id);
   const dateChangesResult = upcomingBookingIds.length
@@ -581,7 +784,7 @@ export async function getHostOverviewData() {
     history.push(dateChange);
     dateChangesByBooking.set(dateChange.booking_id, history);
   }
-  const upcoming = upcomingRows.map((booking) => ({
+  const upcoming = upcomingRowsWithPhones.map((booking) => ({
     ...booking,
     dateChangeHistory: dateChangesByBooking.get(booking.id) ?? [],
   }));
@@ -636,6 +839,20 @@ export async function getHostOverviewData() {
       ? null
       : (listingCountResult.count ?? 0) > 0,
     upcoming,
+    pendingBookings,
+    hostName: onboardingStatus?.full_name?.trim().split(/\s+/)[0] || "there",
+    listings: listingSummaries,
+    calendarPreview,
+    calendarDates: previewDates,
+    payoutPhone,
+    availablePayout: payoutData.requestableAmount,
+    pendingPayout,
+    monthlyEarnings,
+    occupancyRate,
+    monthlyBookingCount: monthBookings.filter(
+      (booking) =>
+        booking.check_in >= monthStart && booking.check_in < nextMonthStart,
+    ).length,
     onboardingStatus,
     supportReplyBookings,
     changeRequests,
@@ -646,45 +863,103 @@ export async function getHostOverviewData() {
 export async function getHostNavigationAttentionCount() {
   const { user } = await requireHost();
   const supabase = await createClient();
-  const [pendingBookingsResult, changesResult, unreadSupportCounts] =
-    await Promise.all([
-      supabase
-        .from("bookings")
-        .select("id", { count: "exact", head: true })
-        .eq("host_id", user.id)
-        .eq("status", "pending"),
-      supabase
-        .from("booking_change_requests")
-        .select("id", { count: "exact", head: true })
-        .eq("host_id", user.id)
-        .eq("request_type", "date_change")
-        .eq("status", "pending"),
-      getHostUnreadSupportCounts(user.id),
-    ]);
-  if (pendingBookingsResult.error || changesResult.error)
+  const [changesResult, unreadSupportCounts] = await Promise.all([
+    supabase
+      .from("booking_change_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("host_id", user.id)
+      .eq("request_type", "date_change")
+      .eq("status", "pending"),
+    getHostUnreadSupportCounts(user.id),
+  ]);
+  if (changesResult.error)
     throw new Error("Unable to load host attention count.");
 
   const unreadSupportReplyCount = Object.values(unreadSupportCounts).reduce(
     (total, count) => total + count,
     0,
   );
-  return (
-    (pendingBookingsResult.count ?? 0) +
-    unreadSupportReplyCount +
-    (changesResult.count ?? 0)
-  );
+  return unreadSupportReplyCount + (changesResult.count ?? 0);
 }
 
-export async function getHostListingsData() {
+export async function getHostListingsData(
+  page = 1,
+  filter: "all" | Listing["status"] | "pending_review" = "all",
+  includeStatusCounts = true,
+) {
+  const pageSize = 10;
+  if (!Number.isInteger(page) || page < 1) {
+    throw new Error("Invalid listings page.");
+  }
+
   const { user } = await requireHost();
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let listingsQuery = supabase
     .from("listings")
-    .select("*, listing_images(id, url, sort_order)")
+    .select(
+      "id, title, status, is_publish_ready, town, county, price_per_night, bedrooms, bathrooms, average_rating, review_count, created_at, listing_images(id, url, sort_order)",
+      { count: "exact" },
+    )
     .eq("host_id", user.id)
-    .order("created_at", { ascending: false });
-  if (error) throw new Error("Unable to load listings.");
-  return data as unknown as Listing[];
+    .order("created_at", { ascending: false })
+    .range((page - 1) * pageSize, page * pageSize - 1);
+  if (filter !== "all") {
+    listingsQuery = listingsQuery.eq("status", filter);
+  }
+
+  const statuses = [
+    "published",
+    "draft",
+    "pending_review",
+    "suspended",
+    "archived",
+  ] as const;
+  const [listingsResult, ...statusCountResults] = await Promise.all([
+    listingsQuery,
+    ...(includeStatusCounts
+      ? statuses.map((status) =>
+          supabase
+            .from("listings")
+            .select("id", { count: "exact", head: true })
+            .eq("host_id", user.id)
+            .eq("status", status),
+        )
+      : []),
+  ]);
+  if (listingsResult.error || statusCountResults.some((result) => result.error)) {
+    console.error("Failed to load paginated host listings:", {
+      listingsError: listingsResult.error?.message,
+      statusCountErrors: statusCountResults
+        .map((result, index) =>
+          result.error
+            ? { status: statuses[index], message: result.error.message }
+            : null,
+        )
+        .filter((error) => error !== null),
+    });
+    throw new Error("Unable to load listings.");
+  }
+
+  const statusCounts = includeStatusCounts
+    ? (Object.fromEntries(
+        statuses.map((status, index) => [
+          status,
+          statusCountResults[index].count ?? 0,
+        ]),
+      ) as Record<(typeof statuses)[number], number>)
+    : null;
+  const totalCount = statusCounts
+    ? statuses.reduce((total, status) => total + statusCounts[status], 0)
+    : null;
+
+  return {
+    listings: (listingsResult.data ?? []) as unknown as Listing[],
+    totalCount,
+    filteredCount: listingsResult.count ?? 0,
+    totalPages: Math.max(1, Math.ceil((listingsResult.count ?? 0) / pageSize)),
+    statusCounts,
+    pageSize,
+  };
 }
 
 export async function getHostListingRequestsData() {
@@ -752,7 +1027,7 @@ export async function submitHostListingRequest(input: {
 }
 
 export async function getHostBookingsData(
-  status: Exclude<BookingStatus, "pending">,
+  status: BookingStatus,
 ) {
   const { user } = await requireHost();
   const supabase = await createClient();
@@ -785,6 +1060,9 @@ export async function getHostBookingsData(
     dateChangesResult,
     refundRequestsResult,
     cancellationRefundsResult,
+    bookingSnapshotResult,
+    paymentResult,
+    payoutResult,
   ] = await Promise.all([
     getHostUnreadSupportCounts(user.id, bookingIds),
     supabase
@@ -821,6 +1099,19 @@ export async function getHostBookingsData(
         "not_eligible",
       ])
       .order("created_at", { ascending: false }),
+    admin
+      .from("bookings")
+      .select("id, pricing_snapshot")
+      .in("id", bookingIds),
+    admin
+      .from("payments")
+      .select("booking_id, status, paid_at, created_at")
+      .in("booking_id", bookingIds)
+      .order("created_at", { ascending: false }),
+    admin
+      .from("payouts")
+      .select("id, booking_id, amount, status, eligible_for_withdrawal")
+      .in("booking_id", bookingIds),
   ]);
   if (dateChangesResult.error)
     throw new Error("Unable to load booking date-change history.");
@@ -835,6 +1126,113 @@ export async function getHostBookingsData(
       "Unable to load host cancellation refund progress:",
       cancellationRefundsResult.error,
     );
+  }
+  if (bookingSnapshotResult.error)
+    throw new Error("Unable to load selected optional fees.");
+  if (paymentResult.error)
+    throw new Error("Unable to load optional-fee payment status.");
+  if (payoutResult.error)
+    throw new Error("Unable to load booking payout status.");
+  const payouts = payoutResult.data ?? [];
+  const payoutIds = payouts.map((payout) => payout.id);
+  const { data: payoutItems, error: payoutItemsError } = payoutIds.length
+    ? await admin
+        .from("host_payout_request_items")
+        .select("request_id, payout_id, amount")
+        .in("payout_id", payoutIds)
+    : { data: [], error: null };
+  if (payoutItemsError)
+    throw new Error("Unable to load booking payout requests.");
+  const payoutRequestIds = [
+    ...new Set((payoutItems ?? []).map((item) => item.request_id)),
+  ];
+  const { data: payoutRequests, error: payoutRequestsError } =
+    payoutRequestIds.length
+      ? await admin
+          .from("host_payout_requests")
+          .select("id, status")
+          .in("id", payoutRequestIds)
+      : { data: [], error: null };
+  if (payoutRequestsError)
+    throw new Error("Unable to load booking payout requests.");
+  const payoutRequestStatusById = new Map(
+    (payoutRequests ?? []).map((request) => [request.id, request.status]),
+  );
+  const payoutRequestAmounts = new Map<
+    string,
+    { requested: number; processing: number; paid: number }
+  >();
+  for (const item of payoutItems ?? []) {
+    const status = payoutRequestStatusById.get(item.request_id);
+    if (
+      status !== "requested" &&
+      status !== "processing" &&
+      status !== "paid"
+    ) {
+      continue;
+    }
+    const amounts = payoutRequestAmounts.get(item.payout_id) ?? {
+      requested: 0,
+      processing: 0,
+      paid: 0,
+    };
+    if (status === "requested") amounts.requested += Number(item.amount);
+    else if (status === "processing")
+      amounts.processing += Number(item.amount);
+    else amounts.paid += Number(item.amount);
+    payoutRequestAmounts.set(item.payout_id, amounts);
+  }
+  const payoutStatusByBooking = new Map<
+    string,
+    NonNullable<Booking["hostPayoutStatus"]>
+  >();
+  for (const payout of payouts) {
+    const amounts = payoutRequestAmounts.get(payout.id);
+    const requestedAmount = amounts?.requested ?? 0;
+    const processingAmount = amounts?.processing ?? 0;
+    const paidAmount = amounts?.paid ?? 0;
+    const payoutAmount = Number(payout.amount);
+    const activeAmount = requestedAmount + processingAmount;
+    const remainingAmount = Math.max(payoutAmount - paidAmount, 0);
+    let status: NonNullable<Booking["hostPayoutStatus"]>;
+    if (payout.status === "paid" || paidAmount >= payoutAmount) {
+      status = "paid";
+    } else if (paidAmount > 0) {
+      status = "partially_paid";
+    } else if (activeAmount > 0) {
+      if (activeAmount < remainingAmount) {
+        status = "partially_requested";
+      } else if (processingAmount > 0) {
+        status = "processing";
+      } else {
+        status = "requested";
+      }
+    } else if (payout.status === "processing") {
+      status = "processing";
+    } else if (!payout.eligible_for_withdrawal) {
+      status = "under_review";
+    } else {
+      status = "available";
+    }
+    payoutStatusByBooking.set(payout.booking_id, status);
+  }
+  const optionalFeesByBooking = new Map<string, HostOptionalFee[] | null>(
+    (bookingSnapshotResult.data ?? []).map((row) => [
+      row.id,
+      getSelectedOptionalFees(row.pricing_snapshot),
+    ]),
+  );
+  const paymentByBooking = new Map<
+    string,
+    { status: string; paid_at: string | null }
+  >();
+  for (const payment of paymentResult.data ?? []) {
+    if (!paymentByBooking.has(payment.booking_id)) {
+      paymentByBooking.set(payment.booking_id, {
+        status: payment.status,
+        paid_at: payment.paid_at,
+      });
+    }
   }
 
   const dateChangesByBooking = new Map<
@@ -883,6 +1281,11 @@ export async function getHostBookingsData(
 
   return bookings.map((booking) => ({
     ...booking,
+    selectedOptionalFees: optionalFeesByBooking.get(booking.id) ?? null,
+    paymentStatus: paymentByBooking.get(booking.id)?.status ?? null,
+    paymentPaidAt: paymentByBooking.get(booking.id)?.paid_at ?? null,
+    hostPayoutStatus:
+      payoutStatusByBooking.get(booking.id) ?? "not_released",
     unreadSupportReplyCount: unreadByBooking[booking.id] ?? 0,
     dateChangeHistory: dateChangesByBooking.get(booking.id) ?? [],
     refundRequests: refundRequestsByBooking.get(booking.id) ?? [],
@@ -1085,20 +1488,20 @@ export async function getHostPayoutsData() {
     admin
       .from("payouts")
       .select(
-        "*, booking:bookings(id, booking_reference, check_in, check_out, nights, adults_count, children_count, pets_count, rooms_count, status, host_payout_amount, host_gross_amount, collection_fee_amount, guest_name, guest_country, special_requests, listing:listings(id, title, town, county))",
+        "*, booking:bookings(id, booking_reference, check_in, check_out, nights, adults_count, children_count, pets_count, rooms_count, status, host_payout_amount, host_gross_amount, collection_fee_amount, collection_fee_reconciled, guest_name, guest_country, special_requests, listing:listings(id, title, town, county))",
       )
       .eq("host_id", user.id)
       .order("created_at", { ascending: false }),
     admin
       .from("host_payout_requests")
       .select(
-        "id, amount, transfer_fee, net_amount, destination_method, status, external_reference, requested_at, processed_at, admin_note",
+        "id, amount, net_amount, destination_method, destination_details, status, external_reference, requested_at, processed_at, admin_note",
       )
       .eq("host_id", user.id)
       .order("requested_at", { ascending: false }),
     admin
       .from("profiles")
-      .select("host_fee_balance, payout_method")
+      .select("host_fee_balance, payout_method, payout_details")
       .eq("id", user.id)
       .maybeSingle(),
   ]);
@@ -1106,61 +1509,126 @@ export async function getHostPayoutsData() {
     throw new Error("Unable to load payouts.");
 
   const requestIds = (requests ?? [])
-    .filter((request) => ["requested", "processing"].includes(request.status))
+    .filter((request) => ["requested", "processing", "paid"].includes(request.status))
     .map((request) => request.id);
   const { data: reservedItems, error: reservedError } = requestIds.length
     ? await admin
         .from("host_payout_request_items")
-        .select("payout_id")
+      .select("request_id, payout_id, amount")
         .in("request_id", requestIds)
     : { data: [], error: null };
   if (reservedError) throw new Error("Unable to load payout requests.");
 
-  const reservedPayoutIds = new Set(
-    (reservedItems ?? []).map((item) => item.payout_id),
+  const reservedByPayoutId = new Map<string, number>();
+  const paidByPayoutId = new Map<string, number>();
+  const requestStatusById = new Map(
+    (requests ?? []).map((request) => [request.id, request.status]),
   );
+  const paidRequestPayoutIds = new Set<string>();
+  for (const item of reservedItems ?? []) {
+    reservedByPayoutId.set(
+      item.payout_id,
+      (reservedByPayoutId.get(item.payout_id) ?? 0) + Number(item.amount),
+    );
+    if (requestStatusById.get(item.request_id) === "paid") {
+      paidRequestPayoutIds.add(item.payout_id);
+      paidByPayoutId.set(
+        item.payout_id,
+        (paidByPayoutId.get(item.payout_id) ?? 0) + Number(item.amount),
+      );
+    }
+  }
   const payouts = (data ?? []) as unknown as Payout[];
+  const remainingAmountByPayoutId = Object.fromEntries(
+    payouts.map((payout) => [
+      payout.id,
+      payout.status === "owed" && payout.eligible_for_withdrawal
+        ? Math.max(
+            Number(payout.amount) - (reservedByPayoutId.get(payout.id) ?? 0),
+            0,
+          )
+        : 0,
+    ]),
+  );
   const availableAmount = payouts
     .filter(
       (payout) =>
         payout.status === "owed" &&
-        payout.eligible_for_withdrawal &&
-        !reservedPayoutIds.has(payout.id),
+        payout.eligible_for_withdrawal,
     )
-    .reduce((sum, payout) => sum + Number(payout.amount), 0);
+    .reduce(
+      (sum, payout) =>
+        sum +
+        Math.max(
+          Number(payout.amount) - (reservedByPayoutId.get(payout.id) ?? 0),
+          0,
+        ),
+      0,
+    );
   const feeBalance = Number(profile?.host_fee_balance ?? 0);
+  const payoutDetails =
+    profile?.payout_details && typeof profile.payout_details === "object"
+      ? (profile.payout_details as Record<string, unknown>)
+      : {};
 
   return {
     payouts,
     requests: requests ?? [],
     availableAmount,
-    requestableAmount: Math.max(availableAmount - feeBalance, 0),
+    remainingAmountByPayoutId,
+    paidAmountByPayoutId: Object.fromEntries(paidByPayoutId),
+    paidRequestPayoutIds: [...paidRequestPayoutIds],
+    requestableAmount: Math.min(
+      availableAmount,
+      Math.max(availableAmount - feeBalance, 0),
+    ),
     feeBalance,
-    payoutMethodConfigured: profile?.payout_method === "mpesa",
+    payoutPhone: String(
+      payoutDetails.mpesa_number ?? payoutDetails.phone ?? payoutDetails.phone_number ?? "",
+    ),
   };
 }
 
-export async function requestHostPayout() {
+export async function requestHostPayout(input: {
+  amount: number;
+  mpesaNumber: string;
+}) {
   const { user } = await requireHost();
+  if (
+    !input ||
+    !Number.isFinite(input.amount) ||
+    input.amount <= 0 ||
+    Number(input.amount.toFixed(2)) !== input.amount
+  ) {
+    throw new Error("Enter a payout amount greater than zero.");
+  }
+  let mpesaNumber: string;
+  try {
+    mpesaNumber = normalizeDarajaPhone(input.mpesaNumber);
+  } catch {
+    throw new Error("Enter a valid Kenyan M-Pesa number.");
+  }
   const admin = getSupabaseAdmin();
-  const { data, error } = await admin.rpc("create_host_payout_request", {
+  const { data, error } = await admin.rpc("create_host_payout_request_with_amount", {
     p_host_id: user.id,
+    p_request_amount: input.amount,
+    p_mpesa_number: mpesaNumber,
   });
   if (error) {
-    if (error.message.includes("PAYOUT_DESTINATION_REQUIRED"))
-      throw new Error("Save your payout method before requesting a transfer.");
-    if (error.message.includes("HOST_FEE_DEBT_REMAINS"))
+    if (error.message.includes("PAYOUT_PROCESSING_FEES_EXCEED_REQUEST"))
       throw new Error(
-        "A payment-processing fee adjustment is still being applied to your balance.",
-      );
-    if (error.message.includes("HOST_FEE_BALANCE_EXCEEDS_PAYOUT"))
-      throw new Error(
-        "Your fee balance currently exceeds your available payout amount.",
+        "Choose an amount higher than any payout processing fees due.",
       );
     if (error.message.includes("NO_PAYOUTS_AVAILABLE"))
       throw new Error(
         "There are no available completed-booking payouts to request.",
       );
+    if (error.message.includes("INVALID_PAYOUT_REQUEST_AMOUNT"))
+      throw new Error(
+        "That amount is greater than your available payout. Refresh the page and try again.",
+      );
+    if (error.message.includes("INVALID_MPESA_DESTINATION"))
+      throw new Error("Enter a valid Kenyan M-Pesa number.");
     console.error("Host payout request failed:", error);
     throw new Error("Unable to request your payout. Please try again.");
   }
@@ -1180,21 +1648,698 @@ export async function getHostListingData(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("listings")
-    .select("*, listing_images(id, url, sort_order)")
+    .select(
+      "id, host_id, title, description, county, town, address, property_type, categories, price_per_night, additional_charges, max_guests, bedrooms, bathrooms, amenities, features, house_rules, status, slug, latitude, longitude, check_in_time, check_out_time, min_nights, cancellation_policy, instant_book, is_publish_ready, created_at, updated_at, listing_images(id, url, sort_order, position, category, room_index, caption, is_cover, width, height)",
+    )
     .eq("id", id)
     .eq("host_id", user.id)
     .single();
   if (error) throw new Error("Listing not found.");
-  const { data: arrivalGuide, error: guideError } = await supabase
-    .from("listing_arrival_guides")
+  return data as unknown as Listing & { listing_images?: ListingImage[] };
+}
+
+export type HostListingChangeRequest = {
+  id: string;
+  listing_id: string;
+  host_note: string | null;
+  before_values: Record<string, unknown>;
+  after_values: Record<string, unknown>;
+  status: "pending_review" | "reviewed" | "follow_up";
+  admin_note: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+};
+
+export async function getHostListingChangesData(listingId: string) {
+  const { user } = await requireHost();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("host_listing_change_requests")
     .select(
-      "arrival_address, arrival_directions, check_in_instructions, wifi_name, wifi_password, arrival_contact, local_tips",
+      "id, listing_id, host_note, before_values, after_values, status, admin_note, reviewed_at, created_at",
     )
-    .eq("listing_id", id)
+    .eq("listing_id", listingId)
+    .eq("host_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error) throw new Error("Unable to load listing change history.");
+  return (data ?? []) as HostListingChangeRequest[];
+}
+
+const HOST_LISTING_IMAGE_TYPES: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+const HOST_LISTING_IMAGE_CATEGORIES = new Set([
+  "exterior",
+  "living",
+  "kitchen",
+  "bedroom",
+  "bathroom",
+  "outdoor",
+  "amenities",
+  "neighborhood",
+]);
+
+function validateHostListingImageMetadata(metadata: ListingImageMetadata) {
+  const usesRoomIndex =
+    metadata.category === "bedroom" || metadata.category === "bathroom";
+  const hasValidRoomIndex = usesRoomIndex
+    ? Number.isInteger(metadata.roomIndex) &&
+      metadata.roomIndex !== null &&
+      metadata.roomIndex >= 1 &&
+      metadata.roomIndex <= 10
+    : metadata.roomIndex === null;
+
+  if (
+    !HOST_LISTING_IMAGE_CATEGORIES.has(metadata.category) ||
+    !Number.isInteger(metadata.position) ||
+    metadata.position < 0 ||
+    typeof metadata.isCover !== "boolean" ||
+    typeof metadata.caption !== "string" ||
+    metadata.caption.trim().length > 80 ||
+    !Number.isInteger(metadata.width) ||
+    metadata.width < 1 ||
+    !Number.isInteger(metadata.height) ||
+    metadata.height < 1 ||
+    !hasValidRoomIndex
+  ) {
+    throw new Error("Invalid listing image details.");
+  }
+}
+
+export async function createHostListingImageUploadUrl(
+  listingId: string,
+  contentType: string,
+  fileSize: number,
+) {
+  const { user } = await requireHost();
+  const extension = HOST_LISTING_IMAGE_TYPES[contentType];
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      listingId,
+    ) ||
+    !extension ||
+    !Number.isFinite(fileSize) ||
+    fileSize <= 0 ||
+    fileSize > 10 * 1024 * 1024
+  ) {
+    throw new Error("Choose a JPG, PNG, or WebP image up to 10 MB.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const { data: listing, error: listingError } = await admin
+    .from("listings")
+    .select("id")
+    .eq("id", listingId)
+    .eq("host_id", user.id)
     .maybeSingle();
-  if (guideError) throw new Error("Unable to load arrival guide details.");
-  return { ...data, ...arrivalGuide } as unknown as Listing &
-    ListingFormValues & { listing_images?: ListingImage[] };
+  if (listingError || !listing) throw new Error("Listing not found.");
+
+  const path = `${user.id}/${listingId}/${crypto.randomUUID()}.${extension}`;
+  const { data, error } = await admin.storage
+    .from("listing-images")
+    .createSignedUploadUrl(path);
+  if (error || !data) throw new Error("Unable to prepare image upload.");
+
+  return { path, signedUrl: data.signedUrl };
+}
+
+export async function registerHostListingImage(
+  listingId: string,
+  path: string,
+  metadata?: ListingImageMetadata,
+) {
+  const { user } = await requireHost();
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      listingId,
+    )
+  ) {
+    throw new Error("Invalid listing.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const { data: listing, error: listingError } = await admin
+    .from("listings")
+    .select("id")
+    .eq("id", listingId)
+    .eq("host_id", user.id)
+    .maybeSingle();
+  if (listingError || !listing) throw new Error("Listing not found.");
+
+  const folder = `${user.id}/${listingId}`;
+  const fileName = path.startsWith(`${folder}/`)
+    ? path.slice(folder.length + 1)
+    : "";
+  if (!/^[0-9a-f-]{36}\.(jpg|png|webp)$/i.test(fileName)) {
+    throw new Error("Invalid image upload path.");
+  }
+
+  const { data: files, error: storageError } = await admin.storage
+    .from("listing-images")
+    .list(folder, { search: fileName, limit: 10 });
+  if (storageError || !files?.some((file) => file.name === fileName)) {
+    throw new Error("Uploaded image could not be found.");
+  }
+
+  if (metadata) validateHostListingImageMetadata(metadata);
+  let nextPosition = metadata?.position;
+  if (nextPosition === undefined) {
+    const { data: latestImage, error: latestImageError } = await admin
+      .from("listing_images")
+      .select("position")
+      .eq("listing_id", listingId)
+      .order("position", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (latestImageError) throw new Error("Unable to determine image order.");
+    nextPosition = (latestImage?.position ?? -1) + 1;
+  }
+
+  const { data: publicUrl } = admin.storage
+    .from("listing-images")
+    .getPublicUrl(path);
+  const { data: image, error: insertError } = await admin
+    .from("listing_images")
+    .insert({
+      listing_id: listingId,
+      url: publicUrl.publicUrl,
+      sort_order: nextPosition,
+      position: nextPosition,
+      ...(metadata
+        ? {
+            category: metadata.category,
+            room_index: metadata.roomIndex,
+            caption: metadata.caption.trim(),
+            is_cover: metadata.isCover,
+            width: metadata.width,
+            height: metadata.height,
+          }
+        : {}),
+    })
+    .select("id, url, sort_order, position")
+    .single();
+
+  if (insertError) {
+    const { error: cleanupError } = await admin.storage
+      .from("listing-images")
+      .remove([path]);
+    if (cleanupError) {
+      console.error("Failed to remove unregistered listing image:", cleanupError);
+    }
+    throw new Error(insertError.message || "Unable to save listing image.");
+  }
+
+  revalidatePath("/host/listings");
+  revalidatePath(`/host/listings/${listingId}`);
+  revalidatePath(`/host/listings/${listingId}/edit`);
+  revalidatePath(`/admin/listings/${listingId}`);
+  revalidatePath(`/admin/listings/${listingId}/edit`);
+  updateTag("public-listings");
+  return image;
+}
+
+export type HostListingImageArrangement = ListingImageMetadata & {
+  id: string;
+};
+
+export async function saveHostListingImageArrangement(
+  listingId: string,
+  arrangement: HostListingImageArrangement[],
+) {
+  const { user } = await requireHost();
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      listingId,
+    )
+  ) {
+    throw new Error("Invalid listing.");
+  }
+  if (!Array.isArray(arrangement) || arrangement.length > 40) {
+    throw new Error("A listing can have no more than 40 photos.");
+  }
+  if (
+    new Set(arrangement.map((image) => image.id)).size !== arrangement.length
+  ) {
+    throw new Error("A photo appears more than once in the gallery.");
+  }
+
+  arrangement.forEach((image, index) => {
+    validateHostListingImageMetadata(image);
+    if (image.position !== index || image.isCover !== (index === 0)) {
+      throw new Error("Invalid listing photo order or cover.");
+    }
+  });
+
+  const admin = getSupabaseAdmin();
+  const { data: listing, error: listingError } = await admin
+    .from("listings")
+    .select("id, host_id")
+    .eq("id", listingId)
+    .eq("host_id", user.id)
+    .maybeSingle();
+  if (listingError || !listing) throw new Error("Listing not found.");
+
+  const { data: existingImages, error: imagesError } = await admin
+    .from("listing_images")
+    .select(
+      "id, url, position, sort_order, category, room_index, caption, is_cover",
+    )
+    .eq("listing_id", listingId);
+  if (imagesError) throw new Error("Unable to load listing photos.");
+
+  const currentImages = existingImages ?? [];
+  const currentById = new Map(currentImages.map((image) => [image.id, image]));
+  if (arrangement.some((image) => !currentById.has(image.id))) {
+    throw new Error("One or more photos no longer belong to this listing.");
+  }
+
+  const keptIds = new Set(arrangement.map((image) => image.id));
+  const removedImages = currentImages.filter((image) => !keptIds.has(image.id));
+  const expectedFolder = `${user.id}/${listingId}/`;
+  const marker = "/storage/v1/object/public/listing-images/";
+
+  for (const image of removedImages) {
+    let objectPath = "";
+    try {
+      const imageUrl = new URL(image.url);
+      const markerIndex = imageUrl.pathname.indexOf(marker);
+      if (markerIndex >= 0) {
+        objectPath = decodeURIComponent(
+          imageUrl.pathname.slice(markerIndex + marker.length),
+        );
+      }
+    } catch (error) {
+      if (!(error instanceof TypeError) && !(error instanceof URIError)) {
+        throw error;
+      }
+    }
+    if (!objectPath.startsWith(expectedFolder)) continue;
+
+    const { error: removeError } = await admin.storage
+      .from("listing-images")
+      .remove([objectPath]);
+    if (removeError) {
+      throw new Error("Unable to remove a deleted listing photo.");
+    }
+  }
+
+  if (removedImages.length > 0) {
+    const { error: deleteError } = await admin
+      .from("listing_images")
+      .delete()
+      .eq("listing_id", listingId)
+      .in(
+        "id",
+        removedImages.map((image) => image.id),
+      );
+    if (deleteError) {
+      throw new Error(deleteError.message || "Unable to remove listing photos.");
+    }
+  }
+
+  const { error: coverError } = await admin
+    .from("listing_images")
+    .update({ is_cover: false })
+    .eq("listing_id", listingId);
+  if (coverError) throw new Error("Unable to update the listing cover photo.");
+
+  const maxPosition = currentImages.reduce(
+    (maximum, image) => Math.max(maximum, image.position ?? -1),
+    -1,
+  );
+  for (const [index, image] of arrangement.entries()) {
+    const temporaryPosition = maxPosition + arrangement.length + index + 1;
+    const { error: temporaryOrderError } = await admin
+      .from("listing_images")
+      .update({ position: temporaryPosition, sort_order: temporaryPosition })
+      .eq("listing_id", listingId)
+      .eq("id", image.id);
+    if (temporaryOrderError) {
+      throw new Error("Unable to prepare the new photo order.");
+    }
+  }
+
+  for (const image of arrangement) {
+    const { error: updateError } = await admin
+      .from("listing_images")
+      .update({
+        category: image.category,
+        room_index: image.roomIndex,
+        caption: image.caption.trim(),
+        is_cover: image.isCover,
+        width: image.width,
+        height: image.height,
+        position: image.position,
+        sort_order: image.position,
+      })
+      .eq("listing_id", listingId)
+      .eq("id", image.id);
+    if (updateError) {
+      throw new Error(updateError.message || "Unable to save listing photos.");
+    }
+  }
+
+  const beforePhotoGallery = currentImages.map((image, index) => ({
+    id: image.id,
+    category: image.category ?? null,
+    room_index: image.room_index ?? null,
+    caption: image.caption ?? "",
+    position: image.position ?? image.sort_order ?? index,
+    is_cover: image.is_cover === true,
+  }));
+  const afterPhotoGallery = arrangement.map((image) => ({
+      id: image.id,
+      category: image.category ?? null,
+      room_index: image.roomIndex,
+      caption: image.caption ?? "",
+      position: image.position,
+      is_cover: image.isCover,
+    }));
+  revalidatePath("/host/listings");
+  revalidatePath(`/host/listings/${listingId}`);
+  revalidatePath(`/host/listings/${listingId}/edit`);
+  revalidatePath(`/admin/listings/${listingId}`);
+  revalidatePath(`/admin/listings/${listingId}/edit`);
+  updateTag("public-listings");
+  await recordHostListingChange(
+    listingId,
+    user.id,
+    { photo_gallery: beforePhotoGallery },
+    { photo_gallery: afterPhotoGallery },
+  );
+}
+
+export async function deleteHostListingImage(imageId: string) {
+  const { user } = await requireHost();
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      imageId,
+    )
+  ) {
+    throw new Error("Invalid listing image.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const { data: image, error: imageError } = await admin
+    .from("listing_images")
+    .select("id, listing_id, url")
+    .eq("id", imageId)
+    .maybeSingle();
+  if (imageError || !image) throw new Error("Listing image not found.");
+
+  const { data: listing, error: listingError } = await admin
+    .from("listings")
+    .select("id, host_id")
+    .eq("id", image.listing_id)
+    .eq("host_id", user.id)
+    .maybeSingle();
+  if (listingError || !listing) throw new Error("Listing not found.");
+
+  const { error: deleteError } = await admin
+    .from("listing_images")
+    .delete()
+    .eq("id", imageId)
+    .eq("listing_id", listing.id);
+  if (deleteError) throw new Error("Unable to remove listing image.");
+
+  const marker = "/storage/v1/object/public/listing-images/";
+  let objectPath = "";
+  let cleanupWarning: string | null = null;
+  try {
+    const imageUrl = new URL(image.url);
+    const markerIndex = imageUrl.pathname.indexOf(marker);
+    if (markerIndex >= 0) {
+      objectPath = decodeURIComponent(
+        imageUrl.pathname.slice(markerIndex + marker.length),
+      );
+    }
+  } catch {
+    cleanupWarning = "Image removed from the listing, but its storage URL is invalid.";
+  }
+
+  if (objectPath && objectPath.startsWith(`${user.id}/${listing.id}/`)) {
+    const { error } = await admin.storage
+      .from("listing-images")
+      .remove([objectPath]);
+    if (error) {
+      console.error("Failed to remove deleted listing image from storage:", error);
+      cleanupWarning =
+        "Image removed from the listing, but its stored file could not be deleted.";
+    }
+  } else if (!cleanupWarning) {
+    cleanupWarning =
+      "Image removed from the listing, but its stored file could not be identified.";
+  }
+
+  const supabase = await createClient();
+  const { data: remainingImages, error: remainingImagesError } = await admin
+    .from("listing_images")
+    .select("id")
+    .eq("listing_id", listing.id)
+    .order("sort_order", { ascending: true })
+    .order("id", { ascending: true })
+    .limit(1);
+  if (remainingImagesError) {
+    cleanupWarning = "Image removed, but unable to update the listing cover.";
+  } else if (remainingImages?.[0]) {
+    const { error: coverError } = await supabase.rpc(
+      "host_set_listing_image_cover",
+      { p_listing_id: listing.id, p_image_id: remainingImages[0].id },
+    );
+    if (coverError) {
+      cleanupWarning = "Image removed, but unable to update the listing cover.";
+    }
+  }
+
+  revalidatePath("/host/listings");
+  revalidatePath(`/host/listings/${listing.id}`);
+  revalidatePath(`/host/listings/${listing.id}/edit`);
+  revalidatePath(`/admin/listings/${listing.id}`);
+  revalidatePath(`/admin/listings/${listing.id}/edit`);
+  updateTag("public-listings");
+
+  return cleanupWarning;
+}
+
+export async function setHostListingImageCover(
+  listingId: string,
+  imageId: string,
+) {
+  const { user } = await requireHost();
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      listingId,
+    ) ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      imageId,
+    )
+  ) {
+    throw new Error("Invalid listing image.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const { data: listing, error: listingError } = await admin
+    .from("listings")
+    .select("id")
+    .eq("id", listingId)
+    .eq("host_id", user.id)
+    .maybeSingle();
+  if (listingError || !listing) throw new Error("Listing not found.");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("host_set_listing_image_cover", {
+    p_listing_id: listingId,
+    p_image_id: imageId,
+  });
+  if (error) {
+    if (error.message.includes("LISTING_IMAGE_NOT_FOUND")) {
+      throw new Error("That image is no longer part of this listing.");
+    }
+    if (
+      error.code === "PGRST202" ||
+      error.code === "42883" ||
+      error.message.includes("host_set_listing_image_cover")
+    ) {
+      throw new Error(
+        "Cover image support is not enabled in the database yet. Apply the latest Supabase migration and try again.",
+      );
+    }
+    console.error("Failed to set host listing cover image:", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    throw new Error(`Unable to set the listing cover image: ${error.message}`);
+  }
+
+  revalidatePath("/host/listings");
+  revalidatePath(`/host/listings/${listingId}`);
+  revalidatePath(`/host/listings/${listingId}/edit`);
+  updateTag("public-listings");
+}
+
+export async function submitHostListingChangeRequest(
+  listingId: string,
+  formData: FormData,
+) {
+  await requireHost();
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      listingId,
+    )
+  ) {
+    throw new Error("Invalid listing.");
+  }
+
+  const text = (key: string) => String(formData.get(key) ?? "").trim();
+  const list = (key: string, maxItems = 50) => {
+    const items = text(key)
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    if (items.length > maxItems || items.some((item) => item.length > 500)) {
+      throw new Error(`Please shorten the ${key.replaceAll("_", " ")} list.`);
+    }
+    return items;
+  };
+  const amenities = formData
+    .getAll("amenities")
+    .map((amenity) => String(amenity).trim())
+    .filter(Boolean);
+  if (
+    amenities.length > 50 ||
+    amenities.some((amenity) => amenity.length > 500) ||
+    new Set(amenities.map((amenity) => amenity.toLocaleLowerCase())).size !==
+      amenities.length
+  ) {
+    throw new Error("Please provide up to 50 unique amenities.");
+  }
+  const houseRules = formData
+    .getAll("house_rules")
+    .map((rule) => String(rule).trim())
+    .filter(Boolean);
+  if (
+    houseRules.length > 50 ||
+    houseRules.some((rule) => rule.length > 500) ||
+    new Set(houseRules.map((rule) => rule.toLocaleLowerCase())).size !==
+      houseRules.length
+  ) {
+    throw new Error("Please provide up to 50 unique house rules.");
+  }
+  let additionalCharges: unknown;
+  try {
+    additionalCharges = JSON.parse(text("additional_charges"));
+  } catch {
+    throw new Error("Please review the additional guest charges.");
+  }
+  if (
+    !Array.isArray(additionalCharges) ||
+    additionalCharges.length > 20 ||
+    additionalCharges.some(
+      (charge) =>
+        !charge ||
+        typeof charge !== "object" ||
+        typeof charge.name !== "string" ||
+        !charge.name.trim() ||
+        charge.name.trim().length > 80 ||
+        typeof charge.amount !== "number" ||
+        !Number.isFinite(charge.amount) ||
+        charge.amount <= 0 ||
+        charge.amount > 100000000 ||
+        !["per_booking", "per_night"].includes(charge.frequency) ||
+        typeof charge.required !== "boolean",
+    ) ||
+    new Set(
+      additionalCharges.map((charge) => charge.name.trim().toLocaleLowerCase()),
+    ).size !== additionalCharges.length
+  ) {
+    throw new Error("Please provide up to 20 valid, uniquely named guest charges.");
+  }
+  const categories = formData
+    .getAll("categories")
+    .map((category) => String(category).trim())
+    .filter(Boolean);
+  if (categories.length > 10 || new Set(categories).size !== categories.length) {
+    throw new Error("Choose valid listing categories.");
+  }
+  const number = (key: string, minimum: number, integer = true) => {
+    const parsed = Number(text(key));
+    if (
+      !Number.isFinite(parsed) ||
+      parsed < minimum ||
+      (integer && !Number.isInteger(parsed))
+    ) {
+      throw new Error(`Enter a valid ${key.replaceAll("_", " ")}.`);
+    }
+    return parsed;
+  };
+
+  const changes = {
+    title: text("title"),
+    description: text("description"),
+    county: text("county"),
+    town: text("town"),
+    address: text("address"),
+    property_type: text("property_type"),
+    categories,
+    price_per_night: number("price_per_night", 1, false),
+    max_guests: number("max_guests", 1),
+    bedrooms: number("bedrooms", 0),
+    bathrooms: number("bathrooms", 0, false),
+    amenities,
+    additional_charges: additionalCharges,
+    features: list("features"),
+    house_rules: houseRules,
+    check_in_time: text("check_in_time"),
+    check_out_time: text("check_out_time"),
+    min_nights: number("min_nights", 1),
+    instant_book: formData.get("instant_book") === "on",
+  };
+  const hostNote = text("host_note");
+  if (hostNote.length > 1500) {
+    throw new Error("Your note must be 1500 characters or fewer.");
+  }
+  const expectedUpdatedAt = text("expected_updated_at");
+  if (!expectedUpdatedAt || !Number.isFinite(Date.parse(expectedUpdatedAt))) {
+    throw new Error("Refresh this listing before submitting your changes.");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc(
+    "host_update_listing_with_change_request",
+    {
+      p_listing_id: listingId,
+      p_changes: changes,
+      p_host_note: hostNote || null,
+      p_expected_updated_at: expectedUpdatedAt,
+    },
+  );
+  if (error) {
+    if (error.message.includes("NO_LISTING_CHANGES")) {
+      throw new Error("Make a change or add a note before submitting.");
+    }
+    if (error.message.includes("LISTING_NOT_FOUND")) {
+      throw new Error("Listing not found or you do not have access to it.");
+    }
+    if (error.message.includes("LISTING_CHANGED_REFRESH")) {
+      throw new Error("This listing changed since you opened the form. Refresh and review the latest details.");
+    }
+    throw new Error("Unable to apply listing changes. Please review the fields and try again.");
+  }
+
+  revalidatePath("/host");
+  revalidatePath("/host/listings");
+  revalidatePath(`/host/listings/${listingId}`);
+  revalidatePath(`/host/listings/${listingId}/edit`);
+  revalidatePath("/admin/listing-changes");
+  revalidatePath("/admin");
+  updateTag("public-listings");
 }
 
 export async function getHostArrivalGuidesData(listingIds: string[]) {
@@ -1248,9 +2393,42 @@ export async function updateHostArrivalGuide(
     .maybeSingle();
   if (listingError || !listing) throw new Error("Listing not found.");
 
+  const { data: previousGuide, error: guideError } = await supabase
+    .from("listing_arrival_guides")
+    .select(
+      "arrival_address, arrival_directions, check_in_instructions, wifi_name, wifi_password, arrival_contact, local_tips",
+    )
+    .eq("listing_id", listingId)
+    .eq("host_id", user.id)
+    .maybeSingle();
+  if (guideError) throw new Error("Unable to load the current arrival guide.");
+
+  const beforeValues = {
+    arrival_address: previousGuide?.arrival_address ?? null,
+    arrival_directions: previousGuide?.arrival_directions ?? null,
+    check_in_instructions: previousGuide?.check_in_instructions ?? null,
+    wifi_name: previousGuide?.wifi_name ?? null,
+    wifi_password: previousGuide?.wifi_password ? "Saved" : "Not set",
+    arrival_contact: previousGuide?.arrival_contact ?? null,
+    local_tips: previousGuide?.local_tips ?? null,
+  };
+  const payload = arrivalGuidePayload(listingId, user.id, values);
+  const afterValues = {
+    arrival_address: payload.arrival_address,
+    arrival_directions: payload.arrival_directions,
+    check_in_instructions: payload.check_in_instructions,
+    wifi_name: payload.wifi_name,
+    wifi_password: payload.wifi_password ? "Saved" : "Not set",
+    arrival_contact: payload.arrival_contact,
+    local_tips: payload.local_tips,
+  };
+
   await saveArrivalGuide(listingId, user.id, values);
+  await recordHostListingChange(listingId, user.id, beforeValues, afterValues);
   revalidatePath("/host");
+  revalidatePath(`/host/listings/${listingId}/arrival-guide`);
   revalidatePath(`/host/listings/${listingId}`);
+  revalidatePath(`/host/listings/${listingId}/edit`);
   revalidatePath(`/account/bookings`);
 }
 
@@ -1301,7 +2479,7 @@ export async function getHostCalendarData(month: string) {
       .from("bookings")
       .select(HOST_BOOKING_WITH_LISTING)
       .eq("host_id", user.id)
-      .in("status", ["pending", "confirmed"])
+      .or(activeBookingFilter())
       .lt("check_in", nextMonthStart)
       .gt("check_out", monthStart)
       .order("check_in"),
@@ -1314,8 +2492,25 @@ export async function getHostCalendarData(month: string) {
       .order("start_date"),
   ]);
 
-  if (bookingsResult.error || blocksResult.error)
-    throw new Error("Unable to load host calendar.");
+  const failedQueries = [
+    { name: "bookings", error: bookingsResult.error },
+    { name: "availability blocks", error: blocksResult.error },
+  ].filter((query) => query.error !== null);
+  if (failedQueries.length > 0) {
+    console.error(
+      "Host calendar queries failed:",
+      failedQueries.map(({ name, error }) => ({
+        query: name,
+        code: error?.code,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+      })),
+    );
+    throw new Error(
+      `Unable to load host calendar (${failedQueries.map(({ name }) => name).join(", ")}).`,
+    );
+  }
   const admin = getSupabaseAdmin();
   const { data: externalEvents, error: externalEventsError } = await admin
     .from("host_external_calendar_events")
@@ -1490,7 +2685,7 @@ export async function addHostAvailabilityBlock(
       .from("bookings")
       .select("id")
       .eq("listing_id", listingId)
-      .in("status", ["pending", "confirmed"])
+      .or(activeBookingFilter())
       .lt("check_in", endDate)
       .gt("check_out", startDate)
       .limit(1),
@@ -1505,7 +2700,7 @@ export async function addHostAvailabilityBlock(
   if (bookingConflict.error || blockConflict.error)
     throw new Error("Unable to verify date availability.");
   if (bookingConflict.data?.length)
-    throw new Error("These dates overlap a booking request or confirmed stay.");
+    throw new Error("These dates overlap an active payment hold or confirmed stay.");
   if (blockConflict.data?.length)
     throw new Error("These dates overlap an existing blocked period.");
   const admin = getSupabaseAdmin();

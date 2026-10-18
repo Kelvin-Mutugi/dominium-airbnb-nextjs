@@ -7,6 +7,8 @@ import {
   DarajaApiError,
   initiateDarajaB2CPayment,
   initiateDarajaB2CReversal,
+  normalizeDarajaPhone,
+  queryDarajaStkStatus,
 } from "@/app/lib/payments/daraja";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 
@@ -17,6 +19,215 @@ function refreshPayoutViews() {
   revalidatePath("/admin/payouts");
   revalidatePath("/admin/payouts/requests");
   revalidatePath("/host/payouts");
+}
+
+function callbackMetadataValue(callback: Record<string, unknown>, name: string) {
+  const metadata = callback.CallbackMetadata as
+    | { Item?: Array<{ Name?: string; Value?: unknown }> }
+    | undefined;
+  return metadata?.Item?.find((item) => item.Name === name)?.Value;
+}
+
+function parseDarajaPaidAt(value: unknown) {
+  const match = String(value ?? "").match(
+    /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/,
+  );
+  if (!match) return null;
+  const [, year, month, day, hour, minute, second] = match;
+  const date = new Date(
+    `${year}-${month}-${day}T${hour}:${minute}:${second}+03:00`,
+  );
+  if (Number.isNaN(date.getTime())) return null;
+  const roundTrip = new Date(date.getTime() + 3 * 60 * 60 * 1000)
+    .toISOString()
+    .replace(/[-:T.Z]/g, "")
+    .slice(0, 14);
+  return roundTrip === match[0] ? date.toISOString() : null;
+}
+
+export async function verifyDarajaStkPayment(paymentId: string) {
+  const actor = await requireAdmin();
+  if (typeof paymentId !== "string" || !UUID_RE.test(paymentId)) {
+    throw new Error("Invalid payment record.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const { data: payment, error: paymentError } = await admin
+    .from("payments")
+    .select("id, booking_id, amount, status")
+    .eq("id", paymentId)
+    .maybeSingle();
+  if (paymentError) {
+    console.error("Unable to load payment for Safaricom verification:", paymentError);
+    throw new Error("Unable to load this payment.");
+  }
+  if (!payment) throw new Error("Payment record not found.");
+  if (payment.status !== "pending") {
+    throw new Error("Only a pending payment can be verified this way.");
+  }
+
+  const { data: attempt, error: attemptError } = await admin
+    .from("daraja_payment_attempts")
+    .select(
+      "id, booking_id, payment_id, checkout_request_id, phone_number, amount, status, callback_payload",
+    )
+    .eq("payment_id", payment.id)
+    .in("status", ["pending", "reconciliation_required"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (attemptError) {
+    console.error("Unable to load Daraja attempt for verification:", attemptError);
+    throw new Error("Unable to load the Safaricom payment attempt.");
+  }
+  if (!attempt?.checkout_request_id || attempt.booking_id !== payment.booking_id) {
+    throw new Error("There is no matching unresolved Safaricom STK attempt.");
+  }
+
+  const statusQuery = await queryDarajaStkStatus(attempt.checkout_request_id);
+  const checkoutIdMatches =
+    statusQuery.CheckoutRequestID === attempt.checkout_request_id;
+  const providerConfirmed =
+    checkoutIdMatches && String(statusQuery.ResultCode) === "0";
+
+  if (!providerConfirmed) {
+    await recordAdminAuditEvent({
+      actorId: actor.id,
+      action: "safaricom.stk_payment_status_checked",
+      entityType: "booking",
+      entityId: payment.booking_id,
+      summary: "Checked a pending M-PESA payment against Safaricom STK status.",
+      after: {
+        payment_id: payment.id,
+        attempt_id: attempt.id,
+        checkout_request_id: attempt.checkout_request_id,
+        outcome: checkoutIdMatches ? "not_confirmed" : "checkout_id_mismatch",
+        result_code: String(statusQuery.ResultCode ?? ""),
+        result_description: String(statusQuery.ResultDesc ?? "").slice(0, 500),
+      },
+    });
+    revalidatePath("/admin/payouts");
+    return {
+      outcome: "not_confirmed" as const,
+      description:
+        String(statusQuery.ResultDesc ?? "").slice(0, 300) ||
+        "Safaricom has not confirmed this payment yet.",
+    };
+  }
+
+  const callback =
+    attempt.callback_payload &&
+    typeof attempt.callback_payload === "object" &&
+    !Array.isArray(attempt.callback_payload)
+      ? (attempt.callback_payload as Record<string, unknown>)
+      : null;
+  const receiptNumber = String(
+    callback ? callbackMetadataValue(callback, "MpesaReceiptNumber") ?? "" : "",
+  )
+    .trim()
+    .toUpperCase();
+  const amount = Number(
+    callback ? callbackMetadataValue(callback, "Amount") : NaN,
+  );
+  let phoneNumber = "";
+  try {
+    phoneNumber = normalizeDarajaPhone(
+      String(callback ? callbackMetadataValue(callback, "PhoneNumber") : ""),
+    );
+  } catch {
+    phoneNumber = "";
+  }
+  const paidAt = callback
+    ? parseDarajaPaidAt(callbackMetadataValue(callback, "TransactionDate"))
+    : null;
+  const callbackMatches =
+    callback !== null &&
+    callback.CheckoutRequestID === attempt.checkout_request_id &&
+    Number(callback.ResultCode) === 0 &&
+    Number.isSafeInteger(amount) &&
+    amount === Number(attempt.amount) &&
+    amount === Number(payment.amount) &&
+    phoneNumber === attempt.phone_number &&
+    /^[A-Z0-9]{8,20}$/.test(receiptNumber) &&
+    Boolean(paidAt);
+
+  if (!callbackMatches) {
+    await recordAdminAuditEvent({
+      actorId: actor.id,
+      action: "safaricom.stk_payment_status_checked",
+      entityType: "booking",
+      entityId: payment.booking_id,
+      summary: "Safaricom confirmed STK success, but callback payment details need review.",
+      after: {
+        payment_id: payment.id,
+        attempt_id: attempt.id,
+        checkout_request_id: attempt.checkout_request_id,
+        outcome: "provider_confirmed_details_need_review",
+        result_code: String(statusQuery.ResultCode),
+      },
+    });
+    revalidatePath("/admin/payouts");
+    return {
+      outcome: "details_need_review" as const,
+      description:
+        "Safaricom confirms success, but the callback is missing matching receipt, amount, phone, or transaction time. Check the merchant statement, then use manual reconciliation.",
+    };
+  }
+
+  const { data, error } = await admin.rpc(
+    "settle_daraja_stk_attempt_with_financial_posting",
+    {
+      p_checkout_request_id: attempt.checkout_request_id,
+      p_amount_minor: amount * 100,
+      p_phone_number: phoneNumber,
+      p_receipt_number: receiptNumber,
+      p_paid_at: paidAt,
+      p_raw_response: {
+        source: "admin_safaricom_status_verification",
+        callback,
+        statusQuery,
+        verified_by: actor.id,
+        verified_at: new Date().toISOString(),
+      },
+    },
+  );
+  if (error) {
+    console.error("Safaricom-confirmed STK settlement failed:", error);
+    throw new Error(
+      "Safaricom confirmed payment, but recording the settlement failed. Check the payment and journal before retrying.",
+    );
+  }
+
+  const result = Array.isArray(data) ? data[0] : data;
+  if (!result || result.booking_id !== payment.booking_id || result.payment_id !== payment.id) {
+    throw new Error(
+      "Safaricom confirmed payment, but the settlement result needs review. Check the payment and journal before retrying.",
+    );
+  }
+  await recordAdminAuditEvent({
+    actorId: actor.id,
+    action: "safaricom.stk_payment_verified_and_settled",
+    entityType: "booking",
+    entityId: payment.booking_id,
+    summary: `Verified and settled M-PESA payment using Safaricom STK status and receipt ${receiptNumber}.`,
+    before: { payment_status: payment.status, attempt_status: attempt.status },
+    after: {
+      payment_id: payment.id,
+      attempt_id: attempt.id,
+      checkout_request_id: attempt.checkout_request_id,
+      receipt_number: receiptNumber,
+      amount,
+      booking_confirmed: Boolean(result.booking_confirmed),
+    },
+  });
+
+  revalidatePath("/admin/payouts");
+  revalidatePath("/admin/bookings");
+  revalidatePath(`/admin/bookings/${payment.booking_id}`);
+  return {
+    outcome: "settled" as const,
+    bookingConfirmed: Boolean(result.booking_confirmed),
+  };
 }
 
 export async function claimHostPayoutRequest(requestId: string) {
@@ -45,9 +256,192 @@ export async function claimHostPayoutRequest(requestId: string) {
   refreshPayoutViews();
 }
 
+export async function reconcileSafaricomStkPayment(input: {
+  paymentId: string;
+  receiptNumber: string;
+  transactionTime: string;
+  evidenceNote: string;
+  verified: boolean;
+}) {
+  const actor = await requireAdmin();
+  if (!input || typeof input !== "object") {
+    throw new Error("Invalid payment reconciliation request.");
+  }
+  if (
+    typeof input.paymentId !== "string" ||
+    !UUID_RE.test(input.paymentId)
+  ) {
+    throw new Error("Invalid payment record.");
+  }
+  if (
+    typeof input.receiptNumber !== "string" ||
+    typeof input.evidenceNote !== "string" ||
+    typeof input.transactionTime !== "string"
+  ) {
+    throw new Error("Complete the receipt, transaction time, and evidence note.");
+  }
+
+  const receiptNumber = input.receiptNumber.trim().toUpperCase();
+  if (!/^[A-Z0-9]{8,20}$/.test(receiptNumber)) {
+    throw new Error("Enter the M-PESA receipt number shown on Safaricom records.");
+  }
+  const evidenceNote = input.evidenceNote.trim();
+  if (evidenceNote.length < 5 || evidenceNote.length > 500) {
+    throw new Error("Add a short note identifying the Safaricom record you checked.");
+  }
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(input.transactionTime)) {
+    throw new Error("Enter the transaction date and time shown in Safaricom records.");
+  }
+  const paidAt = new Date(`${input.transactionTime}:00+03:00`);
+  const eastAfricaTime = Number.isFinite(paidAt.getTime())
+    ? new Date(paidAt.getTime() + 3 * 60 * 60 * 1000)
+        .toISOString()
+        .slice(0, 16)
+    : "";
+  if (
+    !Number.isFinite(paidAt.getTime()) ||
+    eastAfricaTime !== input.transactionTime
+  ) {
+    throw new Error("The Safaricom transaction date and time is invalid.");
+  }
+  if (input.verified !== true) {
+    throw new Error("Confirm that you matched the receipt against Safaricom records.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const { data: payment, error: paymentError } = await admin
+    .from("payments")
+    .select("id, booking_id, amount, status, provider_reference")
+    .eq("id", input.paymentId)
+    .maybeSingle();
+  if (paymentError) {
+    console.error("Unable to load payment for Safaricom reconciliation:", paymentError);
+    throw new Error("Unable to load this payment.");
+  }
+  if (!payment) throw new Error("Payment record not found.");
+  if (payment.status !== "pending") {
+    throw new Error("Only a pending payment can be reconciled this way.");
+  }
+
+  const { data: attempt, error: attemptError } = await admin
+    .from("daraja_payment_attempts")
+    .select("id, booking_id, payment_id, checkout_request_id, phone_number, amount, status, mpesa_receipt_number, callback_payload")
+    .eq("payment_id", payment.id)
+    .in("status", ["pending", "reconciliation_required"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (attemptError) {
+    console.error("Unable to load Daraja attempt for manual reconciliation:", attemptError);
+    throw new Error("Unable to load the Safaricom payment attempt.");
+  }
+  if (!attempt?.checkout_request_id) {
+    throw new Error("There is no unresolved Safaricom STK attempt for this payment.");
+  }
+  if (attempt.booking_id !== payment.booking_id) {
+    throw new Error("The Safaricom attempt does not match this booking.");
+  }
+  if (
+    attempt.mpesa_receipt_number &&
+    attempt.mpesa_receipt_number.toUpperCase() !== receiptNumber
+  ) {
+    throw new Error(
+      "Safaricom already supplied a different receipt for this attempt. Escalate it for investigation.",
+    );
+  }
+  const amount = Number(attempt.amount);
+  if (
+    !Number.isSafeInteger(amount) ||
+    !Number.isSafeInteger(amount * 100) ||
+    amount <= 0 ||
+    amount !== Number(payment.amount)
+  ) {
+    throw new Error("The payment amount does not match the initialized Safaricom request.");
+  }
+
+  const reconciliationEvidence = {
+    source: "admin_verified_safaricom_record",
+    admin_id: actor.id,
+    receipt_number: receiptNumber,
+    transaction_time: paidAt.toISOString(),
+    evidence_note: evidenceNote,
+    verified_at: new Date().toISOString(),
+    prior_callback: attempt.callback_payload,
+  };
+  const { data, error } = await admin.rpc(
+    "settle_daraja_stk_attempt_with_financial_posting",
+    {
+      p_checkout_request_id: attempt.checkout_request_id,
+      p_amount_minor: amount * 100,
+      p_phone_number: attempt.phone_number,
+      p_receipt_number: receiptNumber,
+      p_paid_at: paidAt.toISOString(),
+      p_raw_response: { admin_reconciliation: reconciliationEvidence },
+    },
+  );
+  if (error) {
+    console.error("Safaricom STK payment reconciliation failed:", error);
+    throw new Error("Unable to reconcile this payment. The payment and journal were not changed.");
+  }
+
+  const result = Array.isArray(data) ? data[0] : data;
+  if (!result || result.booking_id !== payment.booking_id || result.payment_id !== payment.id) {
+    throw new Error(
+      "The settlement returned an unexpected result. Verify the payment and journal before retrying.",
+    );
+  }
+
+  const { data: settledAttempt, error: settledAttemptError } = await admin
+    .from("daraja_payment_attempts")
+    .select("status, mpesa_receipt_number")
+    .eq("checkout_request_id", attempt.checkout_request_id)
+    .maybeSingle();
+  if (settledAttemptError) {
+    console.error("Unable to verify Safaricom reconciliation result:", settledAttemptError);
+    throw new Error(
+      "The payment settlement ran, but its final receipt could not be verified. Check the payment and journal before retrying.",
+    );
+  }
+  if (
+    !settledAttempt ||
+    !["succeeded", "late_success"].includes(settledAttempt.status) ||
+    settledAttempt.mpesa_receipt_number?.toUpperCase() !== receiptNumber
+  ) {
+    throw new Error(
+      "This attempt was settled with a different receipt or is still unresolved. Check the payment and journal before retrying.",
+    );
+  }
+
+  await recordAdminAuditEvent({
+    actorId: actor.id,
+    action: "safaricom.stk_payment_reconciled",
+    entityType: "booking",
+    entityId: payment.booking_id,
+    summary: `Reconciled pending Safaricom payment using receipt ${receiptNumber}.`,
+    before: {
+      payment_status: payment.status,
+      attempt_status: attempt.status,
+    },
+    after: {
+      payment_id: payment.id,
+      attempt_id: attempt.id,
+      receipt_number: receiptNumber,
+      amount,
+      booking_confirmed: Boolean(result?.booking_confirmed),
+      evidence_note: evidenceNote,
+    },
+  });
+
+  revalidatePath("/admin/payouts");
+  revalidatePath("/admin/bookings");
+  revalidatePath(`/admin/bookings/${payment.booking_id}`);
+  return { bookingConfirmed: Boolean(result?.booking_confirmed) };
+}
+
 export async function initiateSafaricomHostPayout(input: {
   requestId: string;
   estimatedFee: number;
+  collectionFee: number;
   idempotencyKey: string;
   detailsVerified: boolean;
   note?: string;
@@ -62,6 +456,14 @@ export async function initiateSafaricomHostPayout(input: {
   ) {
     throw new Error("Enter the whole-KES B2C fee estimate.");
   }
+  if (
+    !Number.isFinite(input.collectionFee) ||
+    input.collectionFee < 0 ||
+    input.collectionFee > 1_000_000_000 ||
+    Number(input.collectionFee.toFixed(2)) !== input.collectionFee
+  ) {
+    throw new Error("Enter a valid collection fee with no more than two decimal places.");
+  }
   if (input.idempotencyKey.length < 32 || input.idempotencyKey.length > 128) {
     throw new Error("Refresh the payout request and try again.");
   }
@@ -73,11 +475,13 @@ export async function initiateSafaricomHostPayout(input: {
   }
 
   const admin = getSupabaseAdmin();
-  const { data, error } = await admin.rpc("admin_prepare_daraja_host_payout", {
+  const { data, error } = await admin.rpc("admin_prepare_daraja_host_payout_with_collection_fee", {
     p_request_id: input.requestId,
     p_admin_id: actor.id,
     p_estimated_fee: input.estimatedFee,
+    p_collection_fee: input.collectionFee,
     p_idempotency_key: input.idempotencyKey,
+    p_admin_note: note || null,
   });
   if (error) {
     if (error.message.includes("PAYOUT_REQUEST_NOT_PENDING"))
@@ -90,6 +494,12 @@ export async function initiateSafaricomHostPayout(input: {
       throw new Error("The saved host M-Pesa number is invalid.");
     if (error.message.includes("INVALID_B2C_NET_AMOUNT"))
       throw new Error("The estimated fee leaves no valid whole-KES amount to send.");
+    if (error.message.includes("COLLECTION_FEE_ALREADY_RECORDED"))
+      throw new Error("The collection fee is already recorded for this request. Refresh before retrying.");
+    if (error.message.includes("INVALID_COLLECTION_FEE"))
+      throw new Error("Enter a valid collection fee with no more than two decimal places.");
+    if (error.code === "PGRST202")
+      throw new Error("Payout processing fee capture is unavailable because the required database migration has not been applied.");
     console.error("Unable to prepare Safaricom host payout:", error);
     throw new Error("Unable to prepare this Safaricom payout.");
   }
@@ -179,6 +589,7 @@ export async function initiateSafaricomHostPayout(input: {
       request_amount: Number(prepared.request_amount),
       net_amount: Number(prepared.transfer_amount),
       estimated_fee: input.estimatedFee,
+      collection_fee: input.collectionFee,
       conversation_id: submission.conversationId,
       destination_and_fee_verified: input.detailsVerified,
       admin_note: note || null,
@@ -199,7 +610,7 @@ export async function reconcileSafaricomHostPayoutFee(input: {
     throw new Error("Enter a valid actual Safaricom fee.");
   }
   const admin = getSupabaseAdmin();
-  const { data, error } = await admin.rpc("reconcile_daraja_b2c_fee", {
+  const { data, error } = await admin.rpc("reconcile_daraja_b2c_fee_with_financial_posting", {
     p_attempt_id: input.attemptId,
     p_actual_fee: input.actualFee,
     p_admin_id: actor.id,
@@ -345,7 +756,7 @@ export async function reconcileSafaricomPayoutReversalFee(input: {
   if (!UUID_RE.test(input.reversalId)) throw new Error("Invalid Safaricom reversal.");
   if (!Number.isFinite(input.actualFee) || input.actualFee < 0) throw new Error("Enter a valid actual reversal fee.");
   const admin = getSupabaseAdmin();
-  const { data, error } = await admin.rpc("reconcile_daraja_b2c_reversal_fee", {
+  const { data, error } = await admin.rpc("reconcile_daraja_b2c_reversal_fee_with_financial_posting", {
     p_reversal_id: input.reversalId,
     p_actual_fee: input.actualFee,
     p_admin_id: actor.id,

@@ -21,6 +21,12 @@ import {
   type FilterState,
   type Listing,
 } from "@/types/types";
+import {
+  BROWSE_CATEGORY_LABELS,
+  isBrowseCategory,
+  type BrowseCategory,
+} from "@/app/lib/listing-categories";
+import CategoryBar from "@/components/home/CategoryBar";
 
 const PAGE_SIZE = 6;
 
@@ -29,10 +35,45 @@ interface SearchQuery {
   checkIn: string;
   checkOut: string;
   guests: number;
+  category: BrowseCategory;
+}
+
+interface CatalogState {
+  searchKey: string;
+  listings: Listing[];
+  hasMore: boolean;
+  error: string | null;
+  loadMoreError: string | null;
+  isLoadingMore: boolean;
 }
 
 function cleanSearchTerm(value: string) {
   return value.replace(/[%,]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function normalizeAmenity(value: string) {
+  const key = value.trim().toLocaleLowerCase().replace(/[^a-z0-9]/g, "");
+  if (key === "ac" || key === "aircon") return "airconditioning";
+  if (key === "freeparking") return "parking";
+  return key;
+}
+
+function amenityLabel(value: string) {
+  const labels: Record<string, string> = {
+    wifi: "Wi-Fi",
+    pool: "Pool",
+    parking: "Free parking",
+    airconditioning: "Air conditioning",
+    kitchen: "Kitchen",
+    washer: "Washer",
+    tv: "TV",
+    hotwater: "Hot water",
+    backupgenerator: "Backup generator",
+    securityguard: "Security guard",
+    balcony: "Balcony",
+    gym: "Gym",
+  };
+  return labels[normalizeAmenity(value)] ?? value.trim();
 }
 
 function formatDateRange(checkIn: string, checkOut: string) {
@@ -47,14 +88,20 @@ function formatDateRange(checkIn: string, checkOut: string) {
   return undefined;
 }
 
-async function fetchListingPage(from: number, to: number, searchQuery: SearchQuery) {
+async function fetchListingPage(
+  from: number,
+  to: number,
+  searchQuery: SearchQuery,
+  signal?: AbortSignal,
+) {
   const query = new URLSearchParams({
     location: cleanSearchTerm(searchQuery.location),
     guests: String(searchQuery.guests || 0),
+    category: searchQuery.category,
     from: String(from),
     to: String(to),
   });
-  const response = await fetch(`/api/listings/catalog?${query}`);
+  const response = await fetch(`/api/listings/catalog?${query}`, { signal });
   if (!response.ok) throw new Error("Unable to load listings.");
   return (await response.json()) as Listing[];
 }
@@ -62,59 +109,144 @@ async function fetchListingPage(from: number, to: number, searchQuery: SearchQue
 function AllListingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const categoryParam = searchParams.get("category");
+  const locationParam = searchParams.get("location") ?? "";
+  const checkInParam = searchParams.get("checkIn") ?? "";
+  const checkOutParam = searchParams.get("checkOut") ?? "";
+  const guestsParam = Math.max(
+    0,
+    Number(searchParams.get("guests") ?? 0) || 0,
+  );
   const searchQuery = useMemo<SearchQuery>(
     () => ({
-      location: searchParams.get("location") ?? "",
-      checkIn: searchParams.get("checkIn") ?? "",
-      checkOut: searchParams.get("checkOut") ?? "",
-      guests: Math.max(0, Number(searchParams.get("guests") ?? 0) || 0),
+      location: locationParam,
+      checkIn: checkInParam,
+      checkOut: checkOutParam,
+      guests: guestsParam,
+      category: isBrowseCategory(categoryParam)
+        ? categoryParam
+        : "all",
     }),
-    [searchParams],
+    [categoryParam, checkInParam, checkOutParam, guestsParam, locationParam],
   );
+  const searchKey = JSON.stringify(searchQuery);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [sort, setSort] = useState<SortOption>("recommended");
   const [view, setView] = useState<ViewMode>("list");
-  const [page, setPage] = useState(1);
   const [comparison, setComparison] = useState<Listing[]>([]);
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
-  const [databaseListings, setDatabaseListings] = useState<Listing[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
+  const [pageState, setPageState] = useState({ searchKey: "", page: 1 });
+  const page = pageState.searchKey === searchKey ? pageState.page : 1;
+  const [catalogState, setCatalogState] = useState<CatalogState>({
+    searchKey: "",
+    listings: [],
+    hasMore: true,
+    error: null,
+    loadMoreError: null,
+    isLoadingMore: false,
+  });
+  const isLoading = catalogState.searchKey !== searchKey;
+  const databaseListings = useMemo(
+    () => (isLoading ? [] : catalogState.listings),
+    [catalogState.listings, isLoading],
+  );
+  const loadError = isLoading ? null : catalogState.error;
+  const loadMoreError = isLoading ? null : catalogState.loadMoreError;
+  const hasMore = !isLoading && catalogState.hasMore;
+  const isLoadingMore = !isLoading && catalogState.isLoadingMore;
+
+  const setPage = (nextPage: number | ((currentPage: number) => number)) => {
+    setPageState((current) => ({
+      searchKey,
+      page:
+        typeof nextPage === "function"
+          ? nextPage(current.searchKey === searchKey ? current.page : 1)
+          : nextPage,
+    }));
+  };
 
   useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
     async function loadListings() {
       try {
-        const normalizedListings = await fetchListingPage(0, PAGE_SIZE - 1, searchQuery);
-        setDatabaseListings(normalizedListings);
-        setHasMore(normalizedListings.length === PAGE_SIZE);
+        const normalizedListings = await fetchListingPage(
+          0,
+          PAGE_SIZE - 1,
+          searchQuery,
+          controller.signal,
+        );
+        if (!active) return;
+        setCatalogState({
+          searchKey,
+          listings: normalizedListings,
+          hasMore: normalizedListings.length === PAGE_SIZE,
+          error: null,
+          loadMoreError: null,
+          isLoadingMore: false,
+        });
       } catch (error) {
-        console.error("Failed to load listings from Supabase:", error);
+        if (active && !controller.signal.aborted) {
+          console.error("Failed to load listings from Supabase:", error);
+          setCatalogState({
+            searchKey,
+            listings: [],
+            hasMore: false,
+            error: "We couldn’t load stays for these filters. Please try again.",
+            loadMoreError: null,
+            isLoadingMore: false,
+          });
+        }
       }
-      setIsLoading(false);
     }
 
     void loadListings();
-  }, [searchQuery]);
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [searchKey, searchQuery]);
 
   const loadMoreListings = async () => {
     if (isLoadingMore || !hasMore) return false;
 
-    setIsLoadingMore(true);
+    const requestSearchKey = searchKey;
+    setCatalogState((current) =>
+      current.searchKey === requestSearchKey
+        ? { ...current, isLoadingMore: true, loadMoreError: null }
+        : current,
+    );
     try {
       const nextListings = await fetchListingPage(
         databaseListings.length,
         databaseListings.length + PAGE_SIZE - 1,
         searchQuery,
       );
-      setDatabaseListings((current) => [...current, ...nextListings]);
-      setHasMore(nextListings.length === PAGE_SIZE);
+      setCatalogState((current) =>
+        current.searchKey === requestSearchKey
+          ? {
+              ...current,
+              listings: [...current.listings, ...nextListings],
+              hasMore: nextListings.length === PAGE_SIZE,
+              loadMoreError: null,
+              isLoadingMore: false,
+            }
+          : current,
+      );
       return nextListings.length > 0;
     } catch (error) {
       console.error("Failed to load more listings from Supabase:", error);
+      setCatalogState((current) =>
+        current.searchKey === requestSearchKey
+          ? {
+              ...current,
+              loadMoreError: "We couldn’t load more stays. Use Next to retry.",
+              isLoadingMore: false,
+            }
+          : current,
+      );
       return false;
-    } finally {
-      setIsLoadingMore(false);
     }
   };
 
@@ -137,17 +269,20 @@ function AllListingsContent() {
   };
 
   const amenityOptions = useMemo(() => {
-    const labels: Record<string, string> = {
-      wifi: "Wi-Fi",
-      pool: "Pool",
-      parking: "Free parking",
-      ac: "Air conditioning",
-    };
+    const labelsByKey = new Map<string, string>();
+    databaseListings.forEach((listing) => {
+      listing.amenities.forEach((amenity) => {
+        const key = normalizeAmenity(amenity);
+        if (key && !labelsByKey.has(key)) labelsByKey.set(key, amenityLabel(amenity));
+      });
+    });
 
-    return Object.entries(labels).map(([key, label]) => ({
+    return [...labelsByKey].map(([key, label]) => ({
       key,
       label,
-      count: databaseListings.filter((listing) => listing.amenities.includes(key)).length,
+      count: databaseListings.filter((listing) =>
+        listing.amenities.some((amenity) => normalizeAmenity(amenity) === key),
+      ).length,
     }));
   }, [databaseListings]);
 
@@ -159,16 +294,15 @@ function AllListingsContent() {
         (filters.bedrooms === "4+"
           ? listing.bedrooms >= 4
           : listing.bedrooms === Number(filters.bedrooms));
-      const amenityMatch = filters.amenities.every((amenity) =>
-        listing.amenities.includes(amenity),
-      );
+      const listingAmenities = new Set(listing.amenities.map(normalizeAmenity));
+      const amenityMatch = filters.amenities.every((amenity) => listingAmenities.has(amenity));
 
       return (
         listing.pricePerNight >= filters.minPrice &&
         listing.pricePerNight <= filters.maxPrice &&
         bedroomMatch &&
         amenityMatch &&
-        (!filters.verifiedOnly || listing.verified) &&
+        (!filters.groupStayOnly || listing.guests >= 4) &&
         (!filters.minRating || listing.rating >= filters.minRating)
       );
     });
@@ -190,7 +324,13 @@ function AllListingsContent() {
   };
 
   const activeFilters: ActiveFilter[] = [];
-  if (filters.verifiedOnly) activeFilters.push({ key: "verifiedOnly", label: "Verified hosts" });
+  if (searchQuery.category !== "all") {
+    activeFilters.push({
+      key: "category",
+      label: BROWSE_CATEGORY_LABELS[searchQuery.category],
+    });
+  }
+  if (filters.groupStayOnly) activeFilters.push({ key: "groupStayOnly", label: "Sleeps 4+ guests" });
   if (filters.minPrice > 0 || filters.maxPrice < 50000) {
     activeFilters.push({
       key: "price",
@@ -199,11 +339,15 @@ function AllListingsContent() {
   }
   if (filters.bedrooms) activeFilters.push({ key: "bedrooms", label: `${filters.bedrooms} bedrooms` });
   filters.amenities.forEach((amenity) => {
-    activeFilters.push({ key: `amenity-${amenity}`, label: amenity });
+    activeFilters.push({
+      key: `amenity-${amenity}`,
+      label: amenityOptions.find((option) => option.key === amenity)?.label ?? amenity,
+    });
   });
 
   const removeFilter = (key: string) => {
-    if (key === "verifiedOnly") updateFilters({ verifiedOnly: false });
+    if (key === "category") updateCategory("all");
+    if (key === "groupStayOnly") updateFilters({ groupStayOnly: false });
     if (key === "price") updateFilters({ minPrice: 0, maxPrice: 50000 });
     if (key === "bedrooms") updateFilters({ bedrooms: null });
     if (key.startsWith("amenity-")) {
@@ -214,6 +358,13 @@ function AllListingsContent() {
   const resetFilters = () => {
     setFilters(DEFAULT_FILTERS);
     setPage(1);
+    if (searchQuery.category !== "all") updateCategory("all");
+  };
+
+  const updateCategory = (category: BrowseCategory) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("category", category);
+    router.replace(`/allListings?${params.toString()}`, { scroll: false });
   };
 
   const toggleCompare = (listing: Listing) => {
@@ -226,47 +377,108 @@ function AllListingsContent() {
     });
   };
 
+  const quickAmenities = [
+    { key: "wifi", label: "Wi-Fi" },
+    { key: "pool", label: "Pool" },
+    { key: "parking", label: "Free parking" },
+    { key: "airconditioning", label: "Air conditioning" },
+  ];
+  const filterSidebarProps = {
+    filters,
+    amenityOptions,
+    groupStayCount: databaseListings.filter((listing) => listing.guests >= 4).length,
+    instantBookingCount: 0,
+    onChange: updateFilters,
+    onReset: resetFilters,
+    soft: true,
+  };
+
   return (
     <>
       <Navbar />
-      <main className="mx-auto max-w-7xl px-5 pb-16 md:px-8">
+      <CategoryBar
+        activeCategory={searchQuery.category}
+        onChange={updateCategory}
+      />
+      <main className="min-h-screen bg-[#FFFFFF]">
+        <div className="mx-auto max-w-7xl px-5 pb-16 md:px-8">
         <PageHeading
-          title={searchQuery.location ? `Stays in ${searchQuery.location}` : "All stays"}
-          resultCount={listings.length}
+          title={
+            searchQuery.category !== "all"
+              ? searchQuery.location
+                ? `${BROWSE_CATEGORY_LABELS[searchQuery.category]} in ${searchQuery.location}`
+                : BROWSE_CATEGORY_LABELS[searchQuery.category]
+              : searchQuery.location
+                ? `Stays in ${searchQuery.location}`
+                : "All stays"
+          }
           dateRangeLabel={formatDateRange(searchQuery.checkIn, searchQuery.checkOut)}
+          soft
         />
+        <div className="mb-4 grid grid-cols-1 gap-3 border-y border-neutral-200 py-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <FilterSidebar {...filterSidebarProps} />
+            <div
+              className="flex min-w-0 flex-1 flex-nowrap gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              aria-label="Quick filters"
+            >
+              <button
+                type="button"
+                aria-pressed={filters.bedrooms === "2"}
+                onClick={() => updateFilters({ bedrooms: filters.bedrooms === "2" ? null : "2" })}
+                className={`shrink-0 whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${filters.bedrooms === "2" ? "border-neutral-800 bg-neutral-800 text-white" : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-100"}`}
+              >
+                2 bedrooms
+              </button>
+              {quickAmenities.map((amenity) => {
+                const active = filters.amenities.includes(amenity.key);
+                return (
+                  <button
+                    key={amenity.key}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => updateFilters({
+                      amenities: active
+                        ? filters.amenities.filter((selected) => selected !== amenity.key)
+                        : [...filters.amenities, amenity.key],
+                    })}
+                    className={`shrink-0 whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${active ? "border-neutral-800 bg-neutral-800 text-white" : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-100"}`}
+                  >
+                    {amenity.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <ResultsToolbar
+            sort={sort}
+            view={view}
+            soft
+            onSortChange={(nextSort) => {
+              setSort(nextSort);
+              setPage(1);
+            }}
+            onViewChange={setView}
+          />
+        </div>
         <ActiveFilterChips
           filters={activeFilters}
           onRemove={removeFilter}
           onClearAll={resetFilters}
+          soft
         />
 
-        <div className="grid grid-cols-1 gap-9 md:grid-cols-[260px_1fr]">
-          <FilterSidebar
-            filters={filters}
-            amenityOptions={amenityOptions}
-            verifiedCount={databaseListings.length}
-            instantBookingCount={0}
-            onChange={updateFilters}
-            onReset={resetFilters}
-          />
-
+        <div>
           <section>
-            <ResultsToolbar
-              sort={sort}
-              view={view}
-              onSortChange={(nextSort) => {
-                setSort(nextSort);
-                setPage(1);
-              }}
-              onViewChange={setView}
-            />
-
             {isLoading ? (
               <div aria-label="Loading available stays" className="divide-y divide-[#E9E6DD]">
                 {Array.from({ length: PAGE_SIZE }, (_, index) => (
                   <ListingCardSkeleton key={index} />
                 ))}
+              </div>
+            ) : loadError ? (
+              <div role="alert" className="py-16 text-center text-sm text-red-700">
+                {loadError}
               </div>
             ) : view === "map" ? (
               <div className="flex min-h-[420px] items-center justify-center border border-[#E9E6DD] bg-[#F7F7F7] p-8 text-center text-[#36454F]">
@@ -278,13 +490,26 @@ function AllListingsContent() {
                 </div>
               </div>
             ) : visibleListings.length === 0 ? (
-              <EmptyState onResetFilters={resetFilters} />
+              <EmptyState
+                title={
+                  searchQuery.category === "all"
+                    ? undefined
+                    : "No stays found for this category"
+                }
+                message={
+                  searchQuery.category === "all"
+                    ? undefined
+                    : `We couldn’t find stays in ${BROWSE_CATEGORY_LABELS[searchQuery.category]}. Try another category or clear the filters.`
+                }
+                onResetFilters={resetFilters}
+              />
             ) : (
               <div className={view === "list" ? "divide-y divide-[#E9E6DD]" : "grid gap-5 sm:grid-cols-2"}>
                 {visibleListings.map((listing) => (
                   <ListingCard
                     key={listing.id}
                     listing={listing}
+                    soft
                     comparing={comparison.some((selected) => selected.id === listing.id)}
                     onToggleCompare={toggleCompare}
                     onView={(id) => router.push(`/apartments/${id}`)}
@@ -303,9 +528,15 @@ function AllListingsContent() {
                   hasMore={hasMore}
                   isLoadingMore={isLoadingMore}
                 />
+                {loadMoreError && (
+                  <p role="alert" className="mt-3 text-center text-sm text-red-700">
+                    {loadMoreError}
+                  </p>
+                )}
               </>
             )}
           </section>
+        </div>
         </div>
       </main>
 

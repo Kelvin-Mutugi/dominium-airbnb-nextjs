@@ -3,7 +3,8 @@ import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 import { formatDate, humanize } from "@/app/lib/format";
 import { ListingRequestReviewForm } from "@/components/admin/listing-requests/listing-request-review-form";
 
-const STATUSES = ["all", "submitted", "reviewing", "visit_scheduled", "visited", "details_collected", "listing_created", "declined"];
+const OPEN_STATUSES = ["submitted", "reviewing", "visit_scheduled", "visited", "details_collected"] as const;
+const STATUSES = ["open", "all", ...OPEN_STATUSES, "listing_created", "declined"];
 
 type HostRequest = {
   id: string;
@@ -47,7 +48,8 @@ export default async function AdminListingRequestsPage({
     .select("*")
     .order("created_at", { ascending: true })
     .limit(300);
-  if (status !== "all") requestsQuery = requestsQuery.eq("status", status);
+  if (status === "open") requestsQuery = requestsQuery.in("status", [...OPEN_STATUSES]);
+  else if (status !== "all") requestsQuery = requestsQuery.eq("status", status);
 
   const { data, error } = await requestsQuery;
   if (error) throw new Error("Unable to load host property requests. Apply the host listing requests migration and retry.");

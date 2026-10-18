@@ -292,7 +292,7 @@ export default async function AdminBookingDetailPage({
           />
           <DetailField
             label="Safaricom collection fee"
-            value={booking.collection_fee_reconciled ? amount(booking.collection_fee_amount) : "Awaiting reconciliation"}
+            value={booking.collection_fee_reconciled ? amount(booking.collection_fee_amount) : "Handled during host payout processing"}
           />
           <DetailField
             label="Host payout before fee balance"

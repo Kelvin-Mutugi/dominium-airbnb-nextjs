@@ -155,25 +155,15 @@ export function BookingChangeActions({
                   <dd className="font-semibold">{formatMoney(cancellation.estimatedRefund)}</dd>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <dt className="text-neutral-600">When you’d receive it</dt>
-                  <dd className="text-right">3–5 business days after approval</dd>
+                  <dt className="text-neutral-600">Refund timing</dt>
+                  <dd className="max-w-56 text-right">{cancellation.refundTiming}</dd>
                 </div>
               </dl>
 
               <p className="mt-3 text-xs leading-5 text-neutral-500">
-                This is an estimate from the platform schedule and the payments on record. Property terms or processing
-                fees may change the final amount. The admin team reviews the request, and refunds are processed by
-                hand.
+                The estimate follows the platform cancellation schedule and successful payments recorded for this booking.
+                The admin team reviews the request; submitting it does not cancel the booking or send a refund.
               </p>
-
-              {cancellation.listingPolicy && (
-                <div className="mt-4 rounded-2xl bg-neutral-50 p-4">
-                  <p className="text-xs font-semibold text-neutral-700">This property’s cancellation terms</p>
-                  <p className="mt-1 whitespace-pre-wrap text-xs leading-5 text-neutral-600">
-                    {cancellation.listingPolicy}
-                  </p>
-                </div>
-              )}
 
               <label className="mt-4 flex items-start gap-2.5 text-sm text-neutral-700">
                 <input

@@ -63,7 +63,7 @@ Cancellation approval and refund approval are two different decisions:
 3. The admin initiates the transfer; the refund is recorded only after a matching successful Safaricom result callback.
 4. The guest's booking page and in-app notifications update after confirmation. If a callback times out or the state is uncertain, the refund remains under reconciliation; do not assume it was sent or initiate another transfer.
 
-An estimate is not a guaranteed final refund. Property terms, fees, and payment history may affect the final decision. Contact support if the displayed status or amount appears incorrect.
+The refund estimate uses the successful payments recorded when the guest submits the cancellation request: 100% at least 14 calendar days before check-in, 50% 7–13 days before check-in, and 0% fewer than 7 days before check-in. The Africa/Nairobi calendar date is used. Listing-specific cancellation or refund notes do not change this schedule. No cancellation processing fee or travel credit is applied. Eligible amounts are sent only after cancellation and refund approval; a refund is recorded as complete only after Safaricom confirms the transfer. Contact support if the displayed status or amount appears incorrect.
 
 ### After the stay
 
@@ -105,9 +105,9 @@ Hosts should report a booking issue promptly. An unresolved case can keep a payo
 
 ## For Administrators and Operations
 
-### 1. Confirm a pending booking
+### 1. Monitor a pending payment hold
 
-Open **Admin → Bookings** and review the guest, host, property, dates, party size, and payment record. A pending booking should only be confirmed when the payment/booking evidence supports it. The verified Safaricom callback normally confirms successful payments automatically; do not treat a browser message alone as proof of payment.
+Open **Admin → Bookings** to review the guest, host, property, dates, party size, and payment record. Pending bookings are temporary payment holds, not approval requests. Only verified Safaricom payment confirms a booking; the callback normally does this automatically. Do not manually confirm a hold or treat a browser message alone as proof of payment. If a callback appears missing, use the Safaricom reconciliation tools in Admin → Payments & Payouts and verify provider evidence before taking further action.
 
 ### 2. Review a cancellation request
 
@@ -118,7 +118,7 @@ Open **Admin → Cancellation Requests**. Confirm the booking reference, guest, 
 - If an eligible estimate exists, approval routes the refund case to **Admin → Refunds**. This does not approve or send the refund.
 - If the request is stale because the booking dates/status changed or check-in has started, do not override the guard; investigate the booking and contact the guest.
 
-The Admin → Bookings detail also has a direct cancel control for pending or confirmed bookings. That is an admin-initiated booking cancellation, not a guest cancellation request, and it does not automatically create a refund case in Admin → Refunds. For a guest-requested cancellation, use the Cancellation Requests workflow. For an admin-initiated cancellation, document the reason and separately coordinate any refund through the approved finance process; do not assume a refund queue item was created.
+The Admin → Bookings detail also has a direct cancel control for pending or confirmed bookings. That is an admin-initiated booking cancellation, not a guest cancellation request, and it does not automatically create a refund case in Admin → Refunds. The confirmation prompt warns that any eligible refund must be handled separately. For a guest-requested cancellation, use the Cancellation Requests workflow. For an admin-initiated cancellation, document the reason and separately coordinate any refund through the approved finance process; do not assume a refund queue item was created.
 
 ### 3. Decide a refund
 
@@ -139,9 +139,9 @@ Hosts decide date-change requests in **Host → Bookings**. Administrators can r
 
 ### 5. Process a host payout
 
-Hosts request eligible completed-booking earnings from **Host → Payouts**. A request reserves its linked booking payout rows and snapshots the M-Pesa destination. Review requests in **Admin → Payments & Payouts → Withdrawal requests**. Verify the destination and the B2C fee estimate before initiating a Safaricom transfer. The host bears transfer costs through their signed fee balance.
+Hosts request part or all of their available earnings from **Host → Payouts** and can enter the M-Pesa number for that request. The number they enter is used only for that payout and does not change their saved account details. Review requests in **Admin → Payments & Payouts → Host Payout Requests**. Verify the destination, enter the payout processing fee, and confirm the B2C fee estimate before initiating a Safaricom transfer.
 
-The request remains reserved until Safaricom sends a matching successful result callback. An initiation response alone does not mean the host has been paid. Reconcile the actual B2C fee from the authoritative Safaricom record after success. A definite failure can be retried; timeouts or uncertain results must be reconciled with Safaricom before retrying or cancelling. The database balance is a liability ledger, not a live Safaricom float check.
+The requested amount remains reserved until Safaricom sends a matching successful result callback. An initiation response alone does not mean the host has been paid. The payout processing fee and actual B2C transfer fee are reflected in the amount sent to the host. Reconcile the actual B2C fee from the authoritative Safaricom record after success. A definite failure can be retried; timeouts or uncertain results must be reconciled with Safaricom before retrying or cancelling.
 
 **Owed** means eligible and awaiting a host request/transfer, not already transferred. Historical payout rows that predate immutable price and fee snapshots are held out of the withdrawal flow until finance reconciles them.
 
@@ -161,19 +161,19 @@ The request remains reserved until Safaricom sends a matching successful result 
 | Payout processing                 | Host payout is temporarily held.                                                  |
 | Payout owed                       | Hold cleared; host payout is awaiting transfer.                                   |
 | Payout paid                       | Admin recorded the verified host transfer.                                        |
-| Payout request requested          | Host reserved eligible owed payouts; admin has not recorded a transfer.           |
+| Payout request requested          | Host selected an amount and M-Pesa number; admin has not sent the payout yet.     |
 
 ## Policy and Operational Notes
 
-- **Cancellation estimate alignment:** the current application calculation is 100% at least 14 days before check-in, 50% 7–13 days before check-in, and 0% inside 7 days, based on payments recorded. The published policy also mentions an administrative fee and a travel-credit alternative. Management must confirm which terms are authoritative and align the application calculation and guest wording before treating estimates as binding.
+- **Cancellation/refund policy:** the platform-wide schedule is 100% of successful payments recorded when the guest submits the request at least 14 calendar days before check-in, 50% 7–13 days before check-in, and 0% fewer than 7 days before check-in, using the Africa/Nairobi calendar date. It applies to every listing, without a cancellation processing fee or travel credit. Cancellation and refund approvals are separate; no refund is marked complete until Safaricom confirms the transfer.
 - **Refunds:** administrators approve eligible refunds and initiate Safaricom B2C to the guest's booking phone. A matching successful result callback is required before the refund is recorded as processed.
 - **Host payouts:** admins initiate Safaricom B2C from Host Payout Requests. The request remains reserved until a successful result callback; the initiation response alone does not mean the host was paid.
-- **Fee reconciliation:** use Admin → Payouts → Fee Reconciliation to record actual STK fees from Safaricom's authoritative transaction statement. Reconcile actual B2C fees after successful host payouts and refunds; those costs are carried against host earnings.
+- **Fee handling:** hosts can request part or all of their available earnings without waiting for per-payment STK fee reconciliation. When sending a host payout, admins enter the aggregate STK collection fee for that request using Safaricom records. Reconcile actual B2C transfer fees after Safaricom confirms host payouts and refunds.
 - **Booking confirmation email:** email delivery requires `RESEND_API_KEY` and `BOOKING_CONFIRMATION_FROM`. Without those settings, the confirmation page is the status source of truth.
-- **Automatic stay completion:** a daily Vercel job is configured for 00:00 UTC. It completes eligible confirmed stays after the configured check-out time plus 24 hours, unless an unresolved support case or guest change/cancellation request exists. On Vercel Hobby it may execute during the scheduled hour; daily polling may add nearly another day of delay.
-- **Deployment prerequisites:** Supabase must have the applicable migrations applied; the Vercel job also needs a secure `CRON_SECRET`. If deployment moves to Cloudflare, the cron must be configured as a Cloudflare Worker Cron Trigger with the corresponding scheduled handler; `vercel.json` will not schedule it there.
+- **Automatic stay completion:** the Cloudflare Worker Cron Trigger `0 0 * * *` runs the scheduled handler at 00:00 UTC. It completes eligible confirmed stays after the configured check-out time plus 24 hours, unless an unresolved support case or guest change/cancellation request exists. A separate `*/5 * * * *` trigger expires stale pending payment holds and processes due date-change decisions.
+- **Deployment prerequisites:** Supabase must have the applicable migrations applied, and `SUPABASE_SERVICE_ROLE_KEY` must be configured as a Cloudflare Worker secret for the scheduled handler. `vercel.json` does not schedule Cloudflare Workers.
 - **Support-case hold:** unresolved booking support cases and pending guest requests pause automatic completion/payout release. Resolve or document the case before expecting the status to advance.
 
 ## Deployment Readiness Checklist
 
-Before relying on these flows in production, confirm the production Supabase project has all pending migrations applied through `20261009160000_paystack_retirement.sql`, in addition to earlier booking/payment/privacy migrations. That final migration discards the retired Paystack payment-attempt table and removes Paystack-only columns/RPCs; it does not delete users or profiles. Configure Daraja STK, B2C, and reversal credentials and public HTTPS callbacks as documented in `BOOKINGSETUP.md`; keep them in Cloudflare Worker secrets. Configure the Cloudflare cron triggers before relying on automatic stay completion. Configure email settings if confirmation emails are required. Test payment confirmation, cancellation, B2C refunds, fee reconciliation, host completion, open-case holds, payouts, and reversals in a non-production project before launch.
+Before relying on these flows in production, confirm the production Supabase project has all pending migrations applied in filename order through `20261017170000_grant_booking_hold_expiry_select.sql`, in addition to earlier booking/payment/privacy migrations. This includes `20261009160000_paystack_retirement.sql`, which discards the retired Paystack payment-attempt table and removes Paystack-only columns/RPCs; it does not delete users or profiles. The latest migration grants authenticated hosts read access to `hold_expires_at`, which the host calendar and booking views need. Configure Daraja STK, B2C, and reversal credentials and public HTTPS callbacks as documented in `BOOKINGSETUP.md`; keep them in Cloudflare Worker secrets. Configure the Cloudflare cron triggers before relying on automatic stay completion. Configure email settings if confirmation emails are required. Test payment confirmation, cancellation, B2C refunds, payout-level fee entry, partial and full host payouts, host completion, open-case holds, and reversals in a non-production project before launch.

@@ -123,6 +123,39 @@ export default function HostCalendarPage() {
     };
   }, [monthKey, reloadToken]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const blockDate = params.get("blockDate");
+    const listingId = params.get("listing");
+    if (!blockDate || !/^\d{4}-\d{2}-\d{2}$/.test(blockDate)) return;
+
+    const date = new Date(`${blockDate}T12:00:00Z`);
+    if (
+      Number.isNaN(date.getTime()) ||
+      date.toISOString().slice(0, 10) !== blockDate
+    ) {
+      return;
+    }
+    const endDate = new Date(date);
+    endDate.setUTCDate(endDate.getUTCDate() + 1);
+    // Initialize the existing block-date form from the date selected on the overview.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMonth(new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1)));
+    setStartDate(blockDate);
+    setEndDate(endDate.toISOString().slice(0, 10));
+    if (listingId) setBlockListingId(listingId);
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (loading && params.has("blockDate")) return;
+    if (!params.has("blockDate")) return;
+    document.getElementById("host-block-dates")?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  }, [loading]);
+
   const visibleBookings = bookings.filter(
     (booking) => selectedListingId === "all" || booking.listing_id === selectedListingId,
   );
@@ -154,7 +187,7 @@ export default function HostCalendarPage() {
   const agendaRows = [
     ...visibleBookings.map((booking) => ({
       id: `booking-${booking.id}`,
-      type: booking.status === "pending" ? "Pending request" : "Confirmed stay",
+      type: booking.status === "pending" ? "Awaiting payment" : "Confirmed stay",
       start: booking.check_in,
       end: booking.check_out,
       listingTitle: booking.listing?.title ?? "Listing",
@@ -327,7 +360,7 @@ export default function HostCalendarPage() {
       .filter((booking) => booking.check_in <= key && booking.check_out > key)
       .map((booking) => ({
         id: `booking-${booking.id}`,
-        label: `${booking.status === "pending" ? "Request" : "Stay"}: ${booking.listing?.title ?? "Listing"}`,
+        label: `${booking.status === "pending" ? "Awaiting payment" : "Stay"}: ${booking.listing?.title ?? "Listing"}`,
         href: `/host/bookings?status=${booking.status}&booking=${encodeURIComponent(booking.id)}`,
         className: booking.status === "pending" ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-900",
       }));
@@ -420,7 +453,7 @@ export default function HostCalendarPage() {
                 </button>
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-gray-600" aria-label="Calendar legend">
-                <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-amber-400" />Pending request</span>
+                <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-amber-400" />Awaiting payment</span>
                 <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />Confirmed stay</span>
                 <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-gray-400" />Blocked dates</span>
                 <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-sky-500" />External booking</span>
@@ -561,7 +594,7 @@ export default function HostCalendarPage() {
           </section>
 
           <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.8fr)]">
-            <div className="space-y-3 rounded-xl bg-white p-5 shadow-sm">
+            <div id="host-block-dates" className="space-y-3 rounded-xl bg-white p-5 shadow-sm">
               <div>
                 <h2 className="font-semibold text-[#12231d]">Block off dates</h2>
                 <p className="mt-1 text-sm text-gray-500">The end date is the checkout date and is available again that day.</p>

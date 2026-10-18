@@ -1,3 +1,6 @@
 {
-    "chat.checkpoints.showFileChanges": true
+    "chat.checkpoints.showFileChanges": true,
+    "chat.tools.terminal.autoApprove": {
+        "mkdir": true
+    }
 }

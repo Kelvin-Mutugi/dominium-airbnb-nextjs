@@ -6,6 +6,7 @@ import { SupportCaseUpdateForm } from '@/components/admin/support/support-case-u
 type CaseRow = {
   id: string;
   user_id: string;
+  support_context: 'account' | 'host';
   booking_id: string | null;
   category: string;
   subject: string;
@@ -39,7 +40,7 @@ type UserProfile = {
   business_name: string | null;
 };
 
-const STATUSES = ['all', 'new', 'in_review', 'waiting_on_user', 'resolved', 'closed'];
+const STATUSES = ['all', 'open', 'new', 'in_review', 'waiting_on_user', 'resolved', 'closed'];
 const CASE_STATUS_STYLES: Record<string, string> = {
   new: 'bg-sky-50 text-sky-800',
   in_review: 'bg-amber-50 text-amber-800',
@@ -48,11 +49,17 @@ const CASE_STATUS_STYLES: Record<string, string> = {
   closed: 'bg-gray-100 text-gray-700',
 };
 
-function hrefFor(status: string, query: string, listingId: string | null) {
+function hrefFor(
+  status: string,
+  query: string,
+  listingId: string | null,
+  category: string,
+) {
   const params = new URLSearchParams();
   if (status !== 'all') params.set('status', status);
   if (query) params.set('q', query);
   if (listingId) params.set('listingId', listingId);
+  if (category) params.set('category', category);
   const suffix = params.toString();
   return suffix ? `/admin/support?${suffix}` : '/admin/support';
 }
@@ -60,10 +67,11 @@ function hrefFor(status: string, query: string, listingId: string | null) {
 export default async function AdminSupportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string; listingId?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; listingId?: string; category?: string }>;
 }) {
   const params = await searchParams;
   const status = STATUSES.includes(params.status ?? 'all') ? params.status ?? 'all' : 'all';
+  const category = params.category === 'payment_refund' ? 'payment_refund' : '';
   const query = (params.q ?? '').trim().slice(0, 100).toLowerCase();
   const listingId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(params.listingId ?? '')
     ? params.listingId!
@@ -71,7 +79,7 @@ export default async function AdminSupportPage({
   const admin = getSupabaseAdmin();
   const { data, error } = await admin
     .from('support_cases')
-    .select('id, user_id, booking_id, category, subject, message, status, public_reply, admin_notes, created_at, updated_at')
+    .select('id, user_id, support_context, booking_id, category, subject, message, status, public_reply, admin_notes, created_at, updated_at')
     .order('updated_at', { ascending: false })
     .limit(200);
   if (error) throw new Error('Unable to load support cases. Apply the support_cases migration and try again.');
@@ -115,7 +123,12 @@ export default async function AdminSupportPage({
   const bookingById = new Map(relatedBookings.map((booking) => [booking.id, booking]));
   const listingById = new Map((listings ?? []).map((listing) => [listing.id, listing.title]));
   const visibleCases = cases.filter((item) => {
-    if (status !== 'all' && item.status !== status) return false;
+    if (
+      status === 'open' &&
+      !['new', 'in_review', 'waiting_on_user'].includes(item.status)
+    ) return false;
+    if (status !== 'all' && status !== 'open' && item.status !== status) return false;
+    if (category && item.category !== category) return false;
     const associatedListingId = item.booking_id ? bookingById.get(item.booking_id)?.listing_id : null;
     if (listingId && associatedListingId !== listingId) return false;
     if (!query) return true;
@@ -151,25 +164,36 @@ export default async function AdminSupportPage({
           {STATUSES.map((item) => (
             <Link
               key={item}
-              href={hrefFor(item, query, listingId)}
+              href={hrefFor(item, query, listingId, category)}
               aria-current={status === item ? 'page' : undefined}
               className={`rounded-md px-3 py-2 text-sm ${status === item ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
             >
-              {item === 'all' ? 'All' : humanize(item)}
+              {item === 'all' ? 'All' : item === 'open' ? 'Open' : humanize(item)}
             </Link>
           ))}
         </nav>
-        <form action="/admin/support" className="flex w-full max-w-md gap-2">
+        <form action="/admin/support" className="flex w-full max-w-md flex-wrap gap-2">
           {status !== 'all' && <input type="hidden" name="status" value={status} />}
           {listingId && <input type="hidden" name="listingId" value={listingId} />}
+          <label className="sr-only" htmlFor="support-category">Filter by case category</label>
+          <select
+            id="support-category"
+            name="category"
+            defaultValue={category}
+            className="min-h-10 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20"
+          >
+            <option value="">All categories</option>
+            <option value="payment_refund">Payments &amp; refunds</option>
+          </select>
           <label className="sr-only" htmlFor="support-search">Search cases</label>
           <input id="support-search" name="q" type="search" defaultValue={params.q ?? ''} maxLength={100} placeholder="Search person, booking, or request" className="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[#1B1A2E] placeholder:text-gray-400 focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20" />
           <button type="submit" className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700">Search</button>
-          {(query || listingId) && <Link href={hrefFor(status, '', null)} className="self-center text-sm text-gray-500 hover:text-gray-900">Clear</Link>}
+          {(query || listingId || category) && <Link href={hrefFor(status, '', null, '')} className="self-center text-sm text-gray-500 hover:text-gray-900">Clear</Link>}
         </form>
       </div>
 
-      {listingId && <p className="text-sm text-gray-600">Filtered to cases related to listing <span className="font-mono">{listingId.slice(0, 8)}</span>. <Link href={hrefFor(status, query, null)} className="font-medium text-[#CF2F74] hover:underline">Clear listing filter</Link></p>}
+      {category === 'payment_refund' && <p className="text-sm text-gray-600">Showing payment and refund support cases. <Link href={hrefFor(status, query, listingId, '')} className="font-medium text-[#CF2F74] hover:underline">Clear category filter</Link></p>}
+      {listingId && <p className="text-sm text-gray-600">Filtered to cases related to listing <span className="font-mono">{listingId.slice(0, 8)}</span>. <Link href={hrefFor(status, query, null, category)} className="font-medium text-[#CF2F74] hover:underline">Clear listing filter</Link></p>}
 
       <p className="text-xs text-gray-500">{visibleCases.length} {visibleCases.length === 1 ? 'case' : 'cases'} shown · latest 200</p>
 
@@ -191,6 +215,11 @@ export default async function AdminSupportPage({
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-base font-semibold text-[#1B1A2E]">{item.subject}</h2>
                     <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${CASE_STATUS_STYLES[item.status] ?? 'bg-gray-100 text-gray-700'}`}>{humanize(item.status)}</span>
+                    {item.support_context === 'host' && (
+                      <span className="rounded-full bg-[#FCE8F0] px-2.5 py-1 text-xs font-medium text-[#9C2454]">
+                        Host request
+                      </span>
+                    )}
                   </div>
                   <p className="mt-1 text-xs text-gray-500">
                     {humanize(item.category)} · {formatDate(item.created_at, 'long')} · from{" "}

@@ -48,11 +48,17 @@ const NAV = [
   { href: "/host/refunds", label: "Guest Refunds", icon: BadgeDollarSign },
   { href: "/host/reviews", label: "Reviews", icon: Star },
   { href: "/host/guide", label: "Host Guide", icon: BookOpenText },
-  { href: "/account/support", label: "Support", icon: LifeBuoy },
+  { href: "/host/support", label: "Host Support", icon: LifeBuoy },
 ];
 
-const MOBILE_NAV = NAV.slice(0, 5);
+const MOBILE_NAV = [
+  { ...NAV[0], label: "Home" },
+  NAV[3],
+  NAV[2],
+  { ...NAV[4], label: "Earnings" },
+];
 const MORE_NAV = [
+  NAV[1],
   ...NAV.slice(5),
   { href: "/", label: "Back to site", icon: ArrowLeft },
 ];
@@ -132,38 +138,26 @@ export default function HostSidebar() {
         <span className="font-bold">
           Host <span className="text-[#E23E85]">Panel</span>
         </span>
-        <div className="relative">
-          <button
-            type="button"
-            aria-expanded={moreOpen}
-            aria-controls="host-mobile-more-menu"
-            onClick={() => setOpenMenuPath(moreOpen ? null : pathname)}
-            className="inline-flex min-h-10 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold text-gray-600 transition-all hover:bg-white/70 hover:text-[#1B1A2E] hover:shadow-[3px_3px_7px_rgba(27,26,46,0.07),-3px_-3px_7px_rgba(255,255,255,0.9)] active:shadow-[inset_2px_2px_4px_rgba(27,26,46,0.06)] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/40"
-          >
-            <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
-            More
-          </button>
-          {moreOpen && (
-            <nav id="host-mobile-more-menu" aria-label="More host destinations" className="account-neu-surface absolute right-0 top-12 z-40 w-56 rounded-2xl p-2 text-[#1B1A2E]">
-              {MORE_NAV.map((item) => {
-                const Icon = item.icon;
-                const active = isActive(item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    onClick={() => setOpenMenuPath(null)}
-                    className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E23E85] ${active ? "bg-[#FCE8F0] text-[#9C2454] shadow-[inset_2px_2px_5px_rgba(156,36,84,0.08),inset_-2px_-2px_5px_rgba(255,255,255,0.8)]" : "text-gray-600 hover:bg-white/70 hover:text-[#1B1A2E] hover:shadow-[3px_3px_7px_rgba(27,26,46,0.07),-3px_-3px_7px_rgba(255,255,255,0.9)] active:shadow-[inset_2px_2px_4px_rgba(27,26,46,0.06)]"}`}
-                  >
-                    <Icon className="h-4 w-4" aria-hidden="true" />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
-          )}
-        </div>
+        {moreOpen && (
+          <nav id="host-mobile-more-menu" aria-label="More host destinations" className="account-neu-surface fixed bottom-16 right-2 z-40 w-56 rounded-2xl p-2 text-[#1B1A2E]">
+            {MORE_NAV.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  onClick={() => setOpenMenuPath(null)}
+                  className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E23E85] ${active ? "bg-[#FCE8F0] text-[#9C2454] shadow-[inset_2px_2px_5px_rgba(156,36,84,0.08),inset_-2px_-2px_5px_rgba(255,255,255,0.8)]" : "text-gray-600 hover:bg-white/70 hover:text-[#1B1A2E] hover:shadow-[3px_3px_7px_rgba(27,26,46,0.07),-3px_-3px_7px_rgba(255,255,255,0.9)] active:shadow-[inset_2px_2px_4px_rgba(27,26,46,0.06)]"}`}
+                >
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        )}
       </div>
 
       {/* Mobile Bottom Navigation */}
@@ -191,12 +185,21 @@ export default function HostSidebar() {
                   </span>
                 )}
               </span>
-              <span className="max-w-full truncate">{item.label === "My Listings" ? "Listings" : item.label}</span>
+              <span className="max-w-full truncate">{item.label}</span>
             </Link>
           );
         })}
+        <button
+          type="button"
+          aria-expanded={moreOpen}
+          aria-controls="host-mobile-more-menu"
+          onClick={() => setOpenMenuPath(moreOpen ? null : pathname)}
+          className="mx-0.5 my-1 flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[10px] font-medium text-gray-600 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E23E85]"
+        >
+          <MoreHorizontal className="h-5 w-5 shrink-0" aria-hidden="true" />
+          <span>More</span>
+        </button>
       </nav>
     </>
   );
 }
-

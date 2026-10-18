@@ -28,7 +28,6 @@ interface ListingCheckoutData {
   min_nights: number | null;
   house_rules: string[] | null;
   booking_terms: string | null;
-  cancellation_policy: string | null;
 }
 
 function formatMoney(amount: number): string {
@@ -210,7 +209,7 @@ export default function BookingCheckout({
         supabase
           .from("listings")
           .select(
-            "id, title, price_per_night, platform_fee_per_night, additional_charges, max_guests, min_nights, house_rules, booking_terms, cancellation_policy",
+            "id, title, price_per_night, platform_fee_per_night, additional_charges, max_guests, min_nights, house_rules, booking_terms",
           )
           .eq("id", listingId)
           .eq("status", "published")
@@ -954,6 +953,7 @@ export default function BookingCheckout({
         type="button"
         onClick={() => void pay()}
         disabled={isPaying || !userId}
+        
         className="inline-flex min-h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-4xl bg-[#d61a6b] px-4 py-3 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isPaying && (

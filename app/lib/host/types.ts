@@ -6,6 +6,15 @@ import type { RefundProgress } from "@/types/refunds";
 export type ListingStatus = "draft" | "published" | "suspended" | "archived";
 export type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
 export type PayoutStatus = "owed" | "paid" | "processing";
+export type HostBookingPayoutStatus =
+  | "not_released"
+  | "under_review"
+  | "available"
+  | "requested"
+  | "processing"
+  | "partially_requested"
+  | "partially_paid"
+  | "paid";
 
 export interface Listing {
   id: string;
@@ -52,6 +61,13 @@ export interface ListingImage {
   listing_id: string;
   url: string;
   sort_order: number;
+  position?: number | null;
+  category?: string | null;
+  room_index?: number | null;
+  caption?: string | null;
+  is_cover?: boolean | null;
+  width?: number | null;
+  height?: number | null;
 }
 
 export interface ListingArrivalGuide {
@@ -135,6 +151,7 @@ export interface Booking {
   pets_count: number;
   rooms_count: number;
   status: BookingStatus;
+  hold_expires_at?: string | null;
   completed_at?: string | null;
   completion_source?: "host" | "system" | null;
   total_amount: number;
@@ -144,11 +161,17 @@ export interface Booking {
   additional_charges_amount: number | null;
   host_gross_amount?: number | null;
   collection_fee_amount?: number | null;
+  collection_fee_reconciled?: boolean;
   guest_name: string | null;
+  guest_phone?: string | null;
   guest_country: string | null;
   special_requests: string | null;
   created_at: string;
   unreadSupportReplyCount?: number;
+  selectedOptionalFees?: HostOptionalFee[] | null;
+  paymentStatus?: string | null;
+  paymentPaidAt?: string | null;
+  hostPayoutStatus?: HostBookingPayoutStatus;
   dateChangeHistory?: BookingDateChange[];
   refundRequests?: RefundProgress[];
   // joined
@@ -165,6 +188,13 @@ export interface BookingDateChange {
   requested_check_in: string;
   requested_check_out: string;
   created_at: string;
+}
+
+export interface HostOptionalFee {
+  name: string;
+  amount: number;
+  unitAmount: number;
+  frequency: "per_night" | "per_booking";
 }
 
 export interface HostBookingChangeRequest {
@@ -234,6 +264,7 @@ export interface Payout {
     | "host_payout_amount"
     | "host_gross_amount"
     | "collection_fee_amount"
+    | "collection_fee_reconciled"
     | "guest_name"
     | "guest_country"
     | "special_requests"
@@ -253,6 +284,8 @@ export interface HostDashboardStats {
 }
 
 // Form-only shape used by the create/edit listing form
+import type { ListingCategory } from "@/app/lib/listing-categories";
+
 export interface ListingFormValues {
   title: string;
   description: string;
@@ -262,6 +295,8 @@ export interface ListingFormValues {
   latitude: number | null;
   longitude: number | null;
   property_type: string;
+  categories: ListingCategory[];
+  is_rare_find: boolean;
   price_per_night: number;
   platform_fee_per_night: number;
   additional_charges: ListingAdditionalCharge[];
