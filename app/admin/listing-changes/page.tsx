@@ -46,7 +46,7 @@ const FIELD_LABELS: Record<string, string> = {
   check_out_time: "Check-out time",
   min_nights: "Minimum nights",
   instant_book: "Instant book",
-  cancellation_policy: "Cancellation policy",
+  cancellation_policy: "Legacy listing cancellation note (does not change refund estimates)",
 };
 
 function valueForDisplay(field: string, value: unknown) {

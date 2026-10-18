@@ -11,6 +11,15 @@ const worker = {
         { auth: { autoRefreshToken: false, persistSession: false } },
       );
 
+      if (event.cron === '*/5 * * * *') {
+        const { error } = await supabase.rpc('expire_pending_booking_holds');
+        if (error) {
+          console.error('Scheduled pending payment hold expiry failed:', error);
+        } else {
+          console.info('Scheduled pending payment hold expiry completed.');
+        }
+      }
+
       const job = event.cron === '0 0 * * *'
         ? { name: 'checkout completion', rpc: 'complete_due_host_bookings', args: { p_grace_hours: 24 } }
         : event.cron === '*/5 * * * *'

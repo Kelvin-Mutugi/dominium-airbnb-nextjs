@@ -187,7 +187,7 @@ export default function HostCalendarPage() {
   const agendaRows = [
     ...visibleBookings.map((booking) => ({
       id: `booking-${booking.id}`,
-      type: booking.status === "pending" ? "Pending request" : "Confirmed stay",
+      type: booking.status === "pending" ? "Awaiting payment" : "Confirmed stay",
       start: booking.check_in,
       end: booking.check_out,
       listingTitle: booking.listing?.title ?? "Listing",
@@ -360,7 +360,7 @@ export default function HostCalendarPage() {
       .filter((booking) => booking.check_in <= key && booking.check_out > key)
       .map((booking) => ({
         id: `booking-${booking.id}`,
-        label: `${booking.status === "pending" ? "Request" : "Stay"}: ${booking.listing?.title ?? "Listing"}`,
+        label: `${booking.status === "pending" ? "Awaiting payment" : "Stay"}: ${booking.listing?.title ?? "Listing"}`,
         href: `/host/bookings?status=${booking.status}&booking=${encodeURIComponent(booking.id)}`,
         className: booking.status === "pending" ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-900",
       }));
@@ -453,7 +453,7 @@ export default function HostCalendarPage() {
                 </button>
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-gray-600" aria-label="Calendar legend">
-                <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-amber-400" />Pending request</span>
+                <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-amber-400" />Awaiting payment</span>
                 <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />Confirmed stay</span>
                 <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-gray-400" />Blocked dates</span>
                 <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-sky-500" />External booking</span>

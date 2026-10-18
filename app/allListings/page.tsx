@@ -26,6 +26,7 @@ import {
   isBrowseCategory,
   type BrowseCategory,
 } from "@/app/lib/listing-categories";
+import CategoryBar from "@/components/home/CategoryBar";
 
 const PAGE_SIZE = 6;
 
@@ -35,6 +36,15 @@ interface SearchQuery {
   checkOut: string;
   guests: number;
   category: BrowseCategory;
+}
+
+interface CatalogState {
+  searchKey: string;
+  listings: Listing[];
+  hasMore: boolean;
+  error: string | null;
+  loadMoreError: string | null;
+  isLoadingMore: boolean;
 }
 
 function cleanSearchTerm(value: string) {
@@ -78,7 +88,12 @@ function formatDateRange(checkIn: string, checkOut: string) {
   return undefined;
 }
 
-async function fetchListingPage(from: number, to: number, searchQuery: SearchQuery) {
+async function fetchListingPage(
+  from: number,
+  to: number,
+  searchQuery: SearchQuery,
+  signal?: AbortSignal,
+) {
   const query = new URLSearchParams({
     location: cleanSearchTerm(searchQuery.location),
     guests: String(searchQuery.guests || 0),
@@ -86,7 +101,7 @@ async function fetchListingPage(from: number, to: number, searchQuery: SearchQue
     from: String(from),
     to: String(to),
   });
-  const response = await fetch(`/api/listings/catalog?${query}`);
+  const response = await fetch(`/api/listings/catalog?${query}`, { signal });
   if (!response.ok) throw new Error("Unable to load listings.");
   return (await response.json()) as Listing[];
 }
@@ -95,62 +110,143 @@ function AllListingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get("category");
+  const locationParam = searchParams.get("location") ?? "";
+  const checkInParam = searchParams.get("checkIn") ?? "";
+  const checkOutParam = searchParams.get("checkOut") ?? "";
+  const guestsParam = Math.max(
+    0,
+    Number(searchParams.get("guests") ?? 0) || 0,
+  );
   const searchQuery = useMemo<SearchQuery>(
     () => ({
-      location: searchParams.get("location") ?? "",
-      checkIn: searchParams.get("checkIn") ?? "",
-      checkOut: searchParams.get("checkOut") ?? "",
-      guests: Math.max(0, Number(searchParams.get("guests") ?? 0) || 0),
+      location: locationParam,
+      checkIn: checkInParam,
+      checkOut: checkOutParam,
+      guests: guestsParam,
       category: isBrowseCategory(categoryParam)
         ? categoryParam
         : "all",
     }),
-    [categoryParam, searchParams],
+    [categoryParam, checkInParam, checkOutParam, guestsParam, locationParam],
   );
+  const searchKey = JSON.stringify(searchQuery);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [sort, setSort] = useState<SortOption>("recommended");
   const [view, setView] = useState<ViewMode>("list");
-  const [page, setPage] = useState(1);
   const [comparison, setComparison] = useState<Listing[]>([]);
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
-  const [databaseListings, setDatabaseListings] = useState<Listing[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
+  const [pageState, setPageState] = useState({ searchKey: "", page: 1 });
+  const page = pageState.searchKey === searchKey ? pageState.page : 1;
+  const [catalogState, setCatalogState] = useState<CatalogState>({
+    searchKey: "",
+    listings: [],
+    hasMore: true,
+    error: null,
+    loadMoreError: null,
+    isLoadingMore: false,
+  });
+  const isLoading = catalogState.searchKey !== searchKey;
+  const databaseListings = useMemo(
+    () => (isLoading ? [] : catalogState.listings),
+    [catalogState.listings, isLoading],
+  );
+  const loadError = isLoading ? null : catalogState.error;
+  const loadMoreError = isLoading ? null : catalogState.loadMoreError;
+  const hasMore = !isLoading && catalogState.hasMore;
+  const isLoadingMore = !isLoading && catalogState.isLoadingMore;
+
+  const setPage = (nextPage: number | ((currentPage: number) => number)) => {
+    setPageState((current) => ({
+      searchKey,
+      page:
+        typeof nextPage === "function"
+          ? nextPage(current.searchKey === searchKey ? current.page : 1)
+          : nextPage,
+    }));
+  };
 
   useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
     async function loadListings() {
       try {
-        const normalizedListings = await fetchListingPage(0, PAGE_SIZE - 1, searchQuery);
-        setDatabaseListings(normalizedListings);
-        setHasMore(normalizedListings.length === PAGE_SIZE);
+        const normalizedListings = await fetchListingPage(
+          0,
+          PAGE_SIZE - 1,
+          searchQuery,
+          controller.signal,
+        );
+        if (!active) return;
+        setCatalogState({
+          searchKey,
+          listings: normalizedListings,
+          hasMore: normalizedListings.length === PAGE_SIZE,
+          error: null,
+          loadMoreError: null,
+          isLoadingMore: false,
+        });
       } catch (error) {
-        console.error("Failed to load listings from Supabase:", error);
+        if (active && !controller.signal.aborted) {
+          console.error("Failed to load listings from Supabase:", error);
+          setCatalogState({
+            searchKey,
+            listings: [],
+            hasMore: false,
+            error: "We couldn’t load stays for these filters. Please try again.",
+            loadMoreError: null,
+            isLoadingMore: false,
+          });
+        }
       }
-      setIsLoading(false);
     }
 
     void loadListings();
-  }, [searchQuery]);
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [searchKey, searchQuery]);
 
   const loadMoreListings = async () => {
     if (isLoadingMore || !hasMore) return false;
 
-    setIsLoadingMore(true);
+    const requestSearchKey = searchKey;
+    setCatalogState((current) =>
+      current.searchKey === requestSearchKey
+        ? { ...current, isLoadingMore: true, loadMoreError: null }
+        : current,
+    );
     try {
       const nextListings = await fetchListingPage(
         databaseListings.length,
         databaseListings.length + PAGE_SIZE - 1,
         searchQuery,
       );
-      setDatabaseListings((current) => [...current, ...nextListings]);
-      setHasMore(nextListings.length === PAGE_SIZE);
+      setCatalogState((current) =>
+        current.searchKey === requestSearchKey
+          ? {
+              ...current,
+              listings: [...current.listings, ...nextListings],
+              hasMore: nextListings.length === PAGE_SIZE,
+              loadMoreError: null,
+              isLoadingMore: false,
+            }
+          : current,
+      );
       return nextListings.length > 0;
     } catch (error) {
       console.error("Failed to load more listings from Supabase:", error);
+      setCatalogState((current) =>
+        current.searchKey === requestSearchKey
+          ? {
+              ...current,
+              loadMoreError: "We couldn’t load more stays. Use Next to retry.",
+              isLoadingMore: false,
+            }
+          : current,
+      );
       return false;
-    } finally {
-      setIsLoadingMore(false);
     }
   };
 
@@ -269,7 +365,6 @@ function AllListingsContent() {
     const params = new URLSearchParams(searchParams.toString());
     params.set("category", category);
     router.replace(`/allListings?${params.toString()}`, { scroll: false });
-    setPage(1);
   };
 
   const toggleCompare = (listing: Listing) => {
@@ -301,6 +396,10 @@ function AllListingsContent() {
   return (
     <>
       <Navbar />
+      <CategoryBar
+        activeCategory={searchQuery.category}
+        onChange={updateCategory}
+      />
       <main className="min-h-screen bg-[#FFFFFF]">
         <div className="mx-auto max-w-7xl px-5 pb-16 md:px-8">
         <PageHeading
@@ -377,6 +476,10 @@ function AllListingsContent() {
                   <ListingCardSkeleton key={index} />
                 ))}
               </div>
+            ) : loadError ? (
+              <div role="alert" className="py-16 text-center text-sm text-red-700">
+                {loadError}
+              </div>
             ) : view === "map" ? (
               <div className="flex min-h-[420px] items-center justify-center border border-[#E9E6DD] bg-[#F7F7F7] p-8 text-center text-[#36454F]">
                 <div>
@@ -387,7 +490,19 @@ function AllListingsContent() {
                 </div>
               </div>
             ) : visibleListings.length === 0 ? (
-              <EmptyState onResetFilters={resetFilters} />
+              <EmptyState
+                title={
+                  searchQuery.category === "all"
+                    ? undefined
+                    : "No stays found for this category"
+                }
+                message={
+                  searchQuery.category === "all"
+                    ? undefined
+                    : `We couldn’t find stays in ${BROWSE_CATEGORY_LABELS[searchQuery.category]}. Try another category or clear the filters.`
+                }
+                onResetFilters={resetFilters}
+              />
             ) : (
               <div className={view === "list" ? "divide-y divide-[#E9E6DD]" : "grid gap-5 sm:grid-cols-2"}>
                 {visibleListings.map((listing) => (
@@ -413,6 +528,11 @@ function AllListingsContent() {
                   hasMore={hasMore}
                   isLoadingMore={isLoadingMore}
                 />
+                {loadMoreError && (
+                  <p role="alert" className="mt-3 text-center text-sm text-red-700">
+                    {loadMoreError}
+                  </p>
+                )}
               </>
             )}
           </section>

@@ -1,3 +1,5 @@
+import { PLATFORM_CANCELLATION_POLICY } from "@/app/lib/cancellation-policy";
+
 export default function RefundPolicy() {
   return (
     <div className="max-w-3xl mx-auto px-6 py-16 text-gray-800">
@@ -11,10 +13,8 @@ export default function RefundPolicy() {
       </header>
 
       <p className="mb-10 leading-relaxed">
-        At Dominium bnb, we understand that travel plans can change
-        unexpectedly. Because we are a small, boutique property,
-        cancellations significantly impact our business. We have designed
-        our policy to be as fair and flexible as possible.
+        Cancellation requests are handled under the platform-wide terms below.
+        Estimates use the successful payments recorded for your booking.
       </p>
 
       <section className="mb-10">
@@ -22,40 +22,7 @@ export default function RefundPolicy() {
           1. Cancellation Windows &amp; Refund Terms
         </h2>
 
-        <div className="mb-5">
-          <h3 className="font-semibold text-gray-900 mb-1">
-            14+ Days Before Check-in (Full Refund)
-          </h3>
-          <p className="leading-relaxed">
-            Cancellations made 14 days or more prior to your scheduled
-            check-in date (by 2:00 PM local time) will receive a 100% full
-            refund of all payments made (minus a small [e.g., KES 1,000 /
-            $10] administrative payment processing fee).
-          </p>
-        </div>
-
-        <div className="mb-5">
-          <h3 className="font-semibold text-gray-900 mb-1">
-            7 to 13 Days Before Check-in (50% Refund)
-          </h3>
-          <p className="leading-relaxed">
-            Cancellations made between 7 and 13 days prior to your scheduled
-            check-in date will receive a 50% refund of the total booking
-            amount. Alternatively, you may choose to convert 100% of your
-            payment into a travel credit valid for a stay within the next 6
-            months.
-          </p>
-        </div>
-
-        <div>
-          <h3 className="font-semibold text-gray-900 mb-1">
-            Less Than 7 Days Before Check-in (No Refund)
-          </h3>
-          <p className="leading-relaxed">
-            Cancellations made within 6 days or less of your check-in date,
-            as well as no-shows or early departures, are non-refundable.
-          </p>
-        </div>
+        <p className="leading-relaxed">{PLATFORM_CANCELLATION_POLICY}</p>
       </section>
 
       <section className="mb-10">
@@ -64,17 +31,11 @@ export default function RefundPolicy() {
         </h2>
         <ul className="list-disc pl-5 space-y-3 leading-relaxed">
           <li>
-            <span className="font-semibold text-gray-900">Deposit:</span> A
-            50% deposit is required at the time of booking to secure your
-            reservation. The remaining balance will be automatically charged
-            7 days prior to check-in.
-          </li>
-          <li>
-            <span className="font-semibold text-gray-900">
-              Processing Time:
-            </span>{" "}
-            All eligible refunds will be issued to the original payment
-            method within 3 to 5 business days.
+            The amount and payment method are shown at checkout. A booking is
+            confirmed only after payment is verified. Cancellation requests
+            are reviewed by Dominium; eligible approved refunds are sent to
+            the M-Pesa number on the booking and recorded after Safaricom
+            confirms the transfer.
           </li>
         </ul>
       </section>
@@ -85,12 +46,14 @@ export default function RefundPolicy() {
         </h2>
         <ul className="list-disc pl-5 space-y-3 leading-relaxed">
           <li>
-            You may reschedule your stay once without penalty if requested 7
-            days or more prior to arrival.
+            Submit a date-change request from your account for a confirmed,
+            upcoming booking. The host reviews the request; it is not approved
+            until you receive an update in your booking.
           </li>
           <li>
-            Rescheduling is subject to room availability and any rate
-            differences for peak or seasonal dates.
+            Date changes depend on availability and the price for the
+            requested dates. Any quoted price difference is shown before you
+            submit the request.
           </li>
         </ul>
       </section>
@@ -104,19 +67,19 @@ export default function RefundPolicy() {
             <span className="font-semibold text-gray-900">
               Host Cancellations:
             </span>{" "}
-            In the rare event that Dominium must cancel your booking due to
-            unforeseen property emergencies or severe maintenance issues,
-            you will receive a 100% immediate full refund or free
-            rescheduling.
+            If a host must cancel, Dominium will contact you about next steps.
+            Any rescheduling depends on availability. Refunds are handled
+            through the refund review process and are marked complete only
+            after Safaricom confirms the transfer.
           </li>
           <li>
             <span className="font-semibold text-gray-900">
               Guest Emergencies:
             </span>{" "}
-            We cannot issue refunds for cancellations outside the standard
-            policy windows due to weather, transport delays, flight
-            disruptions, or personal health issues. We strongly advise
-            purchasing travel insurance to protect your trip.
+            The same cancellation schedule applies if plans change because of
+            weather, transport delays, flight disruptions, or personal health
+            issues. We recommend purchasing travel insurance to protect your
+            trip.
           </li>
         </ul>
       </section>
@@ -126,8 +89,10 @@ export default function RefundPolicy() {
           5. How to Request a Cancellation
         </h2>
         <p className="leading-relaxed mb-4">
-          To cancel or modify your reservation, please contact us in
-          writing:
+          Submit a cancellation request from your account’s bookings page.
+          An administrator reviews the request; submitting it does not
+          immediately cancel the booking or send a refund. You can contact
+          support if you cannot access your booking.
         </p>
         <ul className="list-disc pl-5 space-y-2 leading-relaxed mb-4">
           <li>
@@ -144,17 +109,13 @@ export default function RefundPolicy() {
               Phone/WhatsApp:
             </span>{" "}
             <a
-              href="tel:0792603759"
+              href="tel:0183191903"
               className="text-pink-600 hover:underline"
             >
-              0792603759
+              0183191903
             </a>
           </li>
         </ul>
-        <p className="leading-relaxed">
-          Cancellations are only effective once you receive a written
-          cancellation confirmation email from our management team.
-        </p>
       </section>
     </div>
   );

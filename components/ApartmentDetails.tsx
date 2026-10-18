@@ -14,6 +14,7 @@ import { StickyPriceBar } from "./appartmentDetails/StickyPriceBar";
 import { RelatedListings } from "./appartmentDetails/RelatedListings";
 import SaveListingButton from "@/components/listings/SaveListingButton";
 import { calculateBookingPrice } from "@/app/lib/booking/pricing";
+import { PLATFORM_CANCELLATION_POLICY } from "@/app/lib/cancellation-policy";
 
 function parseCalendarDate(value?: string): Date | null {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
@@ -368,14 +369,12 @@ export default function ApartmentDetails({
                   {/* <div className="mb-3 text-[12px] font-semibold uppercase tracking-[1px] text-[#3A3856]/70">
                   Price and availability
                 </div> */}
-                  {listing.cancelationPolicy && (
-                    <p className="line-clamp-3 break-words text-sm leading-5 text-[#3A3856]/80 lg:text-[#3A3856]">
-                      <span className="font-semibold text-[#1B1A2E]">
-                        Cancellation:{" "}
-                      </span>
-                      {listing.cancelationPolicy}
-                    </p>
-                  )}
+                  <p className="text-sm leading-5 text-[#3A3856]/80 lg:text-[#3A3856]">
+                    <span className="font-semibold text-[#1B1A2E]">
+                      Cancellation:{" "}
+                    </span>
+                    {PLATFORM_CANCELLATION_POLICY}
+                  </p>
 
                   <div className="mt-4 min-w-0">
                     <div className="mb-3 grid grid-cols-3 gap-2 sm:mb-4 sm:gap-3">

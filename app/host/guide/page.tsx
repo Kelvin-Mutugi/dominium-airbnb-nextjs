@@ -74,7 +74,7 @@ export default function HostGuidePage() {
           <section id="bookings" className="scroll-mt-8 py-7">
             <h2 className="text-xl font-semibold text-[#12231d]">Bookings</h2>
             <div className="mt-3 space-y-3 text-sm leading-6 text-gray-600">
-              <p>Review the dates, guest count, contact details, and any special requests before responding to a pending request. Confirm or decline it from the booking record.</p>
+              <p>Pending bookings are temporary holds while a guest completes M-Pesa checkout; they are not requests for host approval. A booking is confirmed only after Safaricom verifies the payment. Check its payment status from the pending filter, and contact support if payment is shown as received while the booking remains pending.</p>
               <p>After a confirmed stay has ended, mark it completed from the bookings page. This records the completed stay and makes its payout appear in your payout history.</p>
               <p>Use <span className="font-medium text-[#12231d]">Report a stay issue</span> on the booking when you need support about a specific reservation.</p>
             </div>

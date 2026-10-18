@@ -1,4 +1,3 @@
-import Footer from "@/components/footer";
 import Navbar from "@/components/navigationBar";
 
 
@@ -191,8 +190,8 @@ const sections: Section[] = [
       {
         type: "contact",
         email: "privacy@dominiumbnb.co.ke",
-        phone: "[Insert Number]",
-        address: "[Insert Address]",
+        phone: "0183191903",
+        address: "Nairobi, Kenya",
       },
     ],
   },

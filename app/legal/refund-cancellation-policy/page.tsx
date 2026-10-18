@@ -7,7 +7,6 @@ export default function RefundCancellationPolicyPage() {
     <>
         <Navbar />
         <RefundPolicy />
-        <Footer />
     </>
   );
 }

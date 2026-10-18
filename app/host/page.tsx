@@ -259,17 +259,6 @@ export default function HostDashboardPage() {
       tag: "Set up",
     });
   }
-  pendingBookings.forEach((booking) =>
-    attentionItems.push({
-      key: `pending-${booking.id}`,
-      href: "/host/calendar",
-      icon: CalendarDays,
-      tone: "amber",
-      title: `Confirm booking for ${booking.guest_name ?? "guest"}`,
-      subtitle: `${booking.listing?.title ?? "Listing"}, from ${formatStayDate(booking.check_in)}`,
-      tag: "Review",
-    }),
-  );
   imminentCheckins.forEach((booking) => {
     const urgency = getCheckInUrgency(booking.check_in) ?? "Soon";
     attentionItems.push({
@@ -371,6 +360,25 @@ export default function HostDashboardPage() {
           </div>
           <Link href="/host/pending-review" className="shrink-0 text-sm font-semibold text-[#12231d] underline underline-offset-4">
             View application
+          </Link>
+        </section>
+      )}
+
+      {pendingBookings.length > 0 && (
+        <section className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="font-semibold text-amber-950">
+              {pendingBookings.length} reservation{pendingBookings.length === 1 ? "" : "s"} awaiting guest payment
+            </h2>
+            <p className="mt-1 text-sm text-amber-900">
+              These are temporary M-Pesa checkout holds, not host approval requests. A booking is confirmed only after Safaricom verifies payment.
+            </p>
+          </div>
+          <Link
+            href="/host/bookings?status=pending"
+            className="shrink-0 text-sm font-semibold text-amber-950 underline underline-offset-4"
+          >
+            View payment status
           </Link>
         </section>
       )}

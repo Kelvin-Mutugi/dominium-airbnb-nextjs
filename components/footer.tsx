@@ -105,9 +105,9 @@ export default function Footer() {
             <Mail className="h-4 w-4 shrink-0" />
             <span className="break-all">support@dominiumairbnb.co.ke</span>
           </a>
-          <a href="tel:+254700000000" className="flex items-center gap-2 no-underline hover:text-white">
+          <a href="tel:0183191903" className="flex items-center gap-2 no-underline hover:text-white">
             <Phone className="h-4 w-4 shrink-0" />
-            +254 700 000 000
+            0183191903
           </a>
           <span className="flex items-center gap-2 text-neutral-500">
             <ShieldCheck className="h-4 w-4 shrink-0" />

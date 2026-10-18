@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSupabaseAdmin } from "@/app/lib/supabase/admin";
 import { formatDate, formatMoney, humanize } from "@/app/lib/format";
+import { PLATFORM_CANCELLATION_POLICY } from "@/app/lib/cancellation-policy";
 import { RefundDecisionActions } from "@/components/admin/refunds/refund-decision-actions";
 import { PaymentRefundDecisionActions } from "@/components/admin/refunds/payment-refund-decision-actions";
 
@@ -86,10 +87,6 @@ type DarajaRefundAttempt = {
   actual_fee: number | string | null;
   transaction_id: string | null;
 };
-
-function oneLine(value: string | null | undefined) {
-  return value?.trim() || "Not provided";
-}
 
 export default async function AdminRefundsPage({
   searchParams,
@@ -178,7 +175,7 @@ export default async function AdminRefundsPage({
   const bookings = (bookingsResult.error ? [] : bookingsResult.data ?? []) as unknown as Booking[];
   bookings.forEach((booking) => listingIds.add(booking.listing_id));
   const { data: listingData, error: listingError } = listingIds.size
-    ? await admin.from("listings").select("id, title, cancellation_policy, refund_policy").in("id", [...listingIds])
+    ? await admin.from("listings").select("id, title").in("id", [...listingIds])
     : { data: [], error: null };
   if (listingError) throw new Error("Unable to load refund policy details.");
 
@@ -332,8 +329,8 @@ export default async function AdminRefundsPage({
                     </section>
 
                     <section className="rounded-md border border-gray-200 p-3 text-sm">
-                      <p className="font-medium text-gray-700">Cancellation terms</p>
-                      <p className="mt-1 whitespace-pre-wrap text-gray-600">{oneLine(listing?.cancellation_policy ?? listing?.refund_policy)}</p>
+                      <p className="font-medium text-gray-700">Platform cancellation schedule</p>
+                      <p className="mt-1 text-gray-600">{PLATFORM_CANCELLATION_POLICY}</p>
                       {request.reason && <p className="mt-2 whitespace-pre-wrap text-gray-600">Guest reason: {request.reason}</p>}
                     </section>
 

@@ -66,32 +66,6 @@ export async function declineCancellationRequest(requestId: string, reason: stri
   await respondToCancellationRequest(requestId, reason, false);
 }
 
-// pending -> confirmed (admin manually confirms)
-export async function confirmBooking(bookingId: string) {
-  const actor = await requireAdmin();
-  const admin = getSupabaseAdmin();
-  const { data, error } = await admin
-    .from("bookings")
-    .update({ status: "confirmed" })
-    .eq("id", bookingId)
-    .eq("status", "pending")
-    .select("id")
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Booking is no longer pending. Refresh and try again.");
-  await recordAdminAuditEvent({
-    actorId: actor.id,
-    action: "booking.confirmed",
-    entityType: "booking",
-    entityId: bookingId,
-    summary: "Confirmed booking.",
-    before: { status: "pending" },
-    after: { status: "confirmed" },
-  });
-  revalidatePath("/admin/bookings");
-  revalidatePath(`/admin/bookings/${bookingId}`);
-}
-
 // pending or confirmed -> cancelled (not allowed from completed)
 export async function cancelBooking(bookingId: string) {
   const actor = await requireAdmin();

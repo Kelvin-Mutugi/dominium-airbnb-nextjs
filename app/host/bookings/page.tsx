@@ -35,13 +35,16 @@ import type {
 import StatusBadge from "@/components/host/StatusBadge";
 import { RefundProgressPanel } from "@/components/refunds/RefundProgressPanel";
 
-const FILTERS: { label: string; value: Exclude<BookingStatus, "pending"> }[] = [
+const FILTERS: { label: string; value: BookingStatus }[] = [
+  { label: "Payment holds", value: "pending" },
   { label: "Confirmed", value: "confirmed" },
   { label: "Completed", value: "completed" },
   { label: "Cancelled", value: "cancelled" },
 ];
 
 const EMPTY_COPY: Record<string, string> = {
+  pending:
+    "Active holds awaiting guest M-Pesa payment appear here. Expired holds move to the Cancelled filter.",
   confirmed: "Confirmed bookings will show up here as soon as guests pay.",
   completed: "Stays you have finished will be listed here.",
   cancelled: "Cancelled bookings will be listed here.",
@@ -144,8 +147,7 @@ export default function HostBookingsPage() {
   const [changeRequests, setChangeRequests] = useState<
     HostBookingChangeRequest[]
   >([]);
-  const [filter, setFilter] =
-    useState<Exclude<BookingStatus, "pending">>("confirmed");
+  const [filter, setFilter] = useState<BookingStatus>("confirmed");
   const [searchQuery, setSearchQuery] = useState("");
   const [focusBookingId, setFocusBookingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -186,7 +188,7 @@ export default function HostBookingsPage() {
 
   async function load(
     showLoader = false,
-    status: Exclude<BookingStatus, "pending"> = filter,
+    status: BookingStatus = filter,
     refreshRequests = true,
   ) {
     const requestId = ++loadRequestId.current;
@@ -401,7 +403,7 @@ export default function HostBookingsPage() {
             Bookings
           </h1>
           <p className="mt-1 text-sm text-gray-600">
-            Tap a booking to see the full details.
+            Pending bookings are temporary M-Pesa payment holds, not host approval requests. Holds expire after 10 minutes and are cancelled if payment is not verified.
           </p>
         </div>
         <Link
@@ -485,7 +487,7 @@ export default function HostBookingsPage() {
             <div
               role="group"
               aria-label="Filter bookings by status"
-              className="inline-flex w-full gap-1 rounded-full border border-[#E9E6DD] bg-white p-1 sm:w-auto"
+              className="inline-flex w-full gap-1 overflow-x-auto rounded-full border border-[#E9E6DD] bg-white p-1 sm:w-auto"
             >
               {FILTERS.map((f) => {
                 const active = filter === f.value;
@@ -500,7 +502,7 @@ export default function HostBookingsPage() {
                       setExpandedId(null);
                       void load(true, f.value, false);
                     }}
-                    className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors sm:flex-none ${FOCUS} ${
+                    className={`shrink-0 whitespace-nowrap rounded-full px-3 py-2 text-xs font-semibold transition-colors sm:px-4 sm:text-sm ${FOCUS} ${
                       active
                         ? "bg-[#12231d] text-white"
                         : "text-gray-600 hover:bg-[#F7F5EF] hover:text-[#12231d]"
@@ -518,6 +520,7 @@ export default function HostBookingsPage() {
             {visible.length} {filterLabel}{" "}
             {visible.length === 1 ? "booking" : "bookings"}
             {visible.length > 0 &&
+              filter !== "pending" &&
               ` · KES ${totalPayout.toLocaleString("en-KE")} host payout total`}
           </p>
 
@@ -558,7 +561,7 @@ export default function HostBookingsPage() {
               >
                 <span>Guest and listing</span>
                 <span>Stay</span>
-                <span>Host payout</span>
+                <span>{filter === "pending" ? "Potential payout" : "Host payout"}</span>
                 <span className="w-[7.5rem]">Status</span>
               </div>
 
@@ -587,6 +590,14 @@ export default function HostBookingsPage() {
                   const isRefunded = b.paymentStatus === "refunded";
                   const isPaymentPending = b.paymentStatus === "pending";
                   const isPaymentFailed = b.paymentStatus === "failed";
+                  const holdExpiryTime = b.hold_expires_at
+                    ? Date.parse(b.hold_expires_at)
+                    : Number.NaN;
+                  const paymentHoldExpired =
+                    b.status === "pending" &&
+                    currentTime !== null &&
+                    Number.isFinite(holdExpiryTime) &&
+                    holdExpiryTime <= currentTime.getTime();
                   const payoutStatus =
                     HOST_PAYOUT_STATUS[b.hostPayoutStatus ?? "not_released"];
                   const extras = b.selectedOptionalFees;
@@ -632,7 +643,8 @@ export default function HostBookingsPage() {
                             unread > 0 ||
                             latestDateChange ||
                             isPaymentPending ||
-                            isPaymentFailed) && (
+                            isPaymentFailed ||
+                            paymentHoldExpired) && (
                             <span className="mt-2 flex flex-wrap gap-1.5">
                               {canMarkCompleted && (
                                 <Chip tone="green">Ready to complete</Chip>
@@ -652,6 +664,9 @@ export default function HostBookingsPage() {
                               )}
                               {isPaymentFailed && (
                                 <Chip tone="amber">Guest payment failed</Chip>
+                              )}
+                              {paymentHoldExpired && (
+                                <Chip tone="amber">Payment hold expired</Chip>
                               )}
                             </span>
                           )}
@@ -881,6 +896,32 @@ export default function HostBookingsPage() {
                             requests={b.refundRequests ?? []}
                             audience="host"
                           />
+
+                          {b.status === "pending" && (
+                            <div
+                              role="status"
+                              className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"
+                            >
+                              <p className="text-sm font-semibold text-amber-950">
+                                {isPaid
+                                  ? "Payment requires review"
+                                  : paymentHoldExpired
+                                    ? "Payment hold expired"
+                                    : "Awaiting guest payment"}
+                              </p>
+                              <p className="mt-1 text-sm leading-6 text-amber-900">
+                                {isPaid
+                                  ? "Payment is recorded, but this booking is still pending. Do not ask the guest to pay again; contact support with this booking reference."
+                                  : paymentHoldExpired
+                                    ? "This checkout hold expired and the reservation is not confirmed. If the guest reports being charged, do not ask them to pay again; contact support to reconcile the payment."
+                                    : isPaymentFailed
+                                      ? "The guest's payment attempt did not complete. No host action is needed; the booking is confirmed only after successful M-Pesa verification."
+                                      : isPaymentPending
+                                        ? "The guest is completing M-Pesa checkout. The booking will be confirmed automatically after Safaricom verifies payment. No host action is needed."
+                                        : "This reservation is not confirmed and may still be awaiting payment. Only successful M-Pesa verification confirms it; no host decision is required."}
+                              </p>
+                            </div>
+                          )}
 
                           {b.special_requests && (
                             <p className="rounded-xl border border-[#E9E6DD] bg-white px-4 py-3 text-sm text-gray-600">
@@ -1215,10 +1256,12 @@ export default function HostBookingsPage() {
                 label={`${filter.charAt(0).toUpperCase()}${filter.slice(1)} bookings`}
                 value={visible.length}
               />
-              <SideStat
-                label="Host payout total"
-                value={`KES ${totalPayout.toLocaleString("en-KE")}`}
-              />
+              {filter !== "pending" && (
+                <SideStat
+                  label="Host payout total"
+                  value={`KES ${totalPayout.toLocaleString("en-KE")}`}
+                />
+              )}
               {filter === "confirmed" && (
                 <>
                   <SideStat label="Checking in today" value={checkInsToday} />

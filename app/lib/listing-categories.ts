@@ -7,25 +7,30 @@ export const LISTING_CATEGORIES = [
   { id: "pet-friendly", label: "Pet-friendly" },
 ] as const;
 
+export const BROWSE_CATEGORIES = [
+  { id: "all", label: "All" },
+  ...LISTING_CATEGORIES,
+  { id: "rare", label: "Rare finds" },
+] as const;
+
 export type ListingCategory = (typeof LISTING_CATEGORIES)[number]["id"];
-export type BrowseCategory = "all" | ListingCategory | "rare";
+export type BrowseCategory = (typeof BROWSE_CATEGORIES)[number]["id"];
 
-export const BROWSE_CATEGORY_LABELS = {
-  all: "All",
-  apartments: "Apartments",
-  beachfront: "Beachfront",
-  villas: "Villas",
-  cabins: "Cabins",
-  city: "City views",
-  "pet-friendly": "Pet-friendly",
-  rare: "Rare finds",
-} satisfies Record<BrowseCategory, string>;
+export const LISTING_CATEGORY_PROPERTY_TYPE_TERMS: Partial<
+  Record<ListingCategory, readonly string[]>
+> = {
+  apartments: ["apartment", "flat"],
+  villas: ["villa"],
+  cabins: ["cabin"],
+};
 
-const BROWSE_CATEGORY_IDS: readonly string[] = [
-  "all",
-  ...LISTING_CATEGORIES.map(({ id }) => id),
-  "rare",
-];
+export const BROWSE_CATEGORY_LABELS = Object.fromEntries(
+  BROWSE_CATEGORIES.map(({ id, label }) => [id, label]),
+) as Record<BrowseCategory, string>;
+
+const BROWSE_CATEGORY_IDS: readonly string[] = BROWSE_CATEGORIES.map(
+  ({ id }) => id,
+);
 
 export function isListingCategory(value: unknown): value is ListingCategory {
   return (

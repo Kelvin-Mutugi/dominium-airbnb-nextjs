@@ -12,36 +12,32 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { BrowseCategory } from "@/app/lib/listing-categories";
+import {
+  BROWSE_CATEGORIES,
+  type BrowseCategory,
+} from "@/app/lib/listing-categories";
 
-interface CategoryOption {
-  id: BrowseCategory;
-  label: string;
-  icon: LucideIcon;
-}
-
-const categories = [
-  { id: "all", label: "All", icon: LayoutGrid },
-  { id: "apartments", label: "Apartments", icon: Building2 },
-  { id: "beachfront", label: "Beachfront", icon: Waves },
-  { id: "villas", label: "Villas", icon: HomeIcon },
-  { id: "cabins", label: "Cabins", icon: TreePine },
-  { id: "city", label: "City views", icon: Building },
-  { id: "pet-friendly", label: "Pet-friendly", icon: PawPrint },
-  { id: "rare", label: "Rare finds", icon: Gem },
-] as const satisfies readonly CategoryOption[];
+const categoryIcons: Record<BrowseCategory, LucideIcon> = {
+  all: LayoutGrid,
+  apartments: Building2,
+  beachfront: Waves,
+  villas: HomeIcon,
+  cabins: TreePine,
+  city: Building,
+  "pet-friendly": PawPrint,
+  rare: Gem,
+};
 
 export default function CategoryBar({
   activeCategory,
   onChange,
 }: {
-  activeCategory: BrowseCategory | null;
+  activeCategory: BrowseCategory;
   onChange: (category: BrowseCategory) => void;
 }) {
   const buttonRefs = useRef<Partial<Record<BrowseCategory, HTMLButtonElement>>>(
     {},
   );
-  const barRef = useRef<HTMLElement>(null);
   const [navbarHeight, setNavbarHeight] = useState(75);
 
   useEffect(() => {
@@ -64,7 +60,6 @@ export default function CategoryBar({
 
   useEffect(() => {
     if (
-      activeCategory === null ||
       !window.matchMedia("(max-width: 639px)").matches
     ) {
       return;
@@ -78,14 +73,14 @@ export default function CategoryBar({
 
   return (
     <nav
-      ref={barRef}
       aria-label="Browse by category"
       className="sticky z-30 border-b border-neutral-200 bg-white"
       style={{ top: navbarHeight }}
     >
       <div className="mx-auto max-w-none px-4 sm:px-[6%]">
         <div className="category-scrollbar category-scrollbar--centered flex snap-x snap-proximity gap-5 overflow-x-auto py-2 pr-8 sm:gap-8 sm:py-3 sm:pr-0">
-          {categories.map(({ id, label, icon: Icon }) => {
+          {BROWSE_CATEGORIES.map(({ id, label }) => {
+            const Icon = categoryIcons[id];
             const active = activeCategory === id;
             return (
               <button

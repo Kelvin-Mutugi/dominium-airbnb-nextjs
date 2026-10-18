@@ -3,6 +3,7 @@
 import { revalidatePath, updateTag } from "next/cache";
 import { randomBytes } from "node:crypto";
 import { requireHost } from "@/app/lib/host-auth";
+import { activeBookingFilter } from "@/app/lib/booking/availability";
 import {
   hashCalendarToken,
   syncCalendarConnection,
@@ -32,7 +33,7 @@ import type { RefundListItem, RefundProgress } from "@/types/refunds";
 
 const MPESA_REGEX = /^0\d{9}$/;
 const HOST_BOOKING_FIELDS =
-  "id, booking_reference, listing_id, host_id, check_in, check_out, nights, adults_count, children_count, pets_count, rooms_count, status, completed_at, completion_source, host_payout_amount, guest_name, guest_country, special_requests";
+  "id, booking_reference, listing_id, host_id, check_in, check_out, nights, adults_count, children_count, pets_count, rooms_count, status, completed_at, completion_source, host_payout_amount, guest_name, guest_country, special_requests, hold_expires_at";
 const HOST_BOOKING_WITH_LISTING = `${HOST_BOOKING_FIELDS}, listing:listings(id, title, town, county, check_out_time)`;
 
 function getSelectedOptionalFees(snapshot: unknown): HostOptionalFee[] | null {
@@ -380,111 +381,58 @@ export async function deleteHostListing(id: string) {
 export async function updateHostBookingStatus(
   id: string,
   status: BookingStatus,
-  declineReason = "",
 ) {
-  const { user } = await requireHost();
-  if (!["confirmed", "cancelled", "completed"].includes(status))
-    throw new Error("Invalid booking status.");
-  const normalizedReason = declineReason.trim();
-  if (status === "cancelled" && normalizedReason.length > 500) {
-    throw new Error("Decline reason must be 500 characters or fewer.");
+  await requireHost();
+  if (status !== "completed") {
+    throw new Error(
+      "Hosts cannot manually confirm or decline a payment hold. Bookings are confirmed after successful payment verification.",
+    );
   }
 
   const supabase = await createClient();
-  if (status === "completed") {
-    const { error } = await supabase.rpc("host_mark_booking_completed", {
-      p_booking_id: id,
-    });
-    if (error) {
-      if (error.message.includes("CHECKOUT_TIME_NOT_REACHED")) {
-        throw new Error("The listing's check-out time has not passed yet.");
-      }
-      if (error.message.includes("PENDING_GUEST_REQUEST")) {
-        throw new Error(
-          "Resolve the pending guest request before marking this stay completed.",
-        );
-      }
-      if (error.message.includes("BOOKING_NOT_CONFIRMED")) {
-        throw new Error("Only confirmed bookings can be marked completed.");
-      }
-      if (error.message.includes("BOOKING_NOT_FOUND"))
-        throw new Error("Booking not found.");
-      console.error("Host booking completion RPC failed:", {
-        error: String(error),
-        ownProperties: Object.getOwnPropertyNames(error),
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-      });
+  const { error } = await supabase.rpc("host_mark_booking_completed", {
+    p_booking_id: id,
+  });
+  if (error) {
+    if (error.message.includes("CHECKOUT_TIME_NOT_REACHED")) {
+      throw new Error("The listing's check-out time has not passed yet.");
+    }
+    if (error.message.includes("PENDING_GUEST_REQUEST")) {
       throw new Error(
-        "We couldn't mark this stay as completed. Please try again. If it still fails, contact support.",
+        "Resolve the pending guest request before marking this stay completed.",
       );
     }
-
-    revalidatePath("/host/bookings");
-    revalidatePath("/host/payouts");
-    revalidatePath("/host");
-    revalidatePath("/account/bookings");
-    revalidatePath("/admin/bookings");
-    return;
-  }
-
-  const { data: booking, error: lookupError } = await supabase
-    .from("bookings")
-    .select("status")
-    .eq("id", id)
-    .eq("host_id", user.id)
-    .maybeSingle();
-  if (lookupError || !booking) throw new Error("Booking not found.");
-
-  const isAllowedTransition =
-    booking.status === "pending" &&
-    (status === "confirmed" || status === "cancelled");
-  if (!isAllowedTransition) {
-    throw new Error("This booking can no longer be changed to that status.");
-  }
-
-  const { data: updated, error } = await supabase
-    .from("bookings")
-    .update({ status })
-    .eq("id", id)
-    .eq("host_id", user.id)
-    .eq("status", booking.status)
-    .select("id")
-    .maybeSingle();
-  if (error) throw new Error("Unable to update booking status.");
-  if (!updated)
-    throw new Error("Booking status changed. Refresh and try again.");
-
-  if (status === "cancelled" && normalizedReason) {
-    const admin = getSupabaseAdmin();
-    const { error: updateLogError } = await admin
-      .from("booking_updates")
-      .insert({
-        booking_id: id,
-        actor_id: user.id,
-        event_type: "booking_status_changed",
-        summary: `Host declined booking request: ${normalizedReason}`,
-        details: {
-          old_status: booking.status,
-          new_status: status,
-          decline_reason: normalizedReason,
-        },
-      });
-    if (updateLogError)
-      console.error("Failed to record host decline reason:", updateLogError);
+    if (error.message.includes("BOOKING_NOT_CONFIRMED")) {
+      throw new Error("Only confirmed bookings can be marked completed.");
+    }
+    if (error.message.includes("BOOKING_NOT_FOUND"))
+      throw new Error("Booking not found.");
+    console.error("Host booking completion RPC failed:", {
+      error: String(error),
+      ownProperties: Object.getOwnPropertyNames(error),
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    throw new Error(
+      "We couldn't mark this stay as completed. Please try again. If it still fails, contact support.",
+    );
   }
 
   revalidatePath("/host/bookings");
   revalidatePath("/host/payouts");
   revalidatePath("/host");
+  revalidatePath("/host/calendar");
+  revalidatePath("/account/bookings");
+  revalidatePath("/admin/bookings");
 }
 
 export async function getHostDashboardData() {
   const { user } = await requireHost();
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
+  const now = new Date().toISOString();
   const [stats, pending, upcoming, payouts] = await Promise.all([
     supabase
       .from("host_dashboard_stats")
@@ -496,6 +444,7 @@ export async function getHostDashboardData() {
       .select(HOST_BOOKING_WITH_LISTING)
       .eq("host_id", user.id)
       .eq("status", "pending")
+      .gt("hold_expires_at", now)
       .order("check_in", { ascending: true }),
     supabase
       .from("bookings")
@@ -536,6 +485,7 @@ export async function getHostOverviewData() {
   const { user } = await requireHost();
   const supabase = await createClient();
   const today = todayISO();
+  const now = new Date().toISOString();
   const todayDate = new Date(`${today}T12:00:00Z`);
   const monthStart = `${today.slice(0, 7)}-01`;
   const nextMonthStart = new Date(
@@ -587,6 +537,7 @@ export async function getHostOverviewData() {
       .select(HOST_BOOKING_WITH_LISTING)
       .eq("host_id", user.id)
       .eq("status", "pending")
+      .gt("hold_expires_at", now)
       .order("check_in", { ascending: true }),
     supabase
       .from("listings")
@@ -882,33 +833,23 @@ export async function getHostOverviewData() {
 export async function getHostNavigationAttentionCount() {
   const { user } = await requireHost();
   const supabase = await createClient();
-  const [pendingBookingsResult, changesResult, unreadSupportCounts] =
-    await Promise.all([
-      supabase
-        .from("bookings")
-        .select("id", { count: "exact", head: true })
-        .eq("host_id", user.id)
-        .eq("status", "pending"),
-      supabase
-        .from("booking_change_requests")
-        .select("id", { count: "exact", head: true })
-        .eq("host_id", user.id)
-        .eq("request_type", "date_change")
-        .eq("status", "pending"),
-      getHostUnreadSupportCounts(user.id),
-    ]);
-  if (pendingBookingsResult.error || changesResult.error)
+  const [changesResult, unreadSupportCounts] = await Promise.all([
+    supabase
+      .from("booking_change_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("host_id", user.id)
+      .eq("request_type", "date_change")
+      .eq("status", "pending"),
+    getHostUnreadSupportCounts(user.id),
+  ]);
+  if (changesResult.error)
     throw new Error("Unable to load host attention count.");
 
   const unreadSupportReplyCount = Object.values(unreadSupportCounts).reduce(
     (total, count) => total + count,
     0,
   );
-  return (
-    (pendingBookingsResult.count ?? 0) +
-    unreadSupportReplyCount +
-    (changesResult.count ?? 0)
-  );
+  return unreadSupportReplyCount + (changesResult.count ?? 0);
 }
 
 export async function getHostListingsData(
@@ -1056,7 +997,7 @@ export async function submitHostListingRequest(input: {
 }
 
 export async function getHostBookingsData(
-  status: Exclude<BookingStatus, "pending">,
+  status: BookingStatus,
 ) {
   const { user } = await requireHost();
   const supabase = await createClient();
@@ -2247,7 +2188,7 @@ export async function getHostCalendarData(month: string) {
       .from("bookings")
       .select(HOST_BOOKING_WITH_LISTING)
       .eq("host_id", user.id)
-      .in("status", ["pending", "confirmed"])
+      .or(activeBookingFilter())
       .lt("check_in", nextMonthStart)
       .gt("check_out", monthStart)
       .order("check_in"),
@@ -2260,8 +2201,25 @@ export async function getHostCalendarData(month: string) {
       .order("start_date"),
   ]);
 
-  if (bookingsResult.error || blocksResult.error)
-    throw new Error("Unable to load host calendar.");
+  const failedQueries = [
+    { name: "bookings", error: bookingsResult.error },
+    { name: "availability blocks", error: blocksResult.error },
+  ].filter((query) => query.error !== null);
+  if (failedQueries.length > 0) {
+    console.error(
+      "Host calendar queries failed:",
+      failedQueries.map(({ name, error }) => ({
+        query: name,
+        code: error?.code,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+      })),
+    );
+    throw new Error(
+      `Unable to load host calendar (${failedQueries.map(({ name }) => name).join(", ")}).`,
+    );
+  }
   const admin = getSupabaseAdmin();
   const { data: externalEvents, error: externalEventsError } = await admin
     .from("host_external_calendar_events")
@@ -2436,7 +2394,7 @@ export async function addHostAvailabilityBlock(
       .from("bookings")
       .select("id")
       .eq("listing_id", listingId)
-      .in("status", ["pending", "confirmed"])
+      .or(activeBookingFilter())
       .lt("check_in", endDate)
       .gt("check_out", startDate)
       .limit(1),
@@ -2451,7 +2409,7 @@ export async function addHostAvailabilityBlock(
   if (bookingConflict.error || blockConflict.error)
     throw new Error("Unable to verify date availability.");
   if (bookingConflict.data?.length)
-    throw new Error("These dates overlap a booking request or confirmed stay.");
+    throw new Error("These dates overlap an active payment hold or confirmed stay.");
   if (blockConflict.data?.length)
     throw new Error("These dates overlap an existing blocked period.");
   const admin = getSupabaseAdmin();

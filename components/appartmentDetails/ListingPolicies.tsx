@@ -5,11 +5,11 @@ import {
   FileText,
   XCircle,
   ListChecks,
-  RotateCcw,
   Lock,
   ChevronDown,
   type LucideIcon,
 } from "lucide-react";
+import { PLATFORM_CANCELLATION_POLICY } from "@/app/lib/cancellation-policy";
 
 interface PolicySection {
   key: string;
@@ -21,9 +21,7 @@ interface PolicySection {
 interface ListingPoliciesProps {
   listing: {
     bookingTerms?: string;
-    cancelationPolicy?: string;
     houserules?: string[];
-    refundPolicy?: string;
     privacyPolicy?: string;
   };
 }
@@ -48,13 +46,7 @@ export function ListingPolicies({ listing }: ListingPoliciesProps) {
       key: "cancelationPolicy",
       icon: XCircle,
       title: "Cancellation policy",
-      content: listing.cancelationPolicy || "See the platform cancellation policy.",
-    },
-    listing.refundPolicy && {
-      key: "refundPolicy",
-      icon: RotateCcw,
-      title: "Refund policy",
-      content: listing.refundPolicy,
+      content: PLATFORM_CANCELLATION_POLICY,
     },
     listing.privacyPolicy && {
       key: "privacyPolicy",

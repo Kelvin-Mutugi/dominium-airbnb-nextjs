@@ -1,5 +1,9 @@
 import { unstable_cache } from "next/cache";
-import type { BrowseCategory } from "@/app/lib/listing-categories";
+import { PLATFORM_CANCELLATION_POLICY } from "@/app/lib/cancellation-policy";
+import {
+  LISTING_CATEGORY_PROPERTY_TYPE_TERMS,
+  type BrowseCategory,
+} from "@/app/lib/listing-categories";
 import { getPublicSupabaseClient } from "@/app/lib/supabase/public";
 import type { Listing } from "@/types/types";
 
@@ -34,8 +38,8 @@ export interface PublicListingDetail {
   features: unknown;
   house_rules: unknown;
   booking_terms: string | null;
-  cancellation_policy: string | null;
-  refund_policy: string | null;
+  cancellation_policy: string;
+  refund_policy: string;
   latitude: number | null;
   longitude: number | null;
   check_in_time: string | null;
@@ -60,7 +64,7 @@ const CARD_SELECT = `
 const DETAIL_SELECT = `
   id, title, description, county, town, property_type, price_per_night,
   max_guests, bedrooms, bathrooms, amenities, features, house_rules,
-  booking_terms, cancellation_policy, refund_policy, latitude, longitude,
+  booking_terms, latitude, longitude,
   check_in_time, check_out_time, min_nights, service_fee_percent,
   platform_fee_per_night, additional_charges, is_rare_find, rare_find_note,
   average_rating, review_count, listing_images ( url, sort_order )
@@ -136,7 +140,16 @@ async function fetchCatalogPage(
   if (category === "rare") {
     query = query.eq("is_rare_find", true);
   } else if (category !== "all") {
-    query = query.contains("categories", [category]);
+    const propertyTypeTerms = LISTING_CATEGORY_PROPERTY_TYPE_TERMS[category];
+    if (propertyTypeTerms) {
+      const categoryMatch = `categories.cs.{${category}}`;
+      const propertyTypeMatches = propertyTypeTerms.map(
+        (term) => `property_type.ilike.%${term}%`,
+      );
+      query = query.or([categoryMatch, ...propertyTypeMatches].join(","));
+    } else {
+      query = query.contains("categories", [category]);
+    }
   }
 
   const terms = location
@@ -202,7 +215,13 @@ async function fetchPublicListingDetail(
     .maybeSingle();
 
   if (error) throw new Error("Unable to load published listing details.");
-  return (data as unknown as PublicListingDetail | null) ?? null;
+  if (!data) return null;
+
+  return {
+    ...(data as unknown as PublicListingDetail),
+    cancellation_policy: PLATFORM_CANCELLATION_POLICY,
+    refund_policy: PLATFORM_CANCELLATION_POLICY,
+  };
 }
 
 export const getCachedPublicListingDetail = unstable_cache(

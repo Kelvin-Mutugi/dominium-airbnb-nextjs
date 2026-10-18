@@ -3,7 +3,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { confirmBooking, cancelBooking } from "@/app/admin/bookings/actions";
+import { cancelBooking } from "@/app/admin/bookings/actions";
 
 export function BookingRowActions({
   bookingId,
@@ -17,7 +17,11 @@ export function BookingRowActions({
   const [error, setError] = useState<string | null>(null);
 
   const runAction = (label: string, action: () => Promise<void>) => {
-    if (!window.confirm(`${label} this booking?`)) return;
+    const confirmation =
+      label === "Cancel"
+        ? "Cancel this booking? This does not issue a guest refund. If payment was received, handle any eligible refund separately in Admin → Refunds."
+        : `${label} this booking?`;
+    if (!window.confirm(confirmation)) return;
     setError(null);
     startTransition(async () => {
       try {
@@ -50,12 +54,11 @@ export function BookingRowActions({
   return (
     <div className="flex flex-col items-start gap-1">
       <div className="flex gap-2">
-      {status === "pending" &&
-        btn(
-          "Confirm",
-          () => confirmBooking(bookingId),
-          "bg-green-600 hover:bg-green-700"
-        )}
+      {status === "pending" && (
+        <span className="max-w-40 text-xs text-amber-800">
+          Awaiting verified guest payment
+        </span>
+      )}
       {btn(
         "Cancel",
         () => cancelBooking(bookingId),

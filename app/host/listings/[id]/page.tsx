@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getHostListingData } from "@/app/lib/host/actions";
+import { PLATFORM_CANCELLATION_POLICY } from "@/app/lib/cancellation-policy";
 
 type ListingImage = {
   id: string;
@@ -143,7 +144,10 @@ export default async function HostListingDetailPage({
       <section className="mt-6 rounded-lg bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-[#1B1A2E]">Policies</h2>
         <dl className="mt-5 grid gap-5 sm:grid-cols-2">
-          <DetailField label="Cancellation policy" value={listing.cancellation_policy} />
+          <DetailField
+            label="Platform cancellation and refund policy"
+            value={PLATFORM_CANCELLATION_POLICY}
+          />
         </dl>
       </section>
     </div>

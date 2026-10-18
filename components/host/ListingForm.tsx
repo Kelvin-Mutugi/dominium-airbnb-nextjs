@@ -603,13 +603,11 @@ export default function ListingForm({
           </div>
         </div>
         <div>
-          <label className={labelClass}>Cancellation policy</label>
-          <textarea
-            className={inputClass}
-            rows={3}
-            value={values.cancellation_policy}
-            onChange={(e) => set("cancellation_policy", e.target.value)}
-          />
+          <p className={labelClass}>Cancellation and refund terms</p>
+          <p className="text-sm text-gray-600">
+            The platform-wide cancellation schedule applies to every listing.
+            Property-specific refund terms are not offered.
+          </p>
         </div>
         <div>
           <label className={labelClass}>House rules</label>

@@ -106,7 +106,7 @@ export default async function AdminBookingsPage({
     <div>
       <h1 className="text-2xl font-semibold mb-1 text-[#E23E85]">Bookings</h1>
       <p className="text-sm text-gray-600 mb-4">
-        Review bookings, confirm pending ones, and cancel when needed.
+        Review bookings and cancel when needed. Pending bookings are temporary payment holds; only verified Safaricom payment confirms a booking.
       </p>
 
       {listingId && (

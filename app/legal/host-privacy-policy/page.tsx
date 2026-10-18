@@ -246,8 +246,8 @@ const sections: Section[] = [
       {
         type: "contact",
         email: "hosts@dominiumbnb.co.ke",
-        phone: "[Insert Number]",
-        address: "[Insert Address], Nairobi, Kenya",
+        phone: "0183191903",
+        address: "Nairobi, Kenya",
       },
     ],
   },

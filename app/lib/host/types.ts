@@ -144,6 +144,7 @@ export interface Booking {
   pets_count: number;
   rooms_count: number;
   status: BookingStatus;
+  hold_expires_at?: string | null;
   completed_at?: string | null;
   completion_source?: "host" | "system" | null;
   total_amount: number;
