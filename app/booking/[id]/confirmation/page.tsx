@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Share2 } from "lucide-react";
 
 interface ConfirmationData {
   bookingId: string;
@@ -41,6 +42,16 @@ function formatMoney(amount: number, currency = "KES") {
   }).format(amount);
 }
 
+function formatStayDate(value: string) {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return date.toLocaleDateString("en-KE", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 export default function BookingConfirmationPage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
@@ -51,6 +62,7 @@ export default function BookingConfirmationPage() {
   >("verifying");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [shareMessage, setShareMessage] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -129,6 +141,50 @@ export default function BookingConfirmationPage() {
   const checkoutUrl = booking
     ? `/booking/${booking.listingId}?${new URLSearchParams({ bookingId: booking.bookingId, checkIn: booking.checkIn, checkOut: booking.checkOut, guests: String(booking.guests), children: String(booking.children), pets: String(booking.pets) }).toString()}`
     : null;
+
+  async function shareMyStay() {
+    if (!booking) return;
+
+    const adults = Math.max(0, booking.guests - booking.children);
+    const party = [
+      `${adults} adult${adults === 1 ? "" : "s"}`,
+      ...(booking.children
+        ? [`${booking.children} child${booking.children === 1 ? "" : "ren"}`]
+        : []),
+      ...(booking.pets
+        ? [`${booking.pets} pet${booking.pets === 1 ? "" : "s"}`]
+        : []),
+    ].join(", ");
+    const listingUrl = new URL(
+      `/apartments/${encodeURIComponent(booking.listingId)}`,
+      window.location.origin,
+    ).toString();
+    const shareData = {
+      title: `My stay at ${booking.listingTitle}`,
+      text: [
+        `I'm staying at ${booking.listingTitle} on Dominium.`,
+        `Dates: ${formatStayDate(booking.checkIn)} to ${formatStayDate(booking.checkOut)}.`,
+        `Guests: ${party}.`,
+        `Booking reference: ${booking.bookingReference || booking.bookingId}.`,
+      ].join("\n"),
+      url: listingUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        setShareMessage("");
+        return;
+      }
+      await navigator.clipboard.writeText(
+        `${shareData.text}\nListing: ${shareData.url}`,
+      );
+      setShareMessage("Stay details copied. You can paste them into a message.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setShareMessage("Unable to share right now. Please try again.");
+    }
+  }
 
   return (
     <main className="min-h-screen bg-white px-4 py-10 text-[#1B1A2E] sm:py-16">
@@ -227,6 +283,26 @@ export default function BookingConfirmationPage() {
                     Contact support
                   </Link>
                   .
+                </p>
+              )}
+            </section>
+            <section className="mt-6">
+              <button
+                type="button"
+                onClick={() => void shareMyStay()}
+                className="inline-flex min-h-12 items-center gap-2 rounded-md border border-[#1B1A2E] px-5 font-semibold text-[#1B1A2E] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1769AA]"
+              >
+                <Share2 size={18} aria-hidden="true" />
+                Share my stay
+              </button>
+              <p className="mt-2 text-sm text-[#3A3856]">
+                Choose a trusted contact. Only your dates, guest count, booking
+                reference, and public listing link are shared—not payment or
+                personal contact details.
+              </p>
+              {shareMessage && (
+                <p role="status" aria-live="polite" className="mt-2 text-sm text-[#3A3856]">
+                  {shareMessage}
                 </p>
               )}
             </section>

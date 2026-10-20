@@ -6,6 +6,8 @@ import type { RefundProgress } from "@/types/refunds";
 export type ListingStatus = "draft" | "published" | "suspended" | "archived";
 export type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
 export type PayoutStatus = "owed" | "paid" | "processing";
+export type BackupPowerSource = "none" | "inverter" | "solar" | "generator";
+export type ListingSecurityFeature = "gated" | "guard_24h" | "cctv_common";
 export type HostBookingPayoutStatus =
   | "not_released"
   | "under_review"
@@ -26,6 +28,13 @@ export interface Listing {
   address: string | null;
   property_type?: string;
   price_per_night: number;
+  monthly_rate?: number | null;
+  wifi_mbps?: number | null;
+  has_workspace?: boolean;
+  backup_power?: BackupPowerSource;
+  security_features?: ListingSecurityFeature[];
+  nearest_park_name?: string | null;
+  park_distance_km?: number | null;
   platform_fee_per_night?: number | null;
   additional_charges?: ListingAdditionalCharge[] | null;
   max_guests: number;
@@ -298,6 +307,13 @@ export interface ListingFormValues {
   categories: ListingCategory[];
   is_rare_find: boolean;
   price_per_night: number;
+  monthly_rate: number | null;
+  wifi_mbps: number | null;
+  has_workspace: boolean;
+  backup_power: BackupPowerSource;
+  security_features: ListingSecurityFeature[];
+  nearest_park_name: string;
+  park_distance_km: number | null;
   platform_fee_per_night: number;
   additional_charges: ListingAdditionalCharge[];
   max_guests: number;

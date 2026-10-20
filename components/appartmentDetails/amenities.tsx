@@ -13,6 +13,9 @@ import {
   Flame,
   Dog,
   Sparkles,
+  BriefcaseBusiness,
+  MapPin,
+  PlugZap,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,6 +34,9 @@ const AMENITY_CONFIG: Record<string, { icon: LucideIcon; label: string }> = {
   pool: { icon: Waves, label: "Swimming pool" },
   heating: { icon: Flame, label: "Hot water / heating" },
   pets: { icon: Dog, label: "Pet friendly" },
+  gated: { icon: ShieldCheck, label: "Gated compound" },
+  guard_24h: { icon: ShieldCheck, label: "24-hour security guard" },
+  cctv_common: { icon: ShieldCheck, label: "CCTV in shared areas" },
 };
 
 const FALLBACK_ICON = Sparkles;
@@ -40,6 +46,12 @@ interface AmenitiesGridProps {
     bedrooms?: number;
     bathrooms?: number;
     amenities?: string[]; // e.g. ["wifi", "secure", "parking"]
+    wifiMbps?: number | null;
+    hasWorkspace?: boolean;
+    backupPower?: "none" | "generator" | "inverter" | "solar" | null;
+    securityFeatures?: string[];
+    nearestParkName?: string | null;
+    parkDistanceKm?: number | null;
   };
 }
 
@@ -59,6 +71,47 @@ export default function AmenitiesGrid({ listing }: AmenitiesGridProps) {
       key: "bathrooms",
       icon: Bath,
       label: `${listing.bathrooms} bathroom${listing.bathrooms > 1 ? "s" : ""}`,
+    });
+  }
+
+  if (listing.wifiMbps != null && listing.wifiMbps > 0) {
+    items.push({
+      key: "wifi-speed",
+      icon: Wifi,
+      label: `Wi-Fi up to ${listing.wifiMbps} Mbps`,
+    });
+  }
+
+  if (listing.hasWorkspace) {
+    items.push({
+      key: "workspace",
+      icon: BriefcaseBusiness,
+      label: "Dedicated workspace",
+    });
+  }
+
+  if (listing.backupPower && listing.backupPower !== "none") {
+    items.push({
+      key: "backup-power",
+      icon: PlugZap,
+      label: `Backup power: ${listing.backupPower}`,
+    });
+  }
+
+  (listing.securityFeatures ?? []).forEach((key) => {
+    const config = AMENITY_CONFIG[key];
+    if (config) {
+      items.push({ key, icon: config.icon, label: config.label });
+    }
+  });
+
+  if (listing.nearestParkName) {
+    const distance =
+      listing.parkDistanceKm == null ? "" : ` · ${listing.parkDistanceKm} km`;
+    items.push({
+      key: "nearest-park",
+      icon: MapPin,
+      label: `Nearest park: ${listing.nearestParkName}${distance}`,
     });
   }
 

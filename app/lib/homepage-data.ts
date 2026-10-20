@@ -1,5 +1,4 @@
 import type { Amenity, Listing } from "@/components/homeData";
-import { HOMEPAGE_DESTINATIONS } from "@/app/homepageSections";
 import { normalizeListingAdditionalCharges } from "@/app/lib/listing-charges";
 import { getPublicSupabaseClient } from "@/app/lib/supabase/public";
 import { unstable_cache } from "next/cache";
@@ -98,6 +97,7 @@ const LISTING_SELECT = `
 async function fetchHomepageListings(
   searchTerms: string[] | null,
   limit: number,
+  rareFindOnly = false,
 ): Promise<Listing[]> {
   const supabase = getPublicSupabaseClient();
 
@@ -113,6 +113,7 @@ async function fetchHomepageListings(
     ]);
     query = query.or(clauses.join(","));
   }
+  if (rareFindOnly) query = query.eq("is_rare_find", true);
 
   const { data, error } = await query
     .order("created_at", { ascending: false })
@@ -146,8 +147,21 @@ const getCachedHomepageDestination = unstable_cache(
   },
 );
 
+const getCachedHomepageDominiumPicks = unstable_cache(
+  () => fetchHomepageListings(null, FEATURED_PAGE_SIZE, true),
+  ["homepage-dominium-picks-v1", String(FEATURED_PAGE_SIZE)],
+  {
+    revalidate: 300,
+    tags: ["public-listings", "homepage-dominium-picks"],
+  },
+);
+
 export function getHomepageFeaturedListings(): Promise<Listing[]> {
   return getCachedHomepageFeatured();
+}
+
+export function getHomepageDominiumPicks(): Promise<Listing[]> {
+  return getCachedHomepageDominiumPicks();
 }
 
 export function getHomepageDestinationListings(

@@ -14,6 +14,16 @@ function normalizeAmenities(value: unknown): string[] {
     : [];
 }
 
+function normalizeBackupPower(
+  value: string,
+): NonNullable<Listing["backupPower"]> {
+  return value === "generator" ||
+    value === "inverter" ||
+    value === "solar"
+    ? value
+    : "none";
+}
+
 export default function ApartmentPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -216,6 +226,8 @@ export default function ApartmentPage() {
         checkOutTime: data.check_out_time ?? "11:00 AM",
         minNights: data.min_nights ?? 1,
         pricePerNight: price,
+        monthlyRate:
+          data.monthly_rate == null ? null : Number(data.monthly_rate),
         serviceFeePercent: 0,
         serviceFeePerNight:
           data.platform_fee_per_night == null
@@ -233,6 +245,17 @@ export default function ApartmentPage() {
         beds: data.bedrooms,
         baths: data.bathrooms,
         amenities: normalizeAmenities(data.amenities),
+        wifiMbps: data.wifi_mbps,
+        hasWorkspace: data.has_workspace,
+        backupPower: normalizeBackupPower(data.backup_power),
+        securityFeatures: Array.isArray(data.security_features)
+          ? data.security_features
+          : [],
+        nearestParkName: data.nearest_park_name,
+        parkDistanceKm:
+          data.park_distance_km == null
+            ? null
+            : Number(data.park_distance_km),
         bookedDateRanges,
         availabilityUnavailable,
       });

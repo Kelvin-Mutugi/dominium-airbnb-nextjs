@@ -14,6 +14,9 @@ interface DestinationListingsProps {
   slug: string;
   listings: Listing[];
   isLoading?: boolean;
+  seeAllHref?: string;
+  seeAllTitle?: string;
+  seeAllDescription?: string;
 }
 
 export default function DestinationListings({
@@ -21,6 +24,9 @@ export default function DestinationListings({
   slug,
   listings,
   isLoading = false,
+  seeAllHref,
+  seeAllTitle,
+  seeAllDescription,
 }: DestinationListingsProps) {
   const carouselRef = useRef<HorizontalListingCarouselHandle>(null);
   const carouselLabel = `${label} listings`;
@@ -31,7 +37,10 @@ export default function DestinationListings({
         <div className="flex items-center">
           <h2 className="text-[20px] font-semibold text-[#36454F]">{label}</h2>
           <Link
-            href={`/allListings?location=${encodeURIComponent(slug)}`}
+            href={
+              seeAllHref ??
+              `/allListings?location=${encodeURIComponent(slug)}`
+            }
             aria-label={`View all ${label}`}
             className="ml-[15px] flex h-7 w-7 items-center justify-center rounded-full border border-[#E9E6DD] bg-[#F7F7F7] font-bold text-[#36454F] transition-colors hover:border-[#E23E85] hover:text-[#E23E85]"
           >
@@ -74,14 +83,32 @@ export default function DestinationListings({
               <MinimalListingCard item={listing} />
             </div>
           ))}
-          <SeeAllDestinationCard slug={slug} />
+          <SeeAllDestinationCard
+            slug={slug}
+            href={
+              seeAllHref ??
+              `/allListings?location=${encodeURIComponent(slug)}`
+            }
+            title={seeAllTitle}
+            description={seeAllDescription}
+          />
         </HorizontalListingCarousel>
       )}
     </section>
   );
 }
 
-function SeeAllDestinationCard({ slug }: { slug: string }) {
+function SeeAllDestinationCard({
+  slug,
+  href,
+  title = "See all stays",
+  description = `in ${slug}`,
+}: {
+  slug: string;
+  href: string;
+  title?: string;
+  description?: string;
+}) {
   const cardRef = useRef<HTMLAnchorElement>(null);
   const [isVisible, setIsVisible] = useState(true);
 
@@ -109,8 +136,8 @@ function SeeAllDestinationCard({ slug }: { slug: string }) {
   return (
     <Link
       ref={cardRef}
-      href={`/allListings?location=${encodeURIComponent(slug)}`}
-      aria-label={`See all stays in ${slug}`}
+      href={href}
+      aria-label={`${title} ${description}`}
       aria-hidden={!isVisible}
       tabIndex={isVisible ? undefined : -1}
       className={`account-neu-surface group flex h-[184px] w-[148px] shrink-0 snap-start flex-col justify-start overflow-hidden rounded-[18px] border border-[#E9E6DD] bg-white p-4 text-[#36454F] transition-[opacity,transform] duration-500 ease-out motion-reduce:transition-none ${
@@ -121,8 +148,8 @@ function SeeAllDestinationCard({ slug }: { slug: string }) {
         <ArrowUpRight aria-hidden="true" className="text-[#E23E85]" size={17} />
       </span>
       <span className="mt-8 min-w-0">
-        <span className="block text-base font-semibold leading-tight">See all stays</span>
-        <span className="mt-1 block truncate text-sm text-[#72777A]">in {slug}</span>
+        <span className="block text-base font-semibold leading-tight">{title}</span>
+        <span className="mt-1 block truncate text-sm text-[#72777A]">{description}</span>
       </span>
     </Link>
   );

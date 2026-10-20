@@ -22,6 +22,7 @@ interface ListingCheckoutData {
   id: string;
   title: string;
   price_per_night: number | string;
+  monthly_rate: number | string | null;
   platform_fee_per_night: number | string | null;
   additional_charges: unknown;
   max_guests: number;
@@ -146,6 +147,7 @@ export default function BookingCheckout({
   const currentListingPrice = listing
     ? calculateBookingPrice({
         nightlyRate: listing.price_per_night,
+        monthlyRate: listing.monthly_rate,
         platformFeePerNight: listing.platform_fee_per_night,
         additionalCharges: listing.additional_charges,
         nights,
@@ -209,7 +211,7 @@ export default function BookingCheckout({
         supabase
           .from("listings")
           .select(
-            "id, title, price_per_night, platform_fee_per_night, additional_charges, max_guests, min_nights, house_rules, booking_terms",
+            "id, title, price_per_night, monthly_rate, platform_fee_per_night, additional_charges, max_guests, min_nights, house_rules, booking_terms",
           )
           .eq("id", listingId)
           .eq("status", "published")
@@ -282,6 +284,11 @@ export default function BookingCheckout({
             setResumePrice({
               nights,
               nightlyRate: nights > 0 ? guestNightlySubtotal / nights : 0,
+              monthlyRateApplied: snapshotLines.some(
+                (line) =>
+                  typeof line.name === "string" &&
+                  line.name.startsWith("Monthly rate"),
+              ),
               hostSubtotal: 0,
               subtotal: guestNightlySubtotal,
               serviceFee: 0,
@@ -779,8 +786,9 @@ export default function BookingCheckout({
         <dl className="space-y-3 text-sm text-[#3A3856]">
           <div className="flex justify-between gap-4">
             <dt>
-              {formatMoney(price.nightlyRate)} × {nights} night
-              {nights === 1 ? "" : "s"}
+              {price.monthlyRateApplied
+                ? `Monthly-rate stay, prorated over ${nights} nights`
+                : `${formatMoney(price.nightlyRate)} × ${nights} night${nights === 1 ? "" : "s"}`}
             </dt>
             <dd>{formatMoney(price.subtotal)}</dd>
           </div>

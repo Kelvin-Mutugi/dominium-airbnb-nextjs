@@ -17,6 +17,7 @@ interface FilterSidebarProps {
   amenityOptions: AmenityOption[];
   groupStayCount: number;
   instantBookingCount: number;
+  petFriendlyCount: number;
   /** Optional: number of listings matching the current filters (shown in the mobile "Show" button) */
   resultsCount?: number;
   onChange: (patch: Partial<FilterState>) => void;
@@ -138,6 +139,7 @@ function FilterFields({
   amenityOptions,
   groupStayCount,
   instantBookingCount,
+  petFriendlyCount,
   onChange,
   onReset,
   showReset = false,
@@ -149,6 +151,7 @@ function FilterFields({
       : filters.amenities.filter((a) => a !== key);
     onChange({ amenities: next });
   };
+  const moreFiltersBorder = soft ? "border-[#e2e2e2]" : "border-ink/10";
 
   // text-base on mobile stops iOS Safari from zooming in when an input is focused
   const inputClass = `w-full rounded-md px-3 py-2.5 text-base outline-none transition-colors focus-visible:ring-2 focus-visible:ring-neutral-500 lg:py-2 lg:text-sm ${soft ? "border border-neutral-300 bg-white text-neutral-800 hover:border-neutral-400" : "border border-ink/10 bg-white text-ink"}`;
@@ -249,6 +252,23 @@ function FilterFields({
         />
       </div>
 
+      <details className={`border-b py-5 ${moreFiltersBorder}`}>
+        <summary
+          className={`cursor-pointer text-sm font-semibold ${soft ? "text-[#373737]" : "text-ink"}`}
+        >
+          More filters
+        </summary>
+        <div className="pt-3">
+          <CheckRow
+            label="Pet-friendly"
+            count={petFriendlyCount}
+            checked={filters.petFriendly}
+            onChange={(checked) => onChange({ petFriendly: checked })}
+            soft={soft}
+          />
+        </div>
+      </details>
+
       {/* Rating */}
       <div className="py-5">
         <h3 className={`mb-3.5 text-sm font-semibold ${soft ? "text-[#373737]" : "text-ink"}`}>Guest rating</h3>
@@ -285,6 +305,7 @@ export default function FilterSidebar({
   amenityOptions,
   groupStayCount,
   instantBookingCount,
+  petFriendlyCount,
   resultsCount,
   onChange,
   onReset,
@@ -317,6 +338,7 @@ export default function FilterSidebar({
     (filters.propertyType ? 1 : 0) +
     (filters.bedrooms && filters.bedrooms !== "Any" ? 1 : 0) +
     filters.amenities.length +
+    (filters.petFriendly ? 1 : 0) +
     (filters.groupStayOnly ? 1 : 0) +
     (filters.instantBooking ? 1 : 0) +
     (filters.minRating ? 1 : 0);
@@ -331,6 +353,7 @@ export default function FilterSidebar({
     amenityOptions,
     groupStayCount,
     instantBookingCount,
+    petFriendlyCount,
     onChange,
     onReset,
     soft,

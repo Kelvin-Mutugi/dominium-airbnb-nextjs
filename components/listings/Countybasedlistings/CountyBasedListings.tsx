@@ -123,6 +123,7 @@ export default function CountyBasedListings({
         listing.pricePerNight <= filters.maxPrice &&
         bedroomMatch &&
         amenityMatch &&
+        (!filters.petFriendly || listing.petFriendly) &&
         (!filters.groupStayOnly || listing.guests >= 4) &&
         (!filters.minRating || listing.rating >= filters.minRating)
       );
@@ -177,6 +178,10 @@ export default function CountyBasedListings({
     });
   }
 
+  if (filters.petFriendly) {
+    activeFilters.push({ key: "petFriendly", label: "Pet-friendly" });
+  }
+
   if (filters.minPrice > 0 || filters.maxPrice < 50000) {
     activeFilters.push({
       key: "price",
@@ -203,6 +208,10 @@ export default function CountyBasedListings({
       updateFilters({
         groupStayOnly: false,
       });
+    }
+
+    if (key === "petFriendly") {
+      updateFilters({ petFriendly: false });
     }
 
     if (key === "price") {
@@ -286,6 +295,9 @@ return (
           amenityOptions={amenityOptions}
           groupStayCount={databaseListings.filter((listing) => listing.guests >= 4).length}
           instantBookingCount={0}
+          petFriendlyCount={
+            databaseListings.filter((listing) => listing.petFriendly).length
+          }
           onChange={updateFilters}
           onReset={resetFilters}
         />

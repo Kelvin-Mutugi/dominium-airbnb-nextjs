@@ -49,6 +49,13 @@ const DEFAULTS: ListingFormValues = {
   categories: [],
   is_rare_find: false,
   price_per_night: 0,
+  monthly_rate: null,
+  wifi_mbps: null,
+  has_workspace: false,
+  backup_power: "none",
+  security_features: [],
+  nearest_park_name: "",
+  park_distance_km: null,
   platform_fee_per_night: 0,
   additional_charges: [],
   max_guests: 1,
@@ -784,6 +791,157 @@ export default function ListingForm({
             />
             Rare find
           </label>
+        </div>
+      </section>
+
+      <section className="space-y-4 rounded-2xl bg-white p-5 shadow-sm">
+        <div>
+          <h2 className="font-semibold text-[#12231d]">Stay essentials</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Help guests find stays that fit their work, safety, long-stay, and
+            safari needs. Leave details blank when they do not apply.
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className={labelClass}>Monthly rate (KES, optional)</label>
+            <input
+              type="number"
+              min={1}
+              step="0.01"
+              className={inputClass}
+              value={values.monthly_rate ?? ""}
+              onChange={(event) =>
+                set(
+                  "monthly_rate",
+                  event.target.value ? Number(event.target.value) : null,
+                )
+              }
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              For stays of 28 nights or more, this rate is prorated per 30
+              nights.
+            </p>
+          </div>
+          <div>
+            <label className={labelClass}>Wi-Fi speed (Mbps)</label>
+            <input
+              type="number"
+              min={0}
+              max={10000}
+              step={1}
+              className={inputClass}
+              value={values.wifi_mbps ?? ""}
+              onChange={(event) =>
+                set(
+                  "wifi_mbps",
+                  event.target.value ? Number(event.target.value) : null,
+                )
+              }
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={values.has_workspace}
+              onChange={(event) => set("has_workspace", event.target.checked)}
+              className="size-4 accent-[#E23E85]"
+            />
+            Dedicated work desk or workspace
+          </label>
+          <div>
+            <label className={labelClass}>Backup power</label>
+            <select
+              className={inputClass}
+              value={values.backup_power}
+              onChange={(event) =>
+                set(
+                  "backup_power",
+                  event.target.value as ListingFormValues["backup_power"],
+                )
+              }
+            >
+              <option value="none">No backup power</option>
+              <option value="inverter">Inverter</option>
+              <option value="solar">Solar</option>
+              <option value="generator">Generator</option>
+            </select>
+          </div>
+        </div>
+
+        <fieldset>
+          <legend className="mb-2 text-sm font-medium text-[#12231d]">
+            Security features
+          </legend>
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            {[
+              ["gated", "Gated compound"],
+              ["guard_24h", "24-hour guard"],
+              ["cctv_common", "CCTV in shared areas"],
+            ].map(([value, label]) => (
+              <label
+                key={value}
+                className="flex items-center gap-2 text-sm text-gray-700"
+              >
+                <input
+                  type="checkbox"
+                  checked={values.security_features.includes(
+                    value as ListingFormValues["security_features"][number],
+                  )}
+                  onChange={(event) =>
+                    set(
+                      "security_features",
+                      event.target.checked
+                        ? [
+                            ...values.security_features,
+                            value as ListingFormValues["security_features"][number],
+                          ]
+                        : values.security_features.filter(
+                            (feature) => feature !== value,
+                          ),
+                    )
+                  }
+                  className="size-4 accent-[#E23E85]"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className={labelClass}>Nearest national park or reserve</label>
+            <input
+              maxLength={120}
+              className={inputClass}
+              value={values.nearest_park_name}
+              onChange={(event) =>
+                set("nearest_park_name", event.target.value)
+              }
+              placeholder="For example, Nairobi National Park"
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Distance to park or reserve (km)</label>
+            <input
+              type="number"
+              min={0}
+              max={10000}
+              step="0.1"
+              className={inputClass}
+              value={values.park_distance_km ?? ""}
+              onChange={(event) =>
+                set(
+                  "park_distance_km",
+                  event.target.value ? Number(event.target.value) : null,
+                )
+              }
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              “Safari & parks” includes stays within 20 km.
+            </p>
+          </div>
         </div>
       </section>
 

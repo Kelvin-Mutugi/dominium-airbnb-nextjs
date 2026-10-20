@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/navigationBar";
 import ActiveFilterChips, {
@@ -29,6 +30,19 @@ import {
 import CategoryBar from "@/components/home/CategoryBar";
 
 const PAGE_SIZE = 6;
+
+const ListingResultsMap = dynamic(
+  () => import("@/components/listings/ListingResultsMap"),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        aria-label="Loading map"
+        className="h-[52vh] min-h-[360px] animate-pulse rounded-xl bg-[#e8edf0] lg:h-[calc(100vh-220px)] lg:min-h-[560px]"
+      />
+    ),
+  },
+);
 
 interface SearchQuery {
   location: string;
@@ -302,6 +316,8 @@ function AllListingsContent() {
         listing.pricePerNight <= filters.maxPrice &&
         bedroomMatch &&
         amenityMatch &&
+        (!filters.petFriendly ||
+          (listing.categories ?? []).includes("pet-friendly")) &&
         (!filters.groupStayOnly || listing.guests >= 4) &&
         (!filters.minRating || listing.rating >= filters.minRating)
       );
@@ -330,6 +346,9 @@ function AllListingsContent() {
       label: BROWSE_CATEGORY_LABELS[searchQuery.category],
     });
   }
+  if (filters.petFriendly) {
+    activeFilters.push({ key: "petFriendly", label: "Pet-friendly" });
+  }
   if (filters.groupStayOnly) activeFilters.push({ key: "groupStayOnly", label: "Sleeps 4+ guests" });
   if (filters.minPrice > 0 || filters.maxPrice < 50000) {
     activeFilters.push({
@@ -347,6 +366,7 @@ function AllListingsContent() {
 
   const removeFilter = (key: string) => {
     if (key === "category") updateCategory("all");
+    if (key === "petFriendly") updateFilters({ petFriendly: false });
     if (key === "groupStayOnly") updateFilters({ groupStayOnly: false });
     if (key === "price") updateFilters({ minPrice: 0, maxPrice: 50000 });
     if (key === "bedrooms") updateFilters({ bedrooms: null });
@@ -388,6 +408,9 @@ function AllListingsContent() {
     amenityOptions,
     groupStayCount: databaseListings.filter((listing) => listing.guests >= 4).length,
     instantBookingCount: 0,
+    petFriendlyCount: databaseListings.filter((listing) =>
+      (listing.categories ?? []).includes("pet-friendly"),
+    ).length,
     onChange: updateFilters,
     onReset: resetFilters,
     soft: true,
@@ -399,6 +422,8 @@ function AllListingsContent() {
       <CategoryBar
         activeCategory={searchQuery.category}
         onChange={updateCategory}
+        location={searchQuery.location}
+        guests={searchQuery.guests}
       />
       <main className="min-h-screen bg-[#FFFFFF]">
         <div className="mx-auto max-w-7xl px-5 pb-16 md:px-8">
@@ -481,14 +506,42 @@ function AllListingsContent() {
                 {loadError}
               </div>
             ) : view === "map" ? (
-              <div className="flex min-h-[420px] items-center justify-center border border-[#E9E6DD] bg-[#F7F7F7] p-8 text-center text-[#36454F]">
-                <div>
-                  <h2 className="text-lg font-semibold text-[#36454F]">Map view coming soon</h2>
-                  <p className="mt-2 text-sm text-[#36454F]/70">
-                    Switch back to list view to browse available stays.
-                  </p>
-                </div>
-              </div>
+              listings.length === 0 ? (
+                <EmptyState
+                  title={
+                    searchQuery.category === "all"
+                      ? undefined
+                      : "No stays found for this category"
+                  }
+                  message={
+                    searchQuery.category === "all"
+                      ? undefined
+                      : `We couldn’t find stays in ${BROWSE_CATEGORY_LABELS[searchQuery.category]}. Try another category or clear the filters.`
+                  }
+                  onResetFilters={resetFilters}
+                />
+              ) : (
+                <>
+                  <ListingResultsMap listings={listings} />
+                  {hasMore && (
+                    <div className="py-5 text-center">
+                      <button
+                        type="button"
+                        onClick={() => void loadMoreListings()}
+                        disabled={isLoadingMore}
+                        className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-800 transition-colors hover:bg-neutral-100 disabled:cursor-wait disabled:opacity-60"
+                      >
+                        {isLoadingMore ? "Loading stays…" : "Load more stays on map"}
+                      </button>
+                    </div>
+                  )}
+                  {loadMoreError && (
+                    <p role="alert" className="mt-3 text-center text-sm text-red-700">
+                      {loadMoreError}
+                    </p>
+                  )}
+                </>
+              )
             ) : visibleListings.length === 0 ? (
               <EmptyState
                 title={

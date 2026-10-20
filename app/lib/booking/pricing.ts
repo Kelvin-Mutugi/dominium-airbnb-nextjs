@@ -2,10 +2,12 @@ import {
   calculateListingAdditionalCharges,
   normalizeListingAdditionalCharges,
 } from "@/app/lib/listing-charges";
+import { calculateAccommodationRate } from "@/app/lib/booking/monthly-pricing";
 
 export interface BookingPriceInput {
   nightlyRate: number | string;
   platformFeePerNight?: number | string | null;
+  monthlyRate?: number | string | null;
   additionalCharges?: unknown;
   nights: number;
   selectedExtras?: Iterable<string>;
@@ -14,6 +16,7 @@ export interface BookingPriceInput {
 export interface BookingPrice {
   nights: number;
   nightlyRate: number;
+  monthlyRateApplied: boolean;
   hostSubtotal: number;
   subtotal: number;
   serviceFee: number;
@@ -135,7 +138,10 @@ export function normalizeGuestPriceSnapshot(
         {
           ...nightlyLines[0],
           type: "nightly_rate",
-          name: "Nightly rate",
+          name:
+            typeof nightlyLines[0].name === "string"
+              ? nightlyLines[0].name
+              : "Nightly rate",
           unit_amount: nights > 0 ? money(guestNightlySubtotal / nights) : 0,
           quantity: nights,
           total: guestNightlySubtotal,
@@ -173,10 +179,17 @@ export function calculateBookingPrice(input: BookingPriceInput): BookingPrice {
     : 0;
   const hostNightlyRate = amount(input.nightlyRate);
   const platformMarkupPerNight = amount(input.platformFeePerNight);
-  const nightlyRate = money(hostNightlyRate + platformMarkupPerNight);
-  const hostSubtotal = money(hostNightlyRate * nights);
-  const subtotal = money(nightlyRate * nights);
+  const monthlyRate = amount(input.monthlyRate);
+  const accommodationRate = calculateAccommodationRate(
+    hostNightlyRate,
+    monthlyRate,
+    nights,
+  );
+  const nightlyRate = money(
+    accommodationRate.effectiveNightlyRate + platformMarkupPerNight,
+  );
   const serviceFee = money(platformMarkupPerNight * nights);
+  const subtotal = money(accommodationRate.hostSubtotal + serviceFee);
   const charges = calculateListingAdditionalCharges(
     normalizeListingAdditionalCharges(input.additionalCharges),
     nights,
@@ -185,12 +198,13 @@ export function calculateBookingPrice(input: BookingPriceInput): BookingPrice {
   const additionalFees = money(charges.total);
   const unroundedTotal = money(subtotal + additionalFees);
   const total = Math.round(unroundedTotal);
-  const hostPayout = money(hostSubtotal + additionalFees);
+  const hostPayout = money(accommodationRate.hostSubtotal + additionalFees);
 
   return {
     nights,
     nightlyRate,
-    hostSubtotal,
+    monthlyRateApplied: accommodationRate.monthlyRateApplied,
+    hostSubtotal: accommodationRate.hostSubtotal,
     subtotal,
     serviceFee,
     additionalFees,
@@ -200,7 +214,7 @@ export function calculateBookingPrice(input: BookingPriceInput): BookingPrice {
     hostPayout,
     financialSnapshot: createBookingFinancialSnapshot({
       guestTotal: total,
-      hostEarnings: hostSubtotal,
+      hostEarnings: accommodationRate.hostSubtotal,
       platformMarkup: serviceFee,
       paymentProcessingFee: 0,
       hostAmountPayable: hostPayout,

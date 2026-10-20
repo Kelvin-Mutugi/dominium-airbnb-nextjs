@@ -259,6 +259,17 @@ function listingPayload(values: Partial<ListingFormValues>) {
     town: String(values.town ?? "").trim(),
     address: String(values.address ?? "").trim() || null,
     price_per_night: Number(values.price_per_night),
+    monthly_rate:
+      values.monthly_rate == null ? null : Number(values.monthly_rate),
+    wifi_mbps: values.wifi_mbps == null ? null : Number(values.wifi_mbps),
+    has_workspace: values.has_workspace === true,
+    backup_power: values.backup_power ?? "none",
+    security_features: Array.isArray(values.security_features)
+      ? [...new Set(values.security_features)]
+      : [],
+    nearest_park_name: String(values.nearest_park_name ?? "").trim() || null,
+    park_distance_km:
+      values.park_distance_km == null ? null : Number(values.park_distance_km),
     max_guests: Number(values.max_guests),
     bedrooms: Number(values.bedrooms),
     bathrooms: Number(values.bathrooms),
@@ -282,6 +293,46 @@ function validateListing(values: ReturnType<typeof listingPayload>) {
   }
   if (!Number.isInteger(values.max_guests) || values.max_guests < 1) {
     throw new Error("Maximum guests must be at least one.");
+  }
+  if (
+    values.monthly_rate !== null &&
+    (!Number.isFinite(values.monthly_rate) || values.monthly_rate <= 0)
+  ) {
+    throw new Error("Monthly rate must be greater than zero.");
+  }
+  if (
+    values.wifi_mbps !== null &&
+    (!Number.isInteger(values.wifi_mbps) ||
+      values.wifi_mbps < 0 ||
+      values.wifi_mbps > 10000)
+  ) {
+    throw new Error("Wi-Fi speed must be between 0 and 10,000 Mbps.");
+  }
+  if (
+    !["none", "inverter", "solar", "generator"].includes(values.backup_power)
+  ) {
+    throw new Error("Choose a valid backup power source.");
+  }
+  if (
+    values.security_features.some(
+      (feature) => !["gated", "guard_24h", "cctv_common"].includes(feature),
+    )
+  ) {
+    throw new Error("Choose valid security features.");
+  }
+  if (
+    values.nearest_park_name &&
+    values.nearest_park_name.length > 120
+  ) {
+    throw new Error("Park or reserve name must be 120 characters or fewer.");
+  }
+  if (
+    values.park_distance_km !== null &&
+    (!Number.isFinite(values.park_distance_km) ||
+      values.park_distance_km < 0 ||
+      values.park_distance_km > 10000)
+  ) {
+    throw new Error("Park distance must be between 0 and 10,000 km.");
   }
 }
 
@@ -1649,7 +1700,7 @@ export async function getHostListingData(id: string) {
   const { data, error } = await supabase
     .from("listings")
     .select(
-      "id, host_id, title, description, county, town, address, property_type, categories, price_per_night, additional_charges, max_guests, bedrooms, bathrooms, amenities, features, house_rules, status, slug, latitude, longitude, check_in_time, check_out_time, min_nights, cancellation_policy, instant_book, is_publish_ready, created_at, updated_at, listing_images(id, url, sort_order, position, category, room_index, caption, is_cover, width, height)",
+      "id, host_id, title, description, county, town, address, property_type, categories, price_per_night, monthly_rate, wifi_mbps, has_workspace, backup_power, security_features, nearest_park_name, park_distance_km, additional_charges, max_guests, bedrooms, bathrooms, amenities, features, house_rules, status, slug, latitude, longitude, check_in_time, check_out_time, min_nights, cancellation_policy, instant_book, is_publish_ready, created_at, updated_at, listing_images(id, url, sort_order, position, category, room_index, caption, is_cover, width, height)",
     )
     .eq("id", id)
     .eq("host_id", user.id)
@@ -2279,6 +2330,45 @@ export async function submitHostListingChangeRequest(
     }
     return parsed;
   };
+  const optionalNumber = (
+    key: string,
+    minimum: number,
+    maximum: number,
+    integer = false,
+  ) => {
+    const rawValue = text(key);
+    if (!rawValue) return null;
+    const parsed = Number(rawValue);
+    if (
+      !Number.isFinite(parsed) ||
+      parsed < minimum ||
+      parsed > maximum ||
+      (integer && !Number.isInteger(parsed))
+    ) {
+      throw new Error(`Enter a valid ${key.replaceAll("_", " ")}.`);
+    }
+    return parsed;
+  };
+  const backupPower = text("backup_power");
+  if (!["none", "inverter", "solar", "generator"].includes(backupPower)) {
+    throw new Error("Choose a valid backup power source.");
+  }
+  const securityFeatures = formData
+    .getAll("security_features")
+    .map((feature) => String(feature).trim())
+    .filter(Boolean);
+  if (
+    securityFeatures.some(
+      (feature) => !["gated", "guard_24h", "cctv_common"].includes(feature),
+    ) ||
+    new Set(securityFeatures).size !== securityFeatures.length
+  ) {
+    throw new Error("Choose valid security features.");
+  }
+  const nearestParkName = text("nearest_park_name");
+  if (nearestParkName.length > 120) {
+    throw new Error("Park or reserve name must be 120 characters or fewer.");
+  }
 
   const changes = {
     title: text("title"),
@@ -2289,6 +2379,13 @@ export async function submitHostListingChangeRequest(
     property_type: text("property_type"),
     categories,
     price_per_night: number("price_per_night", 1, false),
+    monthly_rate: optionalNumber("monthly_rate", 0.01, 100000000),
+    wifi_mbps: optionalNumber("wifi_mbps", 0, 10000, true),
+    has_workspace: formData.get("has_workspace") === "on",
+    backup_power: backupPower,
+    security_features: securityFeatures,
+    nearest_park_name: nearestParkName || null,
+    park_distance_km: optionalNumber("park_distance_km", 0, 10000),
     max_guests: number("max_guests", 1),
     bedrooms: number("bedrooms", 0),
     bathrooms: number("bathrooms", 0, false),
