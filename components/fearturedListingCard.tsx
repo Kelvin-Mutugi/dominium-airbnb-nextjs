@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { unsplashCardImageLoader } from "./unsplash-image-loader";
 import { useEffect, useState } from "react";
-import { BedDouble, Star, Users } from "lucide-react";
+import { Star } from "lucide-react";
 
 import { supabase } from "@/app/lib/supabase/client";
 import SaveListingButton from "@/components/listings/SaveListingButton";
@@ -149,17 +149,14 @@ export default function FeaturedListingCard({
     };
   }, [id, item]);
 
-  // Loading state: mirrors the real card (square image + text lines)
-  // so nothing jumps when the listing loads.
+  // Loading state mirrors the real card so nothing jumps when it loads.
   if (loading) {
     return (
       <div className="w-full" aria-hidden="true">
-        <div className="shimmer aspect-square w-full rounded-xl" />
-
+        <div className="shimmer aspect-[20/19] w-full rounded-xl" />
         <div className="space-y-2 pt-3">
-          <div className="shimmer h-3 w-1/2 rounded" />
-          <div className="shimmer h-4 w-3/4 rounded" />
-          <div className="shimmer h-3 w-2/5 rounded" />
+          <div className="shimmer h-4 w-2/3 rounded" />
+          <div className="shimmer h-3.5 w-1/2 rounded" />
           <div className="shimmer h-4 w-1/3 rounded" />
         </div>
       </div>
@@ -181,17 +178,8 @@ export default function FeaturedListingCard({
   const rating =
     typeof listing.rating === "number" ? listing.rating.toFixed(1) : null;
 
-  const hasBeds = typeof listing.beds === "number";
-  const bedsLabel =
-    listing.beds === 0
-      ? "Studio"
-      : `${listing.beds} bed${listing.beds === 1 ? "" : "s"}`;
-
-  const hasGuests = typeof listing.guests === "number" && listing.guests > 0;
-  const guestsLabel = `${listing.guests} guest${listing.guests === 1 ? "" : "s"}`;
-
   return (
-    <article className="relative w-full">
+    <article className="group relative w-full">
       <Link
         href={`/apartments/${listing.id}`}
         target="_blank"
@@ -199,106 +187,66 @@ export default function FeaturedListingCard({
         className={`block rounded-xl text-left no-underline active:transform-none active:transition-none [-webkit-tap-highlight-color:transparent] ${focusRing}`}
       >
         {/* Image */}
-        <div className="relative aspect-square w-full overflow-hidden rounded-xl">
+        <div className="relative aspect-[20/19] w-full overflow-hidden rounded-xl bg-neutral-100">
           <Image
             src={activeImage}
             alt={listing.name}
-            loader={activeImage.includes("images.unsplash.com") ? unsplashCardImageLoader : undefined}
+            loader={
+              activeImage.includes("images.unsplash.com")
+                ? unsplashCardImageLoader
+                : undefined
+            }
             fill
             sizes={CARD_IMAGE_SIZES}
             quality={85}
-            unoptimized={activeImage.includes("placehold.co") || activeImage === "/placeholder.svg"}
+            unoptimized={
+              activeImage.includes("placehold.co") ||
+              activeImage === "/placeholder.svg"
+            }
             onError={() =>
               setFailedSrcs((prev) =>
                 prev.includes(currentSrc) ? prev : [...prev, currentSrc],
               )
             }
-            className="listing-image object-cover"
+            className="listing-image object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
           />
-
-          {/* Subtle bottom gradient (pointer-events-none so hover still reaches the photo) */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/25 to-transparent" />
-
-          {/* Verified badge */}
-          {/* {listing.verified && (
-            <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-[11px] font-semibold text-[#1B1A2E] shadow-sm">
-              <BadgeCheck size={13} className="text-[#E23E85]" aria-hidden="true" />
-              Verified
-            </span>
-          )} */}
         </div>
 
-        {/* Content */}
+        {/* Content: three lines, nothing more */}
         <div className="pt-3">
-          {/* Location + Rating */}
-          <div className="flex items-center justify-between gap-3">
-            <p className="truncate text-[12px] text-[#36454F]/90 lg:text-[13px]">
+          {/* Location + rating */}
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="truncate text-[15px] font-semibold leading-5 text-[#1B1A2E]">
               {listing.loc}
-            </p>
+            </h3>
 
             {rating && (
-              <span className="flex shrink-0 items-center gap-1 text-[12px] font-medium text-[#1B1A2E] lg:text-[13px]">
-                <Star
-                  size={12}
-                  fill="currentColor"
-                  className="text-[#F7B500]"
-                  aria-hidden="true"
-                />
+              <span className="flex shrink-0 items-center gap-1 text-[14px] leading-5 text-[#1B1A2E]">
+                <Star size={12} fill="currentColor" aria-hidden="true" />
                 {rating}
-                {typeof listing.reviewCount === "number" &&
-                  listing.reviewCount > 0 && (
-                    <span className="font-normal text-[#36454F]/55">
-                      ({listing.reviewCount})
-                    </span>
-                  )}
               </span>
             )}
           </div>
 
-          {/* Name */}
-          <h3 className="mt-1 truncate text-[15px] font-medium leading-5 text-[#1B1A2E]">
+          {/* Listing name, quieter */}
+          <p className="truncate text-[14px] leading-5 text-[#6B7280]">
             {listing.name}
-          </h3>
-
-          {/* Beds + guests */}
-          {(hasBeds || hasGuests) && (
-            <p className="mt-1 flex items-center gap-3 text-[12px] text-[#36454F]/90 lg:text-[13px]">
-              {hasBeds && (
-                <span className="inline-flex items-center gap-1">
-                  <BedDouble size={12} aria-hidden="true" />
-                  {bedsLabel}
-                </span>
-              )}
-              {hasGuests && (
-                <span className="inline-flex items-center gap-1">
-                  <Users size={12} aria-hidden="true" />
-                  {guestsLabel}
-                </span>
-              )}
-            </p>
-          )}
-
-          {/* Price */}
-          <p className="mt-1.5 text-[14px] font-semibold text-[#1B1A2E]">
-            {listing.price}
-            <span className="ml-1 font-normal text-[#36454F]/55">/ night</span>
           </p>
 
-          {/* Description */}
-          {listing.description ? (
-            <p className="mt-1 line-clamp-2 w-full text-[12px] leading-4 text-[#36454F]/90">
-              {listing.description}
-            </p>
-          ) : null}
+          {/* Price */}
+          <p className="mt-1 text-[15px] leading-5 text-[#1B1A2E]">
+            <span className="font-semibold">{listing.price}</span>
+            <span className="text-[#6B7280]"> night</span>
+          </p>
         </div>
       </Link>
 
-      {/* Save button: a sibling of the link, so we don't nest a button inside an <a> */}
+      {/* Save button stays a sibling of the link (no button inside an <a>) */}
       {showSave && (
         <SaveListingButton
           listingId={listing.id}
-          iconSize={15}
-          className={`absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[#1B1A2E] shadow-sm backdrop-blur-sm transition hover:bg-white ${focusRing}`}
+          iconSize={24}
+          className={`absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.45)] transition hover:scale-110 ${focusRing}`}
         />
       )}
     </article>

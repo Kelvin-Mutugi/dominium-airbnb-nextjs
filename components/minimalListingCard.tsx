@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { unsplashCardImageLoader } from "./unsplash-image-loader";
 import { useEffect, useState } from "react";
-import { BedDouble, Star, Users } from "lucide-react";
+import { Star } from "lucide-react";
 import { supabase } from "@/app/lib/supabase/client";
 import SaveListingButton from "@/components/listings/SaveListingButton";
 import type { Amenity, Listing } from "./homeData";
@@ -13,6 +13,9 @@ import type { Amenity, Listing } from "./homeData";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const focusRing =
+  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E23E85]";
 
 function normalizeAmenities(value: unknown): Amenity[] {
   if (!Array.isArray(value)) return [];
@@ -202,16 +205,16 @@ export default function MinimalListingCard({
     };
   }, [id, item]);
 
-  // Skeleton mirrors the real card (square image + three text lines)
+  // Skeleton mirrors the real card (image + three text lines)
   // so nothing jumps when the listing loads.
   if (loading) {
     return (
       <div className="w-full" aria-hidden="true">
-        <div className="shimmer aspect-square w-full rounded-xl" />
-        <div className="space-y-2 px-1.5 pt-3">
-          <div className="shimmer h-3 w-1/2 rounded" />
-          <div className="shimmer h-4 w-3/4 rounded" />
-          <div className="shimmer h-3 w-2/5 rounded" />
+        <div className="shimmer aspect-[20/19] w-full rounded-xl" />
+        <div className="space-y-2 pt-3">
+          <div className="shimmer h-4 w-2/3 rounded" />
+          <div className="shimmer h-3.5 w-1/2 rounded" />
+          <div className="shimmer h-4 w-1/3 rounded" />
         </div>
       </div>
     );
@@ -234,93 +237,78 @@ export default function MinimalListingCard({
     : galleryImages[0] ?? "/placeholder.svg";
 
   const ratingValue = formatRating(listing.rating);
-  const hasBeds = typeof listing.beds === "number";
-  const bedsLabel =
-    listing.beds === 0
-      ? "Studio"
-      : `${listing.beds} bed${listing.beds === 1 ? "" : "s"}`;
-  const hasGuests = typeof listing.guests === "number" && listing.guests > 0;
-  const guestsLabel = `${listing.guests} guest${listing.guests === 1 ? "" : "s"}`;
+
+  // Some listings store the price as "Ksh 5,000 / night"; strip the suffix
+  // so we can render our own quieter "night" label.
   const pricePerNight = /\/\s*night\s*$/i.test(listing.price)
     ? listing.price.replace(/\s*\/\s*night\s*$/i, "")
     : listing.price;
 
   return (
-    <Link
-      href={`/apartments/${listing.id}`}
-      target="_blank"
-      aria-label={`View details for ${listing.name}`}
-      className="block w-full overflow-hidden rounded-xl bg-white text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E89A1C] active:transform-none active:transition-none [-webkit-tap-highlight-color:transparent]"
-    >
-      <article>
-        <div className="relative aspect-square w-full overflow-hidden rounded-xl">
+    <article className="group relative w-full">
+      <Link
+        href={`/apartments/${listing.id}`}
+        target="_blank"
+        aria-label={`${listing.name}, ${listing.loc}, ${pricePerNight} per night`}
+        className={`block rounded-xl text-left no-underline active:transform-none active:transition-none [-webkit-tap-highlight-color:transparent] ${focusRing}`}
+      >
+        {/* Image */}
+        <div className="relative aspect-[20/19] w-full overflow-hidden rounded-xl bg-neutral-100">
           <Image
             src={activeImage}
             alt={listing.name}
-            loader={activeImage.includes("images.unsplash.com") ? unsplashCardImageLoader : undefined}
+            loader={
+              activeImage.includes("images.unsplash.com")
+                ? unsplashCardImageLoader
+                : undefined
+            }
             fill
             sizes={CARD_IMAGE_SIZES}
             quality={85}
-            unoptimized={activeImage.includes("placehold.co") || activeImage === "/placeholder.svg"}
+            unoptimized={
+              activeImage.includes("placehold.co") ||
+              activeImage === "/placeholder.svg"
+            }
             onError={() => setImageError(true)}
-            className="listing-image object-cover"
-          />
-
-          <span className="absolute left-2.5 top-2.5 z-10 rounded-full bg-[#040720]/75 px-2 py-1 text-[11px] font-semibold text-[#FFFFFF] shadow-sm backdrop-blur-sm">
-            {pricePerNight}
-            {/* <span className="ml-0.5 font-normal text-[#FFFFFF]/80">/ night</span> */}
-          </span>
-
-          <SaveListingButton
-            listingId={listing.id}
-            iconSize={15}
-            className="absolute right-2.5 top-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[#1B1A2E] shadow-sm backdrop-blur-sm transition hover:bg-white disabled:opacity-70"
+            className="listing-image object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
           />
         </div>
 
-        <div className="px-1.5 pt-3 pb-2">
-          <div className="flex items-center justify-between gap-2">
-            <p className="truncate text-[12px] text-[#36454F]/90 lg:text-[13px]">
+        {/* Content: three lines, nothing more */}
+        <div className="pt-3">
+          {/* Location + rating */}
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="truncate text-[14px] font-semibold leading-5 text-[#1B1A2E] lg:text-[15px]">
               {listing.loc}
-            </p>
+            </h3>
+
             {ratingValue && (
-              <span className="flex shrink-0 items-center gap-0.5 text-[12px] font-medium lg:text-[13px]">
-                <Star size={12} fill="currentColor" className="text-[#F7B500]" />
+              <span className="flex shrink-0 items-center gap-1 text-[13px] leading-5 text-[#1B1A2E] lg:text-[14px]">
+                <Star size={12} fill="currentColor" aria-hidden="true" />
                 {ratingValue}
-                {typeof listing.reviewCount === "number" && (
-                  <span className="text-[#36454F]/50">({listing.reviewCount})</span>
-                )}
               </span>
             )}
           </div>
 
-          <h3 className="mt-1 truncate text-[15px] font-medium text-[#1B1A2E]">
+          {/* Listing name, quieter */}
+          <p className="truncate text-[13px] leading-5 text-[#6B7280] lg:text-[14px]">
             {listing.name}
-          </h3>
+          </p>
 
-          {(hasBeds || hasGuests) && (
-            <p className="mt-1 flex items-center gap-3 text-[12px] text-[#36454F]/90 lg:text-[13px]">
-              {hasBeds && (
-                <span className="inline-flex items-center gap-1">
-                  <BedDouble size={12} aria-hidden="true" />
-                  {bedsLabel}
-                </span>
-              )}
-              {hasGuests && (
-                <span className="inline-flex items-center gap-1">
-                  <Users size={12} aria-hidden="true" />
-                  {guestsLabel}
-                </span>
-              )}
-            </p>
-          )}
-
-          {/* <p className="mt-1 text-[12px] font-semibold text-[#1B1A2E]">
-            {pricePerNight}
-            <span className="ml-0.5 font-normal text-[#36454F]/55">/ night</span>
-          </p> */}
+          {/* Price */}
+          <p className="mt-1 text-[14px] leading-5 text-[#1B1A2E] lg:text-[15px]">
+            <span className="font-semibold">{pricePerNight}</span>
+            <span className="text-[#6B7280]"> night</span>
+          </p>
         </div>
-      </article>
-    </Link>
+      </Link>
+
+      {/* Save button is a sibling of the link, so we never nest a button inside an <a> */}
+      <SaveListingButton
+        listingId={listing.id}
+        iconSize={24}
+        className={`absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.45)] transition hover:scale-110 disabled:opacity-70 ${focusRing}`}
+      />
+    </article>
   );
 }
