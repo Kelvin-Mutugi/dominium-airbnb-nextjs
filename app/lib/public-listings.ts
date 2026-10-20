@@ -20,6 +20,8 @@ interface ListingRow {
   town: string | null;
   price_per_night: number | string;
   platform_fee_per_night: number | string | null;
+  latitude: number | null;
+  longitude: number | null;
   max_guests: number | null;
   bedrooms: number | null;
   amenities: unknown;
@@ -92,7 +94,7 @@ export interface PublicCategoryCountsResult {
 
 const CARD_SELECT = `
   id, title, description, county, town, price_per_night, platform_fee_per_night, max_guests,
-  bedrooms, amenities, categories, average_rating, review_count,
+  bedrooms, amenities, categories, latitude, longitude, average_rating, review_count,
   listing_images ( url, sort_order, position, is_cover )
 `;
 
@@ -113,6 +115,12 @@ const DETAIL_SELECT = `
 const POOL_AMENITY_CLAUSE =
   'amenities.cs.["Pool"],amenities.cs.["pool"],amenities.cs.["Swimming Pool"],amenities.cs.["Swimming pool"]';
 
+function approximateMapCoordinate(value: number | null) {
+  return value == null || !Number.isFinite(value)
+    ? null
+    : Math.round(value * 100) / 100;
+}
+
 function toCardListing(row: ListingRow): Listing {
   const images = Array.isArray(row.listing_images)
     ? [...row.listing_images].sort(
@@ -132,6 +140,12 @@ function toCardListing(row: ListingRow): Listing {
     id: String(row.id),
     title: row.title ?? "Untitled stay",
     location: [row.town, row.county].filter(Boolean).join(", "),
+    latitude: approximateMapCoordinate(
+      row.latitude == null ? null : Number(row.latitude),
+    ),
+    longitude: approximateMapCoordinate(
+      row.longitude == null ? null : Number(row.longitude),
+    ),
     pricePerNight:
       Number(row.price_per_night) + Number(row.platform_fee_per_night ?? 0),
     bedrooms: row.bedrooms ?? 0,
@@ -264,7 +278,7 @@ async function fetchCatalogPage(
 
 const getCachedCatalogPage = unstable_cache(
   fetchCatalogPage,
-  ["public-listing-catalog-v3"],
+  ["public-listing-catalog-v4"],
   { revalidate: 60, tags: ["public-listings"] },
 );
 

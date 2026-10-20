@@ -15,6 +15,8 @@ export interface Listing {
   verified: boolean;
   imageUrl?: string;
   imageUrls?: string[];
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface FilterState {
