@@ -3,7 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 import { submitHostListingChangeRequest } from "@/app/lib/host/actions";
-import type { ListingAdditionalCharge } from "@/app/lib/host/types";
+import type {
+  BackupPowerSource,
+  ListingAdditionalCharge,
+  ListingSecurityFeature,
+} from "@/app/lib/host/types";
 
 type InitialValues = {
   title: string;
@@ -14,6 +18,13 @@ type InitialValues = {
   property_type: string;
   categories: string[];
   price_per_night: number;
+  monthly_rate: number | null;
+  wifi_mbps: number | null;
+  has_workspace: boolean;
+  backup_power: BackupPowerSource;
+  security_features: ListingSecurityFeature[];
+  nearest_park_name: string;
+  park_distance_km: number | null;
   additional_charges: ListingAdditionalCharge[];
   max_guests: number;
   bedrooms: number;
@@ -185,6 +196,23 @@ export function HostListingChangeForm({
         <Field id="price_per_night" label="Nightly price (KES)">
           <input id="price_per_night" name="price_per_night" type="number" required min="1" step="0.01" defaultValue={initialValues.price_per_night} className={inputClass} />
         </Field>
+        <Field id="monthly_rate" label="Monthly rate (KES)" optional>
+          <input id="monthly_rate" name="monthly_rate" type="number" min="0.01" step="0.01" defaultValue={initialValues.monthly_rate ?? ""} className={inputClass} />
+          <span className="mt-1 block text-xs text-gray-500">
+            Applies prorated per 30 nights for stays of 28 nights or more.
+          </span>
+        </Field>
+        <Field id="wifi_mbps" label="Wi-Fi speed (Mbps)" optional>
+          <input id="wifi_mbps" name="wifi_mbps" type="number" min="0" max="10000" step="1" defaultValue={initialValues.wifi_mbps ?? ""} className={inputClass} />
+        </Field>
+        <Field id="backup_power" label="Backup power">
+          <select id="backup_power" name="backup_power" defaultValue={initialValues.backup_power} className={inputClass}>
+            <option value="none">No backup power</option>
+            <option value="inverter">Inverter</option>
+            <option value="solar">Solar</option>
+            <option value="generator">Generator</option>
+          </select>
+        </Field>
         <Field id="max_guests" label="Maximum guests">
           <input id="max_guests" name="max_guests" type="number" required min="1" step="1" defaultValue={initialValues.max_guests} className={inputClass} />
         </Field>
@@ -225,6 +253,51 @@ export function HostListingChangeForm({
           ))}
         </div>
       </Field>
+
+      <fieldset className="space-y-3">
+        <legend className="text-sm font-medium text-[#12231d]">
+          Work and security details
+        </legend>
+        <label className="flex min-h-10 items-center gap-2 text-sm text-[#12231d]">
+          <input
+            type="checkbox"
+            name="has_workspace"
+            defaultChecked={initialValues.has_workspace}
+            className="h-4 w-4 accent-[#E23E85]"
+          />
+          Dedicated work desk or workspace
+        </label>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {([
+            ["gated", "Gated compound"],
+            ["guard_24h", "24-hour guard"],
+            ["cctv_common", "CCTV in shared areas"],
+          ] as const).map(([value, label]) => (
+            <label key={value} className="flex min-h-10 items-center gap-2 text-sm text-[#12231d]">
+              <input
+                type="checkbox"
+                name="security_features"
+                value={value}
+                defaultChecked={initialValues.security_features.includes(value)}
+                className="h-4 w-4 accent-[#E23E85]"
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field id="nearest_park_name" label="Nearest park or reserve" optional>
+          <input id="nearest_park_name" name="nearest_park_name" maxLength={120} defaultValue={initialValues.nearest_park_name} className={inputClass} />
+        </Field>
+        <Field id="park_distance_km" label="Distance to park or reserve (km)" optional>
+          <input id="park_distance_km" name="park_distance_km" type="number" min="0" max="10000" step="0.1" defaultValue={initialValues.park_distance_km ?? ""} className={inputClass} />
+          <span className="mt-1 block text-xs text-gray-500">
+            “Safari & parks” includes stays within 20 km.
+          </span>
+        </Field>
+      </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field id="amenity-input" label="Amenities" optional>

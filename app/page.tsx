@@ -1,7 +1,11 @@
-import { Suspense, type ReactNode } from "react";
+import { Suspense } from "react";
 import { connection } from "next/server";
 import HomePageClient from "@/components/HomePageClient";
-import { getHomepageDestinationListings, getHomepageFeaturedListings } from "@/app/lib/homepage-data";
+import {
+  getHomepageDestinationListings,
+  getHomepageDominiumPicks,
+  getHomepageFeaturedListings,
+} from "@/app/lib/homepage-data";
 import { HOMEPAGE_DESTINATIONS, type HomepageDestination } from "@/app/homepageSections";
 import DestinationListings from "@/components/listings/DestinationListings";
 import type { Listing } from "@/components/homeData";
@@ -44,8 +48,37 @@ async function DestinationSection({
   return <DestinationListings label={destination.label} slug={destination.slug} listings={listings} />;
 }
 
+async function DominiumPicksSection({
+  featuredIds,
+  listingsPromise,
+}: {
+  featuredIds: string[];
+  listingsPromise: Promise<Listing[]>;
+}) {
+  const featuredIdSet = new Set(featuredIds);
+  const listings = uniqueListings(await listingsPromise)
+    .filter((listing) => !featuredIdSet.has(listing.id))
+    .slice(0, 8);
+
+  if (!listings.length) return null;
+  return (
+    <DestinationListings
+      label="Dominium picks"
+      slug="Dominium picks"
+      listings={listings}
+      seeAllHref="/allListings?category=rare"
+      seeAllTitle="Explore picks"
+      seeAllDescription="curated by Dominium"
+    />
+  );
+}
+
 async function HomepageContent() {
   await connection();
+  const picksPromise = getHomepageDominiumPicks().catch((error: unknown) => {
+    console.error("Failed to load Dominium picks:", error);
+    return [];
+  });
   const destinationRequests = HOMEPAGE_DESTINATIONS.map((destination) => ({
     destination,
     listingsPromise: getHomepageDestinationListings(destination.searchTerms).catch((error: unknown) => {
@@ -71,7 +104,26 @@ async function HomepageContent() {
     </Suspense>
   ));
 
-  return <HomePageClient listings={featuredListings}>{destinationContent}</HomePageClient>;
+  return (
+    <HomePageClient listings={featuredListings}>
+      {destinationContent}
+      <Suspense
+        fallback={
+          <DestinationListings
+            label="Dominium picks"
+            slug="Dominium picks"
+            listings={[]}
+            isLoading
+          />
+        }
+      >
+        <DominiumPicksSection
+          featuredIds={featuredIds}
+          listingsPromise={picksPromise}
+        />
+      </Suspense>
+    </HomePageClient>
+  );
 }
 
 export default function HomePage() {

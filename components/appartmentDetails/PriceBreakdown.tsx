@@ -18,8 +18,9 @@ export function PriceBreakdown({
     <div className="mt-4 space-y-2 border-t border-[#EDEBE4] pt-4 text-[14px] text-[#3A3856]/80 lg:text-[#3A3856]">
       <div className="flex justify-between">
         <span>
-          {fmt(price.nightlyRate)} × {price.nights} night
-          {price.nights > 1 ? "s" : ""}
+          {price.monthlyRateApplied
+            ? `Monthly-rate stay · ${price.nights} nights (prorated per 30)`
+            : `${fmt(price.nightlyRate)} × ${price.nights} night${price.nights > 1 ? "s" : ""}`}
         </span>
         <span>{fmt(price.subtotal)}</span>
       </div>

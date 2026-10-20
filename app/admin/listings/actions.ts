@@ -24,6 +24,17 @@ function listingPayload(values: Partial<ListingFormValues>) {
       : [],
     is_rare_find: Boolean(values.is_rare_find),
     price_per_night: Number(values.price_per_night),
+    monthly_rate:
+      values.monthly_rate == null ? null : Number(values.monthly_rate),
+    wifi_mbps: values.wifi_mbps == null ? null : Number(values.wifi_mbps),
+    has_workspace: values.has_workspace === true,
+    backup_power: values.backup_power ?? "none",
+    security_features: Array.isArray(values.security_features)
+      ? [...new Set(values.security_features)]
+      : [],
+    nearest_park_name: String(values.nearest_park_name ?? "").trim() || null,
+    park_distance_km:
+      values.park_distance_km == null ? null : Number(values.park_distance_km),
     platform_fee_per_night: Number(values.platform_fee_per_night),
     service_fee_percent: 0,
     additional_charges: Array.isArray(values.additional_charges)
@@ -70,6 +81,46 @@ function validateListing(
   }
   if (!Number.isFinite(values.price_per_night) || values.price_per_night <= 0) {
     throw new Error("Price per night must be greater than zero.");
+  }
+  if (
+    values.monthly_rate !== null &&
+    (!Number.isFinite(values.monthly_rate) || values.monthly_rate <= 0)
+  ) {
+    throw new Error("Monthly rate must be greater than zero.");
+  }
+  if (
+    values.wifi_mbps !== null &&
+    (!Number.isInteger(values.wifi_mbps) ||
+      values.wifi_mbps < 0 ||
+      values.wifi_mbps > 10000)
+  ) {
+    throw new Error("Wi-Fi speed must be between 0 and 10,000 Mbps.");
+  }
+  if (
+    !["none", "inverter", "solar", "generator"].includes(values.backup_power)
+  ) {
+    throw new Error("Choose a valid backup power source.");
+  }
+  if (
+    values.security_features.some(
+      (feature) => !["gated", "guard_24h", "cctv_common"].includes(feature),
+    )
+  ) {
+    throw new Error("Choose valid security features.");
+  }
+  if (
+    values.nearest_park_name &&
+    values.nearest_park_name.length > 120
+  ) {
+    throw new Error("Park or reserve name must be 120 characters or fewer.");
+  }
+  if (
+    values.park_distance_km !== null &&
+    (!Number.isFinite(values.park_distance_km) ||
+      values.park_distance_km < 0 ||
+      values.park_distance_km > 10000)
+  ) {
+    throw new Error("Park distance must be between 0 and 10,000 km.");
   }
   if (
     !Number.isFinite(values.platform_fee_per_night) ||
@@ -191,6 +242,13 @@ export async function createAdminListing(
       categories: payload.categories,
       is_rare_find: payload.is_rare_find,
       price_per_night: payload.price_per_night,
+      monthly_rate: payload.monthly_rate,
+      wifi_mbps: payload.wifi_mbps,
+      has_workspace: payload.has_workspace,
+      backup_power: payload.backup_power,
+      security_features: payload.security_features,
+      nearest_park_name: payload.nearest_park_name,
+      park_distance_km: payload.park_distance_km,
       platform_fee_per_night: payload.platform_fee_per_night,
       additional_charges: payload.additional_charges,
       host_id: normalizedHostId,
@@ -213,7 +271,7 @@ export async function updateAdminListing(
   const { data: existingListing, error: lookupError } = await admin
     .from("listings")
     .select(
-      "host_id, title, county, town, property_type, categories, is_rare_find, price_per_night, platform_fee_per_night, additional_charges, status",
+      "host_id, title, county, town, property_type, categories, is_rare_find, price_per_night, monthly_rate, wifi_mbps, has_workspace, backup_power, security_features, nearest_park_name, park_distance_km, platform_fee_per_night, additional_charges, status",
     )
     .eq("id", listingId)
     .maybeSingle();
@@ -266,6 +324,13 @@ export async function updateAdminListing(
       categories: existingListing.categories,
       is_rare_find: existingListing.is_rare_find,
       price_per_night: existingListing.price_per_night,
+      monthly_rate: existingListing.monthly_rate,
+      wifi_mbps: existingListing.wifi_mbps,
+      has_workspace: existingListing.has_workspace,
+      backup_power: existingListing.backup_power,
+      security_features: existingListing.security_features,
+      nearest_park_name: existingListing.nearest_park_name,
+      park_distance_km: existingListing.park_distance_km,
       platform_fee_per_night: existingListing.platform_fee_per_night,
       additional_charges: existingListing.additional_charges,
       status: existingListing.status,
@@ -278,6 +343,13 @@ export async function updateAdminListing(
       categories: payload.categories,
       is_rare_find: payload.is_rare_find,
       price_per_night: payload.price_per_night,
+      monthly_rate: payload.monthly_rate,
+      wifi_mbps: payload.wifi_mbps,
+      has_workspace: payload.has_workspace,
+      backup_power: payload.backup_power,
+      security_features: payload.security_features,
+      nearest_park_name: payload.nearest_park_name,
+      park_distance_km: payload.park_distance_km,
       platform_fee_per_night: payload.platform_fee_per_night,
       additional_charges: payload.additional_charges,
       status: existingListing.status,

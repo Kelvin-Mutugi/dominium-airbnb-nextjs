@@ -3,10 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/app/lib/supabase/server';
 import { getSupabaseAdmin } from '@/app/lib/supabase/admin';
-import {
-  calculateListingAdditionalCharges,
-  normalizeListingAdditionalCharges,
-} from '@/app/lib/listing-charges';
+import { calculateBookingPrice } from '@/app/lib/booking/pricing';
 import { todayISO } from '@/app/lib/format';
 import { calculateCancellationRefund } from '@/app/lib/cancellation-policy';
 
@@ -141,7 +138,7 @@ export async function previewBookingDateChange(input: {
   const admin = getSupabaseAdmin();
   const { data: booking, error } = await admin
     .from('bookings')
-    .select('id, guest_id, listing_id, status, check_in, check_out, total_amount, listing:listings(price_per_night, service_fee_percent, platform_fee_per_night, additional_charges, min_nights)')
+    .select('id, guest_id, listing_id, status, check_in, check_out, total_amount, listing:listings(price_per_night, monthly_rate, service_fee_percent, platform_fee_per_night, additional_charges, min_nights)')
     .eq('id', input.bookingId)
     .eq('guest_id', user.id)
     .maybeSingle();
@@ -163,15 +160,18 @@ export async function previewBookingDateChange(input: {
   if (overlaps?.length || calendarEvents?.length) return { ok: false, error: 'Those dates are not available.' };
   if (pendingRequests?.length) return { ok: false, error: 'There is already an open change or cancellation request for this booking.' };
 
-  const hostSubtotal = Number(listing.price_per_night) * nights;
-  const serviceFee = listing.platform_fee_per_night == null
-    ? hostSubtotal * Number(listing.service_fee_percent ?? 0)
-    : Number(listing.platform_fee_per_night) * nights;
-  const additionalCharges = calculateListingAdditionalCharges(
-    normalizeListingAdditionalCharges(listing.additional_charges),
+  const price = calculateBookingPrice({
+    nightlyRate: listing.price_per_night,
+    monthlyRate: listing.monthly_rate,
+    platformFeePerNight:
+      listing.platform_fee_per_night == null
+        ? Number(listing.price_per_night) *
+          Number(listing.service_fee_percent ?? 0)
+        : listing.platform_fee_per_night,
+    additionalCharges: listing.additional_charges,
     nights,
-  );
-  const quotedTotal = Math.round((hostSubtotal + serviceFee + additionalCharges.total) * 100) / 100;
+  });
+  const quotedTotal = price.total;
   return {
     ok: true,
     currentTotal: Number(booking.total_amount),

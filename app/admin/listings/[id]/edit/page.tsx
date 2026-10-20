@@ -84,6 +84,19 @@ export default async function AdminEditListingPage({
       : [],
     is_rare_find: listing.is_rare_find === true,
     price_per_night: Number(listing.price_per_night ?? 0),
+    monthly_rate:
+      listing.monthly_rate == null ? null : Number(listing.monthly_rate),
+    wifi_mbps: listing.wifi_mbps == null ? null : Number(listing.wifi_mbps),
+    has_workspace: listing.has_workspace === true,
+    backup_power: listing.backup_power ?? "none",
+    security_features: Array.isArray(listing.security_features)
+      ? listing.security_features
+      : [],
+    nearest_park_name: listing.nearest_park_name ?? "",
+    park_distance_km:
+      listing.park_distance_km == null
+        ? null
+        : Number(listing.park_distance_km),
     platform_fee_per_night: Number(
       listing.platform_fee_per_night ??
         Number(listing.price_per_night ?? 0) *

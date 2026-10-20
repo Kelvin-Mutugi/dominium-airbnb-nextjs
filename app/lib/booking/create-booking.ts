@@ -46,6 +46,7 @@ interface ListingForBooking {
   host_id: string;
   title: string;
   price_per_night: number | string;
+  monthly_rate: number | string | null;
   platform_fee_per_night: number | string | null;
   additional_charges: unknown;
   max_guests: number;
@@ -152,7 +153,7 @@ export async function createBooking(input: CreateBookingInput) {
   const { data: listing, error: listingError } = await admin
     .from("listings")
     .select(
-      "id, host_id, title, price_per_night, platform_fee_per_night, additional_charges, max_guests, min_nights, status",
+      "id, host_id, title, price_per_night, monthly_rate, platform_fee_per_night, additional_charges, max_guests, min_nights, status",
     )
     .eq("id", input.listingId)
     .eq("status", "published")
@@ -192,6 +193,7 @@ export async function createBooking(input: CreateBookingInput) {
 
   const price = calculateBookingPrice({
     nightlyRate: row.price_per_night,
+    monthlyRate: row.monthly_rate,
     platformFeePerNight: row.platform_fee_per_night,
     additionalCharges: row.additional_charges,
     nights,
@@ -227,7 +229,9 @@ export async function createBooking(input: CreateBookingInput) {
       line_items: [
         {
           type: "nightly_rate",
-          name: "Nightly rate",
+          name: price.monthlyRateApplied
+            ? "Monthly rate (prorated per 30 nights)"
+            : "Nightly rate",
           unit_amount: price.nightlyRate,
           quantity: price.nights,
           total: price.subtotal,

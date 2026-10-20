@@ -1,4 +1,3 @@
-import { Wifi } from "lucide-react";
 import type { ListingAdditionalCharge } from "@/app/lib/host/types";
 import type { ListingCategory } from "@/app/lib/listing-categories";
 
@@ -78,6 +77,13 @@ export interface Listing {
   pricePerNight: number;
   serviceFeePercent: number;
   serviceFeePerNight?: number;
+  monthlyRate?: number | null;
+  wifiMbps?: number | null;
+  hasWorkspace?: boolean;
+  backupPower?: "none" | "inverter" | "solar" | "generator";
+  securityFeatures?: string[];
+  nearestParkName?: string | null;
+  parkDistanceKm?: number | null;
   propertyType?: string;
   categories?: ListingCategory[];
   additionalCharges?: ListingAdditionalCharge[];

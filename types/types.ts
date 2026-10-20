@@ -7,6 +7,8 @@ export interface Listing {
   bedrooms: number;
   guests: number;
   amenities: string[];
+  categories?: string[];
+  petFriendly?: boolean;
   description: string;
   rating: number;
   reviewCount: number;
@@ -21,6 +23,7 @@ export interface FilterState {
   propertyType: string | null;
   bedrooms: string | null;
   amenities: string[];
+  petFriendly: boolean;
   groupStayOnly: boolean;
   instantBooking: boolean;
   minRating: number | null;
@@ -32,6 +35,7 @@ export const DEFAULT_FILTERS: FilterState = {
   propertyType: null,
   bedrooms: null,
   amenities: [],
+  petFriendly: false,
   groupStayOnly: false,
   instantBooking: false,
   minRating: null,

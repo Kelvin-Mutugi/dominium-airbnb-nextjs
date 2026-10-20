@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowLeft, MapPin, Share2, ShieldCheck, Star } from "lucide-react";
+import { MapPin, Share2, ShieldCheck, Star } from "lucide-react";
 import { Listing, RelatedListingSummary } from "./homeData";
 import { Avatar } from "@/components/account/ui";
 import AmenitiesGrid from "./appartmentDetails/amenities";
@@ -56,7 +56,6 @@ export default function ApartmentDetails({
   listing,
   isLoading = false,
   relatedListings = [],
-  onBack,
   initialCheckIn,
   initialCheckOut,
   initialGuests = 1,
@@ -169,6 +168,7 @@ export default function ApartmentDetails({
   const hostBio = listing.hostProfile?.bio?.trim();
   const bookingPrice = calculateBookingPrice({
     nightlyRate: listing.pricePerNight,
+    monthlyRate: listing.monthlyRate,
     platformFeePerNight: listing.serviceFeePerNight ?? 0,
     additionalCharges: listing.additionalCharges ?? [],
     nights,

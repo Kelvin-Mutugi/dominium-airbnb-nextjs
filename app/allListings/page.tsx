@@ -302,6 +302,8 @@ function AllListingsContent() {
         listing.pricePerNight <= filters.maxPrice &&
         bedroomMatch &&
         amenityMatch &&
+        (!filters.petFriendly ||
+          (listing.categories ?? []).includes("pet-friendly")) &&
         (!filters.groupStayOnly || listing.guests >= 4) &&
         (!filters.minRating || listing.rating >= filters.minRating)
       );
@@ -330,6 +332,9 @@ function AllListingsContent() {
       label: BROWSE_CATEGORY_LABELS[searchQuery.category],
     });
   }
+  if (filters.petFriendly) {
+    activeFilters.push({ key: "petFriendly", label: "Pet-friendly" });
+  }
   if (filters.groupStayOnly) activeFilters.push({ key: "groupStayOnly", label: "Sleeps 4+ guests" });
   if (filters.minPrice > 0 || filters.maxPrice < 50000) {
     activeFilters.push({
@@ -347,6 +352,7 @@ function AllListingsContent() {
 
   const removeFilter = (key: string) => {
     if (key === "category") updateCategory("all");
+    if (key === "petFriendly") updateFilters({ petFriendly: false });
     if (key === "groupStayOnly") updateFilters({ groupStayOnly: false });
     if (key === "price") updateFilters({ minPrice: 0, maxPrice: 50000 });
     if (key === "bedrooms") updateFilters({ bedrooms: null });
@@ -388,6 +394,9 @@ function AllListingsContent() {
     amenityOptions,
     groupStayCount: databaseListings.filter((listing) => listing.guests >= 4).length,
     instantBookingCount: 0,
+    petFriendlyCount: databaseListings.filter((listing) =>
+      (listing.categories ?? []).includes("pet-friendly"),
+    ).length,
     onChange: updateFilters,
     onReset: resetFilters,
     soft: true,
@@ -399,6 +408,8 @@ function AllListingsContent() {
       <CategoryBar
         activeCategory={searchQuery.category}
         onChange={updateCategory}
+        location={searchQuery.location}
+        guests={searchQuery.guests}
       />
       <main className="min-h-screen bg-[#FFFFFF]">
         <div className="mx-auto max-w-7xl px-5 pb-16 md:px-8">
