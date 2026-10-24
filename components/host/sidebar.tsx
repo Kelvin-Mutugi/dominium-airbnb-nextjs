@@ -18,7 +18,10 @@ import {
   Star,
   MoreHorizontal,
 } from "lucide-react";
-import { getHostNavigationAttentionCount } from "@/app/lib/host/actions";
+import {
+  getHostNavigationAttentionCount,
+  getHostPanelAccessStatus,
+} from "@/app/lib/host/actions";
 
 let attentionCountRequest: Promise<number> | null = null;
 
@@ -67,9 +70,33 @@ export default function HostSidebar() {
   const pathname = usePathname();
   const [openMenuPath, setOpenMenuPath] = useState<string | null>(null);
   const [attentionCount, setAttentionCount] = useState(0);
+  const [isVerified, setIsVerified] = useState(false);
+  const [verificationHref, setVerificationHref] = useState("/host/onboarding");
   const moreOpen = openMenuPath === pathname;
 
   useEffect(() => {
+    let active = true;
+    getHostPanelAccessStatus()
+      .then((status) => {
+        if (!active) return;
+        setIsVerified(status.isVerified);
+        setVerificationHref(
+          status.hasPendingApplication
+            ? "/host/pending-review"
+            : "/host/onboarding",
+        );
+      })
+      .catch((error: unknown) => {
+        console.error("Failed to load host panel access status:", error);
+      });
+    return () => {
+      active = false;
+    };
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!isVerified) return;
+
     let active = true;
     loadAttentionCount()
       .then((count) => {
@@ -81,7 +108,7 @@ export default function HostSidebar() {
     return () => {
       active = false;
     };
-  }, [pathname]);
+  }, [pathname, isVerified]);
 
   const isActive = (href: string) => {
     if (href === "/host") {
@@ -90,6 +117,10 @@ export default function HostSidebar() {
 
     return pathname === href || pathname.startsWith(`${href}/`);
   };
+
+  const visibleNav = isVerified
+    ? NAV
+    : [{ href: verificationHref, label: "Host verification", icon: ClipboardCheck }];
 
   return (
     <>
@@ -100,7 +131,7 @@ export default function HostSidebar() {
         </span>
 
         <nav className="flex flex-1 flex-col gap-1">
-          {NAV.map((item) => {
+          {visibleNav.map((item) => {
             const active = isActive(item.href);
             const Icon = item.icon;
 
@@ -138,7 +169,13 @@ export default function HostSidebar() {
         <span className="font-bold">
           Host <span className="text-[#E23E85]">Panel</span>
         </span>
-        {moreOpen && (
+        {!isVerified && (
+          <Link href="/" aria-label="Back to site" className="flex items-center gap-1 text-sm font-medium text-gray-600">
+            <ArrowLeft className="h-4 w-4" />
+            Back to site
+          </Link>
+        )}
+        {isVerified && moreOpen && (
           <nav id="host-mobile-more-menu" aria-label="More host destinations" className="account-neu-surface fixed bottom-16 right-2 z-40 w-56 rounded-2xl p-2 text-[#1B1A2E]">
             {MORE_NAV.map((item) => {
               const Icon = item.icon;
@@ -161,45 +198,47 @@ export default function HostSidebar() {
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <nav aria-label="Primary host navigation" className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-[#E9E6DD] bg-white pb-[env(safe-area-inset-bottom)] pt-1 md:hidden">
-        {MOBILE_NAV.map((item) => {
-          const active = isActive(item.href);
-          const Icon = item.icon;
+      {isVerified && (
+        <nav aria-label="Primary host navigation" className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-[#E9E6DD] bg-white pb-[env(safe-area-inset-bottom)] pt-1 md:hidden">
+          {MOBILE_NAV.map((item) => {
+            const active = isActive(item.href);
+            const Icon = item.icon;
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              aria-label={item.label === "Bookings" && attentionCount > 0 ? `${item.label}, ${attentionCount} items need attention` : item.label}
-              title={item.label}
-              className={`mx-0.5 my-1 flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[10px] font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E23E85] ${
-                active ? "bg-[#FCE8F0] text-[#9C2454] shadow-[inset_2px_2px_5px_rgba(156,36,84,0.08),inset_-2px_-2px_5px_rgba(255,255,255,0.8)]" : "text-gray-600 hover:text-[#1B1A2E] active:shadow-[inset_2px_2px_4px_rgba(27,26,46,0.06)]"
-              }`}
-            >
-              <span className="relative">
-                <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-                {item.label === "Bookings" && attentionCount > 0 && (
-                  <span aria-hidden="true" className="absolute -right-2 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-[#E23E85] px-1 text-[9px] font-bold leading-none text-white">
-                    {attentionCount > 99 ? "99+" : attentionCount}
-                  </span>
-                )}
-              </span>
-              <span className="max-w-full truncate">{item.label}</span>
-            </Link>
-          );
-        })}
-        <button
-          type="button"
-          aria-expanded={moreOpen}
-          aria-controls="host-mobile-more-menu"
-          onClick={() => setOpenMenuPath(moreOpen ? null : pathname)}
-          className="mx-0.5 my-1 flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[10px] font-medium text-gray-600 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E23E85]"
-        >
-          <MoreHorizontal className="h-5 w-5 shrink-0" aria-hidden="true" />
-          <span>More</span>
-        </button>
-      </nav>
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                aria-label={item.label === "Bookings" && attentionCount > 0 ? `${item.label}, ${attentionCount} items need attention` : item.label}
+                title={item.label}
+                className={`mx-0.5 my-1 flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[10px] font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E23E85] ${
+                  active ? "bg-[#FCE8F0] text-[#9C2454] shadow-[inset_2px_2px_5px_rgba(156,36,84,0.08),inset_-2px_-2px_5px_rgba(255,255,255,0.8)]" : "text-gray-600 hover:text-[#1B1A2E] active:shadow-[inset_2px_2px_4px_rgba(27,26,46,0.06)]"
+                }`}
+              >
+                <span className="relative">
+                  <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  {item.label === "Bookings" && attentionCount > 0 && (
+                    <span aria-hidden="true" className="absolute -right-2 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-[#E23E85] px-1 text-[9px] font-bold leading-none text-white">
+                      {attentionCount > 99 ? "99+" : attentionCount}
+                    </span>
+                  )}
+                </span>
+                <span className="max-w-full truncate">{item.label}</span>
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            aria-expanded={moreOpen}
+            aria-controls="host-mobile-more-menu"
+            onClick={() => setOpenMenuPath(moreOpen ? null : pathname)}
+            className="mx-0.5 my-1 flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[10px] font-medium text-gray-600 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E23E85]"
+          >
+            <MoreHorizontal className="h-5 w-5 shrink-0" aria-hidden="true" />
+            <span>More</span>
+          </button>
+        </nav>
+      )}
     </>
   );
 }
