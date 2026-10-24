@@ -127,6 +127,23 @@ export async function submitHostOnboarding(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("You must be signed in to become a host.");
 
+  const { data: existingProfile, error: profileError } = await supabase
+    .from("profiles")
+    .select("kyc_status, kyc_submitted_at, host_verified_at")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (profileError) throw new Error("Unable to check your host application status.");
+  if (existingProfile?.host_verified_at || existingProfile?.kyc_status === "approved") {
+    throw new Error("Your host account is already verified.");
+  }
+  if (
+    existingProfile?.kyc_status === "pending" ||
+    (existingProfile?.kyc_submitted_at &&
+      existingProfile.kyc_status !== "rejected")
+  ) {
+    throw new Error("Your host application is already under review.");
+  }
+
   // ---- pull + server-side validate every field (never trust the client) ----
   const fullName = String(formData.get("fullName") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
@@ -256,6 +273,32 @@ export async function getHostOnboardingStatus() {
 
   if (error) throw new Error("Unable to check host onboarding status.");
   return data;
+}
+
+export async function getHostPanelAccessStatus() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) throw new Error("Unable to check host panel access.");
+  if (!user) return { isVerified: false, hasPendingApplication: false };
+
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("kyc_status, kyc_submitted_at, host_verified_at")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (error) throw new Error("Unable to check host panel access.");
+  return {
+    isVerified:
+      Boolean(profile?.host_verified_at) || profile?.kyc_status === "approved",
+    hasPendingApplication:
+      profile?.kyc_status === "pending" ||
+      (Boolean(profile?.kyc_submitted_at) && profile?.kyc_status !== "rejected"),
+  };
 }
 
 export async function getHostVerificationStatus() {

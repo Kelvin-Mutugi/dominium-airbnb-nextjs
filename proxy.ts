@@ -64,13 +64,13 @@ export async function proxy(request: NextRequest) {
   }
 
   if (pathname.startsWith("/host") && pathname !== "/host/onboarding") {
-    const { data: roleRow, error: roleError } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, status, host_verified_at, kyc_status, kyc_submitted_at")
       .eq("id", user.id)
       .maybeSingle();
 
-    if (roleError || !roleRow || roleRow.role !== "host") {
+    if (profileError || !profile || profile.role !== "host") {
       if (isApiRequest) {
         return new NextResponse(JSON.stringify({ error: "host_required" }), {
           status: 403,
@@ -79,6 +79,30 @@ export async function proxy(request: NextRequest) {
       }
 
       return NextResponse.redirect(new URL("/host/onboarding", request.url));
+    }
+
+    if (profile.status === "suspended") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    const isVerified =
+      Boolean(profile.host_verified_at) || profile.kyc_status === "approved";
+    const isApplicationPending =
+      profile.kyc_status === "pending" ||
+      (Boolean(profile.kyc_submitted_at) && profile.kyc_status !== "rejected");
+    const isVerificationStatusPage =
+      pathname === "/host/pending-review" &&
+      (isApplicationPending ||
+        profile.kyc_status === "rejected" ||
+        isVerified);
+
+    if (!isVerified && !isVerificationStatusPage) {
+      return NextResponse.redirect(
+        new URL(
+          isApplicationPending ? "/host/pending-review" : "/host/onboarding",
+          request.url,
+        ),
+      );
     }
   }
 
