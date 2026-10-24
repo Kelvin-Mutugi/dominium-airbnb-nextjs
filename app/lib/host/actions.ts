@@ -149,12 +149,17 @@ export async function submitHostOnboarding(formData: FormData) {
   const mpesaNumber = String(formData.get("mpesaNumber") ?? "").trim();
   const hostBio = String(formData.get("hostBio") ?? "").trim();
   const agreedToHostTerms = formData.get("agreedToHostTerms") === "true";
-  const idDocument = formData.get("idDocument") as File | null;
+  const idDocumentFront = formData.get("idDocumentFront");
+  const idDocumentBack = formData.get("idDocumentBack");
+  const frontDocument = idDocumentFront instanceof File ? idDocumentFront : null;
+  const backDocument = idDocumentBack instanceof File ? idDocumentBack : null;
 
   if (!fullName) throw new Error("Full legal name is required.");
   if (!MPESA_REGEX.test(phone))
     throw new Error("Enter a valid phone number, e.g. 0712345678.");
   if (!email.includes("@")) throw new Error("Enter a valid email address.");
+  if (idType !== "national_id" && idType !== "passport")
+    throw new Error("Choose a valid ID document type.");
   if (!idNumber) throw new Error("National ID / passport number is required.");
   if (!dateOfBirth) throw new Error("Date of birth is required.");
   if (!isAdult(dateOfBirth))
@@ -163,8 +168,10 @@ export async function submitHostOnboarding(formData: FormData) {
   if (!residentialAddress) throw new Error("Residential address is required.");
   if (hostType === "company" && !businessName)
     throw new Error("Company name is required for company hosts.");
-  if (!idDocument || idDocument.size === 0)
-    throw new Error("Please upload a copy of your ID or passport.");
+  if (!frontDocument || frontDocument.size === 0)
+    throw new Error("Please upload the front of your ID or your passport.");
+  if (idType === "national_id" && (!backDocument || backDocument.size === 0))
+    throw new Error("Please upload the back of your national ID.");
   if (payoutMethod !== "mpesa") {
     throw new Error("Host payouts are currently sent to M-Pesa numbers.");
   }
@@ -176,16 +183,28 @@ export async function submitHostOnboarding(formData: FormData) {
       "You must accept the Host Listing Agreement and Terms of Service.",
     );
 
-  // ---- upload the ID document to a private bucket, folder-scoped per user ----
-  const extension = idDocument.name.split(".").pop() ?? "jpg";
-  const path = `${user.id}/id-document-${Date.now()}.${extension}`;
+  // ---- upload identity documents to a private, user-scoped folder ----
+  const submittedAt = Date.now();
+  const frontExtension = frontDocument.name.split(".").pop() ?? "jpg";
+  const frontPath = `${user.id}/id-document-front-${submittedAt}.${frontExtension}`;
   const { error: uploadError } = await supabase.storage
     .from("host-documents")
-    .upload(path, idDocument, {
+    .upload(frontPath, frontDocument, {
       upsert: true,
     });
   if (uploadError)
-    throw new Error(`Could not upload ID document: ${uploadError.message}`);
+    throw new Error(`Could not upload the front of your ID: ${uploadError.message}`);
+
+  let backPath: string | null = null;
+  if (idType === "national_id" && backDocument) {
+    const backExtension = backDocument.name.split(".").pop() ?? "jpg";
+    backPath = `${user.id}/id-document-back-${submittedAt}.${backExtension}`;
+    const { error: backUploadError } = await supabase.storage
+      .from("host-documents")
+      .upload(backPath, backDocument, { upsert: true });
+    if (backUploadError)
+      throw new Error(`Could not upload the back of your ID: ${backUploadError.message}`);
+  }
 
   // ---- upsert the profile row ----
   const { error: upsertError } = await supabase.from("profiles").upsert({
@@ -199,7 +218,8 @@ export async function submitHostOnboarding(formData: FormData) {
     business_name: hostType === "company" ? businessName : null,
     id_number: idNumber,
     id_document_type: idType,
-    id_document_url: path,
+    id_document_url: frontPath,
+    id_document_back_url: backPath,
     date_of_birth: dateOfBirth,
     county,
     residential_address: residentialAddress,

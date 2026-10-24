@@ -287,9 +287,8 @@ function StayCard({
         className={`block rounded-xl text-left no-underline ${focusRing}`}
       >
         <div
-          className={`relative aspect-[20/19] w-full overflow-hidden rounded-xl bg-neutral-100 transition-shadow ${
-            selected ? "ring-2 ring-[#1B1A2E] ring-offset-2" : ""
-          }`}
+          className={`relative aspect-[20/19] w-full overflow-hidden rounded-xl bg-neutral-100 transition-shadow ${selected ? "ring-2 ring-[#1B1A2E] ring-offset-2" : ""
+            }`}
         >
           {listing.imageUrl ? (
             <Image
@@ -453,9 +452,8 @@ export default function ListingResultsMap({
           ref={mapSectionRef}
           aria-label="Map of available stays"
           style={{ scrollMarginTop: "var(--sticky-top)" }}
-          className={`relative isolate h-[var(--map-h)] min-h-[360px] overflow-hidden rounded-xl border border-neutral-200 bg-[#e8edf0] lg:sticky lg:top-[var(--sticky-top)] ${
-            mobileView === "list" ? "hidden lg:block" : ""
-          }`}
+          className={`relative isolate h-[var(--map-h)] min-h-[360px] overflow-hidden rounded-xl border border-neutral-200 bg-[#e8edf0] lg:sticky lg:top-[var(--sticky-top)] ${mobileView === "list" ? "hidden lg:block" : ""
+            }`}
         >
           <MapContainer
             center={points[0]?.position ?? KENYA_CENTER}
@@ -565,9 +563,8 @@ export default function ListingResultsMap({
           {tilesFailed && (
             <p
               role="status"
-              className={`absolute left-3 z-[1000] max-w-[calc(100%-1.5rem)] rounded-lg border border-amber-200 bg-white/95 px-3 py-2 text-xs text-amber-900 shadow-sm ${
-                selectedPoint ? "top-3" : "bottom-3"
-              }`}
+              className={`absolute left-3 z-[1000] max-w-[calc(100%-1.5rem)] rounded-lg border border-amber-200 bg-white/95 px-3 py-2 text-xs text-amber-900 shadow-sm ${selectedPoint ? "top-3" : "bottom-3"
+                }`}
             >
               Map tiles couldn&apos;t load. Check your connection and try again.
             </p>
@@ -580,9 +577,8 @@ export default function ListingResultsMap({
         type="button"
         onClick={() => setMobileView((v) => (v === "list" ? "map" : "list"))}
         aria-label={mobileView === "list" ? "Show map" : "Show listings"}
-        className={`fixed bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] left-1/2 z-[1100] flex -translate-x-1/2 items-center gap-2 rounded-full bg-[#1B1A2E] px-5 py-3 text-sm font-semibold text-white shadow-lg lg:hidden ${
-          selectedPoint && mobileView === "map" ? "hidden" : ""
-        } ${focusRing}`}
+        className={`fixed bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] left-1/2 z-[1100] flex -translate-x-1/2 items-center gap-2 rounded-full bg-[#1B1A2E] px-5 py-3 text-sm font-semibold text-white shadow-lg lg:hidden ${selectedPoint && mobileView === "map" ? "hidden" : ""
+          } ${focusRing}`}
       >
         {mobileView === "list" ? (
           <>
