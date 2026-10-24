@@ -24,7 +24,7 @@ export async function reviewHostVerification(formData: FormData) {
   const admin = getSupabaseAdmin();
   const { data: host, error: lookupError } = await admin
     .from('profiles')
-    .select('id, kyc_status, id_document_url')
+    .select('id, kyc_status, id_document_type, id_document_url, id_document_back_url')
     .eq('id', hostId)
     .eq('role', 'host')
     .maybeSingle();
@@ -35,11 +35,20 @@ export async function reviewHostVerification(formData: FormData) {
   if (decision === 'approved' && !host.id_document_url) {
     throw new Error('The host must upload an ID document before approval.');
   }
+  if (decision === 'approved' && host.id_document_type === 'national_id' && !host.id_document_back_url) {
+    throw new Error('The host must upload both sides of their national ID before approval.');
+  }
   if (decision === 'approved') {
-    const { error: documentError } = await admin.storage
+    const { error: frontDocumentError } = await admin.storage
       .from('host-documents')
       .createSignedUrl(host.id_document_url, 60);
-    if (documentError) throw new Error('The ID document is unavailable for review. Ask the host to resubmit it.');
+    if (frontDocumentError) throw new Error('The front of the ID document is unavailable for review. Ask the host to resubmit it.');
+    if (host.id_document_type === 'national_id' && host.id_document_back_url) {
+      const { error: backDocumentError } = await admin.storage
+        .from('host-documents')
+        .createSignedUrl(host.id_document_back_url, 60);
+      if (backDocumentError) throw new Error('The back of the ID document is unavailable for review. Ask the host to resubmit it.');
+    }
   }
 
   const reviewedAt = new Date().toISOString();

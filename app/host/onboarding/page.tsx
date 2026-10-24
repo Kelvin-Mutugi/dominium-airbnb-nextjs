@@ -21,7 +21,8 @@ type FormState = {
   businessName: string;
   idType: IdType;
   idNumber: string;
-  idDocument: File | null;
+  idDocumentFront: File | null;
+  idDocumentBack: File | null;
   dateOfBirth: string;
   county: string;
   residentialAddress: string;
@@ -42,7 +43,8 @@ const initialState: FormState = {
   businessName: "",
   idType: "national_id",
   idNumber: "",
-  idDocument: null,
+  idDocumentFront: null,
+  idDocumentBack: null,
   dateOfBirth: "",
   county: "",
   residentialAddress: "",
@@ -149,7 +151,10 @@ export default function HostOnboardingPage() {
     }
     if (!/^\S+@\S+\.\S+$/.test(form.email)) return "Enter a valid email address.";
     if (!form.idNumber.trim()) return `${form.idType === "passport" ? "Passport" : "National ID"} number is required.`;
-    if (!form.idDocument) return "Please upload a copy of your ID or passport.";
+    if (!form.idDocumentFront) return "Please upload the front of your ID or your passport.";
+    if (form.idType === "national_id" && !form.idDocumentBack) {
+      return "Please upload the back of your national ID.";
+    }
     if (!form.dateOfBirth) return "Date of birth is required.";
     const age = calculateAge(form.dateOfBirth);
     if (age !== null && age < 18) return "You must be at least 18 years old to host.";
@@ -182,7 +187,10 @@ export default function HostOnboardingPage() {
     payload.set("businessName", form.businessName);
     payload.set("idType", form.idType);
     payload.set("idNumber", form.idNumber);
-    if (form.idDocument) payload.set("idDocument", form.idDocument);
+    if (form.idDocumentFront) payload.set("idDocumentFront", form.idDocumentFront);
+    if (form.idType === "national_id" && form.idDocumentBack) {
+      payload.set("idDocumentBack", form.idDocumentBack);
+    }
     payload.set("dateOfBirth", form.dateOfBirth);
     payload.set("county", form.county);
     payload.set("residentialAddress", form.residentialAddress);
@@ -285,16 +293,46 @@ export default function HostOnboardingPage() {
             </label>
           </div>
 
-          <label className={labelClass}>
-            Upload ID document <span className="font-normal text-gray-500">(front side, clear photo or scan)</span>
-            <input
-              required
-              type="file"
-              accept="image/*,.pdf"
-              className="mt-1 block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#12231d] file:px-3 file:py-2 file:text-sm file:font-medium file:text-white"
-              onChange={(e) => update("idDocument", e.target.files?.[0] ?? null)}
-            />
-          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className={labelClass}>
+              {form.idType === "passport" ? "Upload passport" : "Upload national ID — front"}
+              <span className="mt-1 block text-xs font-normal text-gray-500">
+                Clear photo, scan, or PDF
+              </span>
+              <input
+                required
+                type="file"
+                accept="image/*,.pdf"
+                className="mt-2 block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#12231d] file:px-3 file:py-2 file:text-sm file:font-medium file:text-white"
+                onChange={(e) => update("idDocumentFront", e.target.files?.[0] ?? null)}
+              />
+              {form.idDocumentFront && (
+                <span className="mt-1 block truncate text-xs font-normal text-gray-500">
+                  Selected: {form.idDocumentFront.name}
+                </span>
+              )}
+            </label>
+            {form.idType === "national_id" && (
+              <label className={labelClass}>
+                Upload national ID — back
+                <span className="mt-1 block text-xs font-normal text-gray-500">
+                  Clear photo, scan, or PDF
+                </span>
+                <input
+                  required
+                  type="file"
+                  accept="image/*,.pdf"
+                  className="mt-2 block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#12231d] file:px-3 file:py-2 file:text-sm file:font-medium file:text-white"
+                  onChange={(e) => update("idDocumentBack", e.target.files?.[0] ?? null)}
+                />
+                {form.idDocumentBack && (
+                  <span className="mt-1 block truncate text-xs font-normal text-gray-500">
+                    Selected: {form.idDocumentBack.name}
+                  </span>
+                )}
+              </label>
+            )}
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={labelClass}>
