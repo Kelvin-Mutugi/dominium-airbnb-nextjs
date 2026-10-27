@@ -2,6 +2,7 @@
 
 'use client';
 
+import Link from 'next/link';
 import { useId, useRef, useState } from 'react';
 import { formatMoney, todayISO } from '@/app/lib/format';
 import {
@@ -37,6 +38,7 @@ export function BookingChangeActions({
   const [newCheckIn, setNewCheckIn] = useState(checkIn);
   const [newCheckOut, setNewCheckOut] = useState(checkOut);
   const [reason, setReason] = useState('');
+  const [cancellationReason, setCancellationReason] = useState('');
   const [acknowledged, setAcknowledged] = useState(false);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -53,6 +55,7 @@ export function BookingChangeActions({
       return;
     }
     setCancellation(result);
+    setCancellationReason('');
     setAcknowledged(false);
     cancelDialog.current?.showModal();
   }
@@ -74,7 +77,7 @@ export function BookingChangeActions({
   async function sendCancellationRequest() {
     setPending(true);
     setError(null);
-    const result = await requestBookingCancellation(bookingId);
+    const result = await requestBookingCancellation(bookingId, cancellationReason);
     setPending(false);
     if (!result.ok) {
       setError(result.error);
@@ -141,7 +144,7 @@ export function BookingChangeActions({
           {cancellation && (
             <>
               <p className="mt-2 text-sm text-neutral-600">
-                Based on the cancellation schedule, you’d get back about{' '}
+                Based on the cancellation schedule, your estimated refund is{' '}
                 <strong className="text-neutral-900">{formatMoney(cancellation.estimatedRefund)}</strong>.
               </p>
 
@@ -161,9 +164,32 @@ export function BookingChangeActions({
               </dl>
 
               <p className="mt-3 text-xs leading-5 text-neutral-500">
-                The estimate follows the platform cancellation schedule and successful payments recorded for this booking.
-                The admin team reviews the request; submitting it does not cancel the booking or send a refund.
+                The estimate follows the platform policy and successful payments recorded for this booking. Any separately disclosed non-refundable transaction or processing charge may be excluded. The admin team reviews the request; submitting it does not cancel the booking or send a refund.
               </p>
+
+              <label className="mt-4 block text-sm text-neutral-700">
+                Note for the review team <span className="text-neutral-500">(optional)</span>
+                <textarea
+                  value={cancellationReason}
+                  onChange={(event) => setCancellationReason(event.target.value)}
+                  maxLength={1000}
+                  rows={3}
+                  className={`${inputClass} mt-1.5`}
+                  placeholder="Share any details about your cancellation."
+                />
+              </label>
+              {cancellation.refundPercent === 0 && (
+                <p className="mt-3 text-sm text-neutral-600">
+                  If exceptional circumstances apply,{" "}
+                  <Link
+                    href={`/account/support?category=payment_refund&booking=${encodeURIComponent(bookingId)}`}
+                    className="font-medium text-[#9C2454] underline underline-offset-2"
+                  >
+                    contact support for a case-by-case review
+                  </Link>
+                  . An exception is not guaranteed.
+                </p>
+              )}
 
               <label className="mt-4 flex items-start gap-2.5 text-sm text-neutral-700">
                 <input
@@ -172,7 +198,7 @@ export function BookingChangeActions({
                   onChange={(event) => setAcknowledged(event.target.checked)}
                   className="mt-1 accent-[#E23E85]"
                 />
-                <span>I understand this sends a request to the admin team. The refund isn’t instant.</span>
+                <span>I understand this sends a cancellation request to the admin team and does not instantly cancel my booking or send a refund.</span>
               </label>
             </>
           )}

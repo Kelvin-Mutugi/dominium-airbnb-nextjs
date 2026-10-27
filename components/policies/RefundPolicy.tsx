@@ -1,4 +1,5 @@
 import { PLATFORM_CANCELLATION_POLICY } from "@/app/lib/cancellation-policy";
+import Link from "next/link";
 
 export default function RefundPolicy() {
   return (
@@ -13,87 +14,133 @@ export default function RefundPolicy() {
       </header>
 
       <p className="mb-10 leading-relaxed">
-        Cancellation requests are handled under the platform-wide terms below.
-        Estimates use the successful payments recorded for your booking.
+        This policy applies to every reservation on Dominium BNB and takes
+        precedence over any different cancellation or refund wording shown on a
+        listing. Refund estimates are based on successful payments recorded for
+        the booking and use the Africa/Nairobi calendar date.
       </p>
 
       <section className="mb-10">
         <h2 className="text-xl font-bold text-gray-900 mb-4">
-          1. Cancellation Windows &amp; Refund Terms
+          1. Guest-initiated cancellations
         </h2>
-
-        <p className="leading-relaxed">{PLATFORM_CANCELLATION_POLICY}</p>
+        <ul className="list-disc space-y-3 pl-5 leading-relaxed">
+          <li>
+            <strong>14 days or more before check-in:</strong> 100% of amounts
+            paid, less any separately disclosed non-refundable transaction or
+            processing charges where applicable.
+          </li>
+          <li>
+            <strong>7–13 days before check-in:</strong> 50% of amounts paid,
+            less any separately disclosed non-refundable transaction or
+            processing charges where applicable.
+          </li>
+          <li>
+            <strong>Less than 7 days before check-in:</strong> no refund.
+          </li>
+        </ul>
+        <p className="mt-4 leading-relaxed">
+          Submit a cancellation request from Account → Bookings. The booking
+          remains confirmed until the request is approved. The estimate shown
+          is based on successful payments recorded for the booking.
+        </p>
       </section>
 
       <section className="mb-10">
         <h2 className="text-xl font-bold text-gray-900 mb-4">
-          2. Booking &amp; Payment Terms
+          2. No-shows and early departures
         </h2>
         <ul className="list-disc pl-5 space-y-3 leading-relaxed">
           <li>
-            The amount and payment method are shown at checkout. A booking is
-            confirmed only after payment is verified. Cancellation requests
-            are reviewed by Dominium; eligible approved refunds are sent to
-            the M-Pesa number on the booking and recorded after Safaricom
-            confirms the transfer.
+            A guest who does not arrive on the scheduled check-in date without
+            prior notice is a no-show and forfeits 100% of the booking amount.
+          </li>
+          <li>
+            No refunds are granted for early departures, shortened stays, or
+            unused nights after check-in.
           </li>
         </ul>
       </section>
 
       <section className="mb-10">
         <h2 className="text-xl font-bold text-gray-900 mb-4">
-          3. Date Modifications &amp; Rescheduling
+          3. Host or Dominium BNB cancellations
         </h2>
-        <ul className="list-disc pl-5 space-y-3 leading-relaxed">
-          <li>
-            Submit a date-change request from your account for a confirmed,
-            upcoming booking. The host reviews the request; it is not approved
-            until you receive an update in your booking.
-          </li>
-          <li>
-            Date changes depend on availability and the price for the
-            requested dates. Any quoted price difference is shown before you
-            submit the request.
-          </li>
-        </ul>
+        <p className="leading-relaxed">
+          If the host or Dominium BNB cancels a confirmed reservation, the
+          guest is entitled to a 100% refund of all amounts paid for the
+          affected booking. Dominium BNB will make reasonable efforts to help
+          the guest find alternative accommodation where available.
+        </p>
       </section>
 
       <section className="mb-10">
         <h2 className="text-xl font-bold text-gray-900 mb-4">
-          4. Unforeseen Circumstances &amp; Travel Insurance
+          4. Exceptional circumstances
         </h2>
-        <ul className="list-disc pl-5 space-y-3 leading-relaxed">
-          <li>
-            <span className="font-semibold text-gray-900">
-              Host Cancellations:
-            </span>{" "}
-            If a host must cancel, Dominium will contact you about next steps.
-            Any rescheduling depends on availability. Refunds are handled
-            through the refund review process and are marked complete only
-            after Safaricom confirms the transfer.
-          </li>
-          <li>
-            <span className="font-semibold text-gray-900">
-              Guest Emergencies:
-            </span>{" "}
-            The same cancellation schedule applies if plans change because of
-            weather, transport delays, flight disruptions, or personal health
-            issues. We recommend purchasing travel insurance to protect your
-            trip.
-          </li>
-        </ul>
+        <p className="leading-relaxed">
+          Dominium BNB may review refund requests arising from unforeseen
+          events, including natural disasters, government travel restrictions,
+          security concerns, or other circumstances beyond the guest’s
+          reasonable control. These requests are considered case by case and
+          are not automatically approved.
+        </p>
+        <p className="mt-3 leading-relaxed">
+          Contact{" "}
+          <Link href="/contactus" className="text-pink-600 hover:underline">
+            support
+          </Link>{" "}
+          with your booking reference and relevant details.
+        </p>
+      </section>
+
+      <section className="mb-10">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">
+          5. Refund processing
+        </h2>
+        <p className="leading-relaxed mb-4">
+          Approved refunds are sent through the original payment method and may
+          take 5–14 business days to appear, depending on the financial
+          institution or payment service provider. For M-Pesa bookings, the
+          refund is sent to the mobile number recorded for the booking. A
+          cancellation approval is not itself a refund approval or proof that
+          money has been sent.
+        </p>
+      </section>
+
+      <section className="mb-10">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">
+          6. Booking changes and cancellation requests
+        </h2>
+        <p className="leading-relaxed">
+          Submit cancellation and date-change requests from your account’s
+          bookings page. A cancellation request does not cancel the booking
+          immediately. Approved refunds are recorded only after the payment
+          provider confirms the transfer. Contact support if you cannot access
+          your booking.
+        </p>
+      </section>
+
+      <section className="mb-10">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">
+          7. Acceptance of this policy
+        </h2>
+        <p className="leading-relaxed">
+          By confirming a reservation on Dominium BNB, guests acknowledge that
+          they have read, understood, and agreed to this Cancellation and
+          Refund Policy.
+        </p>
       </section>
 
       <section>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Policy summary</h2>
+        <p className="leading-relaxed">{PLATFORM_CANCELLATION_POLICY}</p>
+      </section>
+
+      <section className="mt-10">
         <h2 className="text-xl font-bold text-gray-900 mb-4">
-          5. How to Request a Cancellation
+          Contact support
         </h2>
-        <p className="leading-relaxed mb-4">
-          Submit a cancellation request from your account’s bookings page.
-          An administrator reviews the request; submitting it does not
-          immediately cancel the booking or send a refund. You can contact
-          support if you cannot access your booking.
-        </p>
         <ul className="list-disc pl-5 space-y-2 leading-relaxed mb-4">
           <li>
             <span className="font-semibold text-gray-900">Email:</span>{" "}

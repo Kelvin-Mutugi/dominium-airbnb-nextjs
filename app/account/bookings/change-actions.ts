@@ -5,7 +5,10 @@ import { createClient } from '@/app/lib/supabase/server';
 import { getSupabaseAdmin } from '@/app/lib/supabase/admin';
 import { calculateBookingPrice } from '@/app/lib/booking/pricing';
 import { todayISO } from '@/app/lib/format';
-import { calculateCancellationRefund } from '@/app/lib/cancellation-policy';
+import {
+  calculateCancellationRefund,
+  REFUND_PROCESSING_TIMELINE,
+} from '@/app/lib/cancellation-policy';
 
 type ActionError = { ok: false; error: string };
 type CancellationPreview = {
@@ -75,13 +78,21 @@ export async function getCancellationPreview(bookingId: string): Promise<Cancell
     refundPercent: details.refundPercent,
     estimatedRefund: details.estimatedRefund,
     daysUntilCheckIn: details.daysUntilCheckIn,
-    refundTiming: 'If approved, the refund is sent to the M-Pesa number on your booking and marked complete after Safaricom confirms the transfer.',
+    refundTiming: REFUND_PROCESSING_TIMELINE,
   };
 }
 
-export async function requestBookingCancellation(bookingId: string): Promise<{ ok: true; message: string } | ActionError> {
+export async function requestBookingCancellation(
+  bookingId: string,
+  reason = '',
+): Promise<{ ok: true; message: string } | ActionError> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: 'Your session has expired. Sign in again to continue.' };
+
+  const normalizedReason = String(reason ?? '').trim();
+  if (normalizedReason.length > 1000) {
+    return { ok: false, error: 'Keep your note to 1,000 characters or fewer.' };
+  }
 
   const details = await cancellationDetails(bookingId, user.id);
   if ('error' in details) return { ok: false, error: details.error ?? 'Unable to load cancellation details.' };
@@ -97,6 +108,7 @@ export async function requestBookingCancellation(bookingId: string): Promise<{ o
     amount_paid: details.paidAmount,
     refund_percent: details.refundPercent,
     estimated_refund_amount: details.estimatedRefund,
+    reason: normalizedReason || null,
   });
 
   if (error) {

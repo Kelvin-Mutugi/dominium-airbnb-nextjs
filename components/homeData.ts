@@ -1,5 +1,6 @@
 import type { ListingAdditionalCharge } from "@/app/lib/host/types";
 import type { ListingCategory } from "@/app/lib/listing-categories";
+import { PLATFORM_CANCELLATION_POLICY } from "@/app/lib/cancellation-policy";
 
 export const HERO_IMAGES: string[] = [
   // City: Nairobi skyline with KICC (Kenny Murgor)
@@ -163,8 +164,7 @@ export const LISTINGS: Listing[] = [
     bookingTerms:
       "Guests must provide accurate booking information and a valid phone number. Check-in is from 2:00 PM and check-out is by 11:00 AM.",
 
-    cancelationPolicy:
-      "Free cancellation up to 48 hours before check-in. Cancellations made less than 48 hours before check-in may incur a charge.",
+    cancelationPolicy: PLATFORM_CANCELLATION_POLICY,
 
     houserules: [
       "No smoking inside the apartment",
@@ -174,8 +174,7 @@ export const LISTINGS: Listing[] = [
       "No pets",
     ],
 
-    refundPolicy:
-      "Eligible refunds are processed according to the cancellation policy.",
+    refundPolicy: PLATFORM_CANCELLATION_POLICY,
 
     privacyPolicy:
       "Guest information is used only to process bookings, communicate with guests, and provide accommodation services.",
@@ -272,8 +271,7 @@ export const LISTINGS: Listing[] = [
     bookingTerms:
       "Check-in is from 2:00 PM and check-out is by 11:00 AM.",
 
-    cancelationPolicy:
-      "Free cancellation up to 72 hours before check-in.",
+    cancelationPolicy: PLATFORM_CANCELLATION_POLICY,
 
     houserules: [
       "No smoking indoors",
@@ -283,8 +281,7 @@ export const LISTINGS: Listing[] = [
       "Respect quiet hours after 10:00 PM",
     ],
 
-    refundPolicy:
-      "Refunds are issued according to the applicable cancellation terms.",
+    refundPolicy: PLATFORM_CANCELLATION_POLICY,
 
     privacyPolicy:
       "Personal information is used to manage reservations and provide accommodation services.",
@@ -371,8 +368,7 @@ export const LISTINGS: Listing[] = [
     bookingTerms:
       "Bookings are confirmed once payment requirements are completed. Check-in is from 2:00 PM and check-out is by 11:00 AM.",
 
-    cancelationPolicy:
-      "Guests may cancel up to 48 hours before check-in for a full eligible refund.",
+    cancelationPolicy: PLATFORM_CANCELLATION_POLICY,
 
     houserules: [
       "No smoking indoors",
@@ -382,8 +378,7 @@ export const LISTINGS: Listing[] = [
       "Keep shared outdoor areas clean",
     ],
 
-    refundPolicy:
-      "Approved refunds are returned to the original payment method where possible.",
+    refundPolicy: PLATFORM_CANCELLATION_POLICY,
 
     privacyPolicy:
       "Booking information is kept confidential and used only for reservation management.",
@@ -466,8 +461,7 @@ export const LISTINGS: Listing[] = [
     bookingTerms:
       "Check-in is available from 3:00 PM and check-out is by 11:00 AM.",
 
-    cancelationPolicy:
-      "Free cancellation up to 48 hours before check-in.",
+    cancelationPolicy: PLATFORM_CANCELLATION_POLICY,
 
     houserules: [
       "No smoking",
@@ -477,8 +471,7 @@ export const LISTINGS: Listing[] = [
       "Follow rooftop building rules",
     ],
 
-    refundPolicy:
-      "Refund eligibility depends on the cancellation time and booking conditions.",
+    refundPolicy: PLATFORM_CANCELLATION_POLICY,
 
     privacyPolicy:
       "Guest details are used to administer reservations and provide customer support.",
@@ -565,8 +558,7 @@ export const LISTINGS: Listing[] = [
     bookingTerms:
       "Check-in is from 2:00 PM and check-out is by 11:00 AM. Maximum occupancy is 5 guests.",
 
-    cancelationPolicy:
-      "Free cancellation up to 5 days before check-in.",
+    cancelationPolicy: PLATFORM_CANCELLATION_POLICY,
 
     houserules: [
       "No smoking inside",
@@ -576,8 +568,7 @@ export const LISTINGS: Listing[] = [
       "Respect quiet hours",
     ],
 
-    refundPolicy:
-      "Refunds are determined according to the cancellation policy.",
+    refundPolicy: PLATFORM_CANCELLATION_POLICY,
 
     privacyPolicy:
       "Information provided during booking is used securely for reservation processing and guest communication.",
@@ -664,8 +655,7 @@ export const LISTINGS: Listing[] = [
     bookingTerms:
       "Check-in is from 2:00 PM and check-out is by 11:00 AM.",
 
-    cancelationPolicy:
-      "Free cancellation up to 48 hours before check-in.",
+    cancelationPolicy: PLATFORM_CANCELLATION_POLICY,
 
     houserules: [
       "No smoking",
@@ -675,8 +665,7 @@ export const LISTINGS: Listing[] = [
       "No unauthorized guests",
     ],
 
-    refundPolicy:
-      "Eligible refunds are processed according to the cancellation policy.",
+    refundPolicy: PLATFORM_CANCELLATION_POLICY,
 
     privacyPolicy:
       "Guest information is used only for booking management and accommodation services.",
@@ -759,8 +748,7 @@ export const LISTINGS: Listing[] = [
     bookingTerms:
       "Check-in is from 2:00 PM and check-out is by 11:00 AM.",
 
-    cancelationPolicy:
-      "Free cancellation up to 48 hours before check-in.",
+    cancelationPolicy: PLATFORM_CANCELLATION_POLICY,
 
     houserules: [
       "No smoking indoors",
@@ -770,8 +758,7 @@ export const LISTINGS: Listing[] = [
       "No unauthorized overnight guests",
     ],
 
-    refundPolicy:
-      "Refunds are handled according to the applicable cancellation terms.",
+    refundPolicy: PLATFORM_CANCELLATION_POLICY,
 
     privacyPolicy:
       "Personal information is used to process bookings and communicate with guests.",
@@ -858,8 +845,7 @@ export const LISTINGS: Listing[] = [
     bookingTerms:
       "Check-in is from 2:00 PM and check-out is by 11:00 AM.",
 
-    cancelationPolicy:
-      "Free cancellation up to 48 hours before check-in.",
+    cancelationPolicy: PLATFORM_CANCELLATION_POLICY,
 
     houserules: [
       "No smoking inside",
@@ -869,8 +855,7 @@ export const LISTINGS: Listing[] = [
       "No pets",
     ],
 
-    refundPolicy:
-      "Eligible refunds are processed according to the cancellation policy.",
+    refundPolicy: PLATFORM_CANCELLATION_POLICY,
 
     privacyPolicy:
       "Guest information is kept private and used only for booking management and accommodation services.",
@@ -957,8 +942,7 @@ export const LISTINGS: Listing[] = [
   bookingTerms:
     "Guests must provide accurate booking information and a valid phone number. Check-in is from 2:00 PM and check-out is by 11:00 AM.",
 
-  cancelationPolicy:
-    "Free cancellation up to 48 hours before check-in. Cancellations made less than 48 hours before check-in may incur a charge.",
+  cancelationPolicy: PLATFORM_CANCELLATION_POLICY,
 
   houserules: [
     "No smoking inside the apartment",
@@ -968,8 +952,7 @@ export const LISTINGS: Listing[] = [
     "No pets",
   ],
 
-  refundPolicy:
-    "Eligible refunds are processed according to the cancellation policy.",
+  refundPolicy: PLATFORM_CANCELLATION_POLICY,
 
   privacyPolicy:
     "Guest information is used only to process bookings, communicate with guests, and provide accommodation services.",
@@ -1070,8 +1053,7 @@ export const LISTINGS: Listing[] = [
   bookingTerms:
     "Guests must provide accurate booking information and a valid phone number. Check-in is from 2:00 PM and check-out is by 11:00 AM.",
 
-  cancelationPolicy:
-    "Free cancellation up to 48 hours before check-in. Cancellations made less than 48 hours before check-in may incur a charge.",
+  cancelationPolicy: PLATFORM_CANCELLATION_POLICY,
 
   houserules: [
     "No smoking inside the apartment",
@@ -1081,8 +1063,7 @@ export const LISTINGS: Listing[] = [
     "No pets",
   ],
 
-  refundPolicy:
-    "Eligible refunds are processed according to the cancellation policy.",
+  refundPolicy: PLATFORM_CANCELLATION_POLICY,
 
   privacyPolicy:
     "Guest information is used only to process bookings, communicate with guests, and provide accommodation services.",

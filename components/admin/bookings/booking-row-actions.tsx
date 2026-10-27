@@ -19,7 +19,7 @@ export function BookingRowActions({
   const runAction = (label: string, action: () => Promise<void>) => {
     const confirmation =
       label === "Cancel"
-        ? "Cancel this booking? This does not issue a guest refund. If payment was received, handle any eligible refund separately in Admin → Refunds."
+        ? "Cancel this booking? Any remaining unrefunded guest payment amount will be routed to Admin → Refunds for full refund review. This does not send money; the refund must still be approved and processed."
         : `${label} this booking?`;
     if (!window.confirm(confirmation)) return;
     setError(null);

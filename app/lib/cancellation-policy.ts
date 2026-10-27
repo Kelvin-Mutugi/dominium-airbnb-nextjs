@@ -1,5 +1,19 @@
-export const PLATFORM_CANCELLATION_POLICY =
-  "Refund estimates use the Africa/Nairobi calendar date when you submit the cancellation request and the successful payments recorded for your booking: 14 or more days before check-in, 100% of amounts paid; 7–13 days, 50% of amounts paid; fewer than 7 days, no refund. Cancellation requests require admin approval. If approved, an eligible refund is sent to the booking's M-Pesa number and marked complete only after Safaricom confirms the transfer. This platform schedule applies to every listing and takes precedence over conflicting listing cancellation or refund notes. It does not include a cancellation processing fee or travel credit.";
+export const REFUND_PROCESSING_TIMELINE =
+  "Approved refunds are returned through the original payment method (currently M-Pesa). Allow 5–14 business days after processing for the funds to appear; timing depends on the bank or payment provider.";
+
+export const PLATFORM_CANCELLATION_POLICY_ITEMS = [
+  "14 days or more before check-in: 100% refund of amounts paid, less any separately disclosed non-refundable transaction or processing charges where applicable.",
+  "7–13 days before check-in: 50% refund of amounts paid, less any separately disclosed non-refundable transaction or processing charges where applicable.",
+  "Less than 7 days before check-in: no refund.",
+  "No-shows: guests who do not arrive on the scheduled check-in date without prior notice forfeit 100% of the booking amount.",
+  "Early departures: no refund is granted for shortened stays or unused nights after check-in.",
+  "Host or Dominium BNB cancellations: guests receive a 100% refund of all amounts paid for the affected booking. Dominium BNB will make reasonable efforts to help find alternative accommodation where available.",
+  "Exceptional circumstances, including natural disasters, government travel restrictions, or security concerns, may be reviewed case by case. Contact support with the booking reference and details.",
+  REFUND_PROCESSING_TIMELINE,
+  "By confirming a reservation, guests acknowledge that they have read, understood, and agreed to this cancellation and refund policy.",
+] as const;
+
+export const PLATFORM_CANCELLATION_POLICY = PLATFORM_CANCELLATION_POLICY_ITEMS.join(" ");
 
 export function getCancellationRefundPercent(daysUntilCheckIn: number): number {
   if (!Number.isInteger(daysUntilCheckIn)) {

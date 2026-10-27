@@ -1,31 +1,79 @@
-# Cancellation and Refund Guide
+# Cancellation and Refund Policy
 
-## Client Message
+This policy applies to every Dominium BNB reservation and takes precedence over
+different cancellation or refund wording shown on a listing. Refund estimates
+use the Africa/Nairobi calendar date and successful payments recorded for the
+booking.
 
-### How cancellation and refunds work
+## Guest-initiated cancellations
 
-When you submit a cancellation request, your booking stays confirmed while our admin team reviews it. You will see an estimated refund before sending the request. This estimate is not a final promise of the amount.
+- **14 days or more before check-in:** 100% of amounts paid, less any separately
+  disclosed non-refundable transaction or processing charges where applicable.
+- **7–13 days before check-in:** 50% of amounts paid, less any separately
+  disclosed non-refundable transaction or processing charges where applicable.
+- **Less than 7 days before check-in:** no refund.
 
-The admin team first decides whether to cancel the booking. If cancellation is approved, the booking is cancelled. Any eligible refund then goes through a separate review, so approval of the cancellation does not mean the refund has also been approved or sent.
+Guests submit cancellation requests through Account → Bookings. A request does
+not cancel a booking immediately. The booking remains confirmed while the
+admin team reviews it. The estimate shown to the guest is based on successful
+payments recorded at the time of the request.
 
-If the refund is approved, our team sends it manually to the original payment method or another agreed payment channel. We then record the amount and payment reference in your booking. Please allow 3–5 business days after the refund is sent for your bank or mobile-money provider to make it available. We will show you if the refund is still being reviewed, approved but not yet sent, declined, or completed.
+## No-shows and early departures
 
-If the refund request is declined, we will show the decision and the reason. Your booking may still be cancelled if the cancellation itself was approved.
+Guests who do not arrive on the scheduled check-in date without prior notice
+forfeit 100% of the booking amount. No refund is granted for early departures,
+shortened stays, or unused nights after check-in.
 
-For help with a cancellation or refund, reply to your booking support conversation and include your booking reference.
+## Host or Dominium BNB cancellations
 
-## Team Workflow
+If a host or Dominium BNB cancels a confirmed reservation, the guest is entitled
+to a 100% refund of all amounts paid for the affected booking. Dominium BNB will
+make reasonable efforts to help the guest secure alternative accommodation
+where available.
 
-1. **Guest submits a cancellation request.** Confirm the correct booking, guest, stay dates, payments received, guest explanation, and the property's published cancellation terms. The booking remains confirmed while cancellation is under review.
-2. **Admin decides the cancellation.** Approving cancellation changes the booking to cancelled. Declining it leaves the booking confirmed. This decision is not a refund decision.
-3. **Eligible refund enters the Refunds queue.** Requests with a positive estimate appear in Admin → Refunds. A zero estimate is recorded as not eligible and does not require a refund decision.
-4. **Admin reviews the refund separately.** The queue provides the guest and host, booking and listing, dates, payment records and references, amount paid, estimate, cancellation terms, and the guest's reason. Approve the refund for manual payment or decline it with a written reason.
-5. **Approval authorizes payment; it does not send money.** The request remains awaiting manual processing until a team member actually sends the approved amount through the original payment method or an approved alternative.
-6. **Record the completed transfer.** Enter the actual amount sent and the provider/bank transaction reference. Do this only after verifying the transfer. The request then shows as processed. A full refund marks the original payment records refunded; a partial refund remains documented against the refund request.
-7. **Guest sees the outcome.** The guest's booking page shows whether cancellation is awaiting decision, whether an approved cancellation's refund is awaiting its separate decision, whether a refund was declined, or the amount and date recorded as sent.
+Admin-initiated cancellations of confirmed bookings create a full-refund review
+for the remaining paid amount. The cancellation and refund review are separate;
+the cancellation action does not itself send money.
 
-Keep decision notes factual and concise. Do not promise a payment date until the transfer has actually been submitted. If the payment record, amount, policy, or booking details do not agree, pause the decision and escalate to the finance/admin lead.
+## Exceptional circumstances
 
-## Policy Alignment Required
+Dominium BNB may consider refund requests for unforeseen events beyond the
+guest's reasonable control, including natural disasters, government travel
+restrictions, or security concerns. These requests are reviewed case by case
+and are not automatically approved. Guests should contact support with their
+booking reference and details.
 
-Before using estimates as binding decisions, reconcile the calculation with the published policy in `components/policies/RefundPolicy.tsx`. The current app estimate uses 100% of payments received at least 14 days before check-in, 50% at 7–13 days, and 0% inside 7 days. The published policy describes a possible administrative fee on full refunds and a travel-credit alternative for the 50% window. Confirm which terms are authoritative, whether travel credit is offered, how fees are applied, and whether the estimate calculation should change. Until aligned, staff should treat the app amount as an estimate and review the published terms before deciding.
+## Refund processing
+
+Approved refunds are returned through the original payment method (currently
+M-Pesa). After processing, allow **5–14 business days** for funds to appear;
+timing depends on the bank or payment service provider. A refund is recorded as
+complete only after the provider confirms the transfer.
+
+## Acceptance
+
+By confirming a reservation on Dominium BNB, guests acknowledge that they have
+read, understood, and agreed to this Cancellation and Refund Policy.
+
+## Team workflow
+
+1. A guest cancellation request leaves the booking confirmed while awaiting an
+   admin decision.
+2. Approving a guest cancellation cancels the booking. An eligible refund then
+   enters the separate refund review queue; declining the request leaves the
+   booking confirmed.
+3. Admin cancellation of a confirmed booking cancels the booking and routes
+   remaining recorded payments to full-refund review. Existing active or
+   completed refund requests are accounted for to avoid duplicate refunds.
+4. Approving a refund authorizes processing; it does not transfer funds. For
+   M-Pesa refunds, initiate the Safaricom B2C transfer only after approval.
+5. Record a refund as processed only after a matching successful provider
+   result. Enter the actual amount and transaction reference. A full refund
+   marks the related payment refunded; a partial refund remains recorded
+   against the refund case.
+6. Exceptional requests should include the guest's reason and be reviewed
+   individually. Do not promise approval or a processing date before the
+   transfer is submitted.
+
+Keep admin notes factual and concise. If payment, booking, or refund amounts do
+not reconcile, pause processing and escalate to the finance/admin lead.

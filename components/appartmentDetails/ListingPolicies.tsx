@@ -9,7 +9,7 @@ import {
   ChevronDown,
   type LucideIcon,
 } from "lucide-react";
-import { PLATFORM_CANCELLATION_POLICY } from "@/app/lib/cancellation-policy";
+import { PLATFORM_CANCELLATION_POLICY_ITEMS } from "@/app/lib/cancellation-policy";
 
 interface PolicySection {
   key: string;
@@ -46,7 +46,7 @@ export function ListingPolicies({ listing }: ListingPoliciesProps) {
       key: "cancelationPolicy",
       icon: XCircle,
       title: "Cancellation policy",
-      content: PLATFORM_CANCELLATION_POLICY,
+      content: [...PLATFORM_CANCELLATION_POLICY_ITEMS],
     },
     listing.privacyPolicy && {
       key: "privacyPolicy",

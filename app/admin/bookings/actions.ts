@@ -66,38 +66,58 @@ export async function declineCancellationRequest(requestId: string, reason: stri
   await respondToCancellationRequest(requestId, reason, false);
 }
 
-// pending or confirmed -> cancelled (not allowed from completed)
+// Platform cancellations route outstanding payments to full-refund review.
 export async function cancelBooking(bookingId: string) {
   const actor = await requireAdmin();
-  const admin = getSupabaseAdmin();
-  const { data: booking, error: lookupError } = await admin
-    .from("bookings")
-    .select("status")
-    .eq("id", bookingId)
-    .maybeSingle();
-  if (lookupError || !booking) throw new Error("Booking not found.");
-  if (booking.status !== "pending" && booking.status !== "confirmed") {
-    throw new Error("Only pending or confirmed bookings can be cancelled.");
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(bookingId)) {
+    throw new Error("Invalid booking.");
   }
 
-  const { data, error } = await admin
-    .from("bookings")
-    .update({ status: "cancelled" })
-    .eq("id", bookingId)
-    .eq("status", booking.status)
-    .select("id")
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Booking status changed. Refresh and try again.");
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc(
+    "admin_cancel_booking_with_full_refund",
+    { p_booking_id: bookingId },
+  );
+  if (error) {
+    if (error.message.includes("BOOKING_NOT_FOUND")) throw new Error("Booking not found.");
+    if (error.message.includes("BOOKING_NOT_CANCELLABLE")) {
+      throw new Error("Only pending or confirmed bookings can be cancelled.");
+    }
+    if (error.message.includes("ADMIN_REQUIRED")) {
+      throw new Error("You are not authorized to cancel this booking.");
+    }
+    console.error("Unable to cancel booking and route its refund:", error);
+    throw new Error("Unable to cancel this booking. Try again.");
+  }
+
+  const result = Array.isArray(data) ? data[0] : data;
+  if (!result?.booking_id) {
+    throw new Error("Booking was cancelled, but its refund status could not be confirmed.");
+  }
+  const amountPaid = Number(result.amount_paid ?? 0);
+  const refundReviewAmount = Number(result.refund_review_amount ?? 0);
   await recordAdminAuditEvent({
     actorId: actor.id,
     action: "booking.cancelled",
     entityType: "booking",
     entityId: bookingId,
-    summary: "Cancelled booking.",
-    before: { status: booking.status },
-    after: { status: "cancelled" },
+    summary: refundReviewAmount > 0
+      ? `Cancelled a ${result.previous_status} booking and routed its remaining paid amount to full refund review.`
+      : amountPaid > 0
+        ? `Cancelled a ${result.previous_status} booking with no additional cancellation refund amount to route.`
+        : "Cancelled an unpaid booking.",
+    before: { status: result.previous_status },
+    after: {
+      status: "cancelled",
+      amount_paid: amountPaid,
+      refund_review_amount: refundReviewAmount,
+      cancellation_refund_request_id: result.cancellation_refund_request_id ?? null,
+    },
   });
   revalidatePath("/admin/bookings");
   revalidatePath(`/admin/bookings/${bookingId}`);
+  revalidatePath("/admin/refunds");
+  revalidatePath("/host/bookings");
+  revalidatePath("/account/refunds");
+  revalidatePath("/account/bookings");
 }

@@ -141,7 +141,7 @@ export interface ReviewRow {
   comment: string | null;
   created_at: string;
   moderation_status?: string;
-  listing: { title: string; slug: string } | null;
+  listing: { id: string; title: string } | null;
 }
 
 export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };

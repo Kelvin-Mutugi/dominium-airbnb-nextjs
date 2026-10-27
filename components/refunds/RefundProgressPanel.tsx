@@ -1,3 +1,4 @@
+import { REFUND_PROCESSING_TIMELINE } from '@/app/lib/cancellation-policy';
 import { formatDate, formatMoney } from '@/app/lib/format';
 import type { RefundProgress } from '@/types/refunds';
 
@@ -71,7 +72,7 @@ export function RefundProgressPanel({
               <p className="mt-1">
                 Refund sent: {formatMoney(request.actual_refund_amount ?? 0)}
                 {request.processed_at ? ` on ${formatDate(request.processed_at, 'short')}` : ''}.
-                {audience === 'guest' ? ' Your bank or mobile-money provider may take additional time to post it.' : ''}
+                {audience === 'guest' ? ` ${REFUND_PROCESSING_TIMELINE}` : ''}
               </p>
             )}
             <p className="mt-2 text-xs text-neutral-500">Last update: {formatDate(request.processed_at ?? request.updated_at ?? request.created_at, 'long')}</p>

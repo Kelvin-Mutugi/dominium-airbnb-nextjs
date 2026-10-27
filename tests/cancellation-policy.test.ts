@@ -31,6 +31,13 @@ test("6 days before check-in refunds none of the recorded payments", () => {
   });
 });
 
+test("after check-in does not generate a standard cancellation refund", () => {
+  assert.deepEqual(calculateCancellationRefund(1000, -1), {
+    refundPercent: 0,
+    estimatedRefund: 0,
+  });
+});
+
 test("cancellation refund estimate rejects invalid amounts and fractional days", () => {
   assert.throws(() => calculateCancellationRefund(-1, 14), /non-negative number/);
   assert.throws(() => calculateCancellationRefund(100, 7.5), /integer/);

@@ -36,11 +36,11 @@ export async function GET(request: Request) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("phone")
+    .select("full_name, phone")
     .eq("id", data.user.id)
     .single();
 
-  if (!profile?.phone) {
+  if (!profile?.full_name || !profile.phone) {
     return NextResponse.redirect(`${origin}/complete-profile?redirectTo=${encodeURIComponent(next)}`);
   }
 

@@ -393,12 +393,12 @@ export default function HostCalendarPage() {
           <h1 className="text-2xl font-bold text-[#12231d]">Calendar</h1>
           <p className="mt-1 text-sm text-gray-500">Reservations and availability across your listings.</p>
         </div>
-        <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+        <label className="flex w-full items-center gap-2 text-sm font-medium text-gray-600 sm:w-auto">
           Listing
           <select
             value={selectedListingId}
             onChange={(event) => setSelectedListingId(event.target.value)}
-            className="max-w-56 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20"
+            className="min-h-11 min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-[#12231d] focus:border-[#E23E85] focus:outline-none focus:ring-2 focus:ring-[#E23E85]/20 sm:max-w-56"
           >
             <option value="all">All listings</option>
             {listings.map((listing) => <option key={listing.id} value={listing.id}>{listing.title}</option>)}
@@ -438,8 +438,8 @@ export default function HostCalendarPage() {
         <>
           <section className="space-y-4 rounded-xl bg-white p-4 shadow-sm sm:p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <h2 className="min-w-36 text-lg font-semibold text-[#12231d]">{monthLabel}</h2>
+              <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
+                <h2 className="min-w-0 text-lg font-semibold text-[#12231d] sm:min-w-36">{monthLabel}</h2>
                 <div className="flex items-center">
                   <button onClick={() => changeMonth(-1)} aria-label="Previous month" title="Previous month" className="rounded-md p-2 text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#E23E85]/40">
                     <ChevronLeft className="h-5 w-5" />
@@ -448,7 +448,7 @@ export default function HostCalendarPage() {
                     <ChevronRight className="h-5 w-5" />
                   </button>
                 </div>
-                <button onClick={() => { setLoading(true); setMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1)); }} className="rounded-md border border-gray-200 px-3 py-1.5 text-sm font-medium text-[#12231d] hover:bg-gray-50">
+                <button onClick={() => { setLoading(true); setMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1)); }} className="min-h-10 rounded-md border border-gray-200 px-3 py-1.5 text-sm font-medium text-[#12231d] hover:bg-gray-50">
                   Today
                 </button>
               </div>

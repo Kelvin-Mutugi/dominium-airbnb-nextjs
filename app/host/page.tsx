@@ -505,7 +505,7 @@ export default function HostDashboardPage() {
             </div>
 
             {/* Performance tiles */}
-            <div className="grid grid-cols-3 gap-3 px-5 pt-4">
+            <div className="grid grid-cols-2 gap-3 px-4 pt-4 sm:grid-cols-3 sm:px-5">
               <div className="rounded-xl bg-[#faf8f4] p-3.5">
                 <p className="text-xs text-[#656a65]">Occupancy</p>
                 <p className="mt-0.5 text-lg font-semibold tabular-nums text-[#12231d]">{occupancyRate}%</p>
