@@ -30,7 +30,7 @@ const COUNTIES = ["Nairobi", "Mombasa", "Kilifi", "Nakuru", "Kisumu", "Other"];
 const FAQS = [
   {
     q: "How do I change or cancel a booking?",
-    a: "Send us your booking reference and the new dates, or tell us you want to cancel. Pick “Booking help” above so it reaches the right person. Refunds follow the host's cancellation policy shown on the listing.",
+    a: "Request a date change or cancellation from Account → Bookings. Dominium BNB's platform-wide cancellation policy applies to all listings. For exceptional circumstances, choose “Payment issue” and include your booking reference and details.",
   },
   {
     q: "How do I list my apartment on Dominium?",

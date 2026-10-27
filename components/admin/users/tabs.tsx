@@ -10,14 +10,15 @@ export function UserTabs() {
   const active = searchParams.get("tab") === "hosts" ? "hosts" : "guests";
 
   const tabClass = (tab: string) =>
-    `px-4 py-2 text-sm font-medium border-b-2 ${
+    `min-h-11 whitespace-nowrap px-4 py-2 text-sm font-medium border-b-2 ${
       active === tab
         ? "border-gray-900 text-gray-900"
         : "border-transparent text-gray-500 hover:text-gray-700"
     }`;
 
   return (
-    <div className="flex border-b mb-4">
+    <div className="mb-4 border-b">
+      <div className="flex">
       <Link
         href={`${pathname}?${new URLSearchParams({
           tab: "guests",
@@ -36,6 +37,7 @@ export function UserTabs() {
       >
         Hosts
       </Link>
+      </div>
     </div>
   );
 }

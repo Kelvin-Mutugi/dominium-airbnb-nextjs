@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { normalizePhone } from "@/app/lib/format";
 import { supabase } from "@/app/lib/supabase/client";
 
 const heroImages = [
@@ -22,10 +23,33 @@ const heroImages = [
 export default function CompleteProfilePage() {
   const router = useRouter();
 
+  const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [wantsToHost, setWantsToHost] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadUserDetails() {
+      const { data } = await supabase.auth.getUser();
+      if (!active || !data.user) return;
+
+      const metadata = data.user.user_metadata;
+      if (typeof metadata.full_name === "string") {
+        setFullName((current) => current || metadata.full_name);
+      }
+      if (typeof metadata.phone === "string") {
+        setPhone((current) => current || metadata.phone);
+      }
+    }
+
+    void loadUserDetails();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function getRedirectTo() {
     const requested = new URLSearchParams(window.location.search).get("redirectTo");
@@ -36,8 +60,15 @@ export default function CompleteProfilePage() {
     e.preventDefault();
     setError(null);
 
-    if (!/^0\d{9}$/.test(phone)) {
-      setError("Enter a valid phone number, e.g. 0712345678.");
+    const trimmedName = fullName.trim();
+    if (trimmedName.length < 2 || trimmedName.length > 80) {
+      setError("Enter your full name (2 to 80 characters).");
+      return;
+    }
+
+    const normalizedPhone = normalizePhone(phone);
+    if (!normalizedPhone) {
+      setError("Enter a valid phone number, e.g. 0712 345 678.");
       return;
     }
 
@@ -53,18 +84,26 @@ export default function CompleteProfilePage() {
       return;
     }
 
-    const { error: updateError } = await supabase
+    const { data: updatedProfile, error: updateError } = await supabase
       .from("profiles")
       .update({
-        phone,
+        full_name: trimmedName,
+        phone: normalizedPhone,
         ...(wantsToHost ? { role: "host" } : {}),
       })
-      .eq("id", user.id);
+      .eq("id", user.id)
+      .select("id")
+      .maybeSingle();
 
     setSubmitting(false);
 
     if (updateError) {
       setError(updateError.message);
+      return;
+    }
+
+    if (!updatedProfile) {
+      setError("We couldn’t find your user profile. Please contact support.");
       return;
     }
 
@@ -133,7 +172,7 @@ export default function CompleteProfilePage() {
               Almost there
             </h1>
             <p className="text-[#4b5850] text-[15px] leading-relaxed mb-8">
-              Just need a quick phone number before you continue.
+              Add your name and mobile number before you continue.
             </p>
 
             <form
@@ -142,11 +181,25 @@ export default function CompleteProfilePage() {
               className="space-y-[18px] text-left"
             >
               <label className="flex flex-col gap-1.5 text-[13px] text-[#4b5850]">
-                <span>Phone number</span>
+                <span>Full name</span>
+                <input
+                  type="text"
+                  required
+                  minLength={2}
+                  maxLength={80}
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  autoComplete="name"
+                  className="text-[15px] px-3 py-2.5 rounded-[3px] border border-[#cfd3c9] bg-white text-[#12231d] focus:outline-none focus:ring-2 focus:ring-[#12231d] focus:ring-offset-1"
+                />
+              </label>
+
+              <label className="flex flex-col gap-1.5 text-[13px] text-[#4b5850]">
+                <span>Mobile number</span>
                 <input
                   type="tel"
                   required
-                  placeholder="0712345678"
+                  placeholder="0712 345 678"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   autoComplete="tel"

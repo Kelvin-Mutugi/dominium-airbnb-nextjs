@@ -582,7 +582,7 @@ function PaymentsChart({
       </header>
 
       {/* Summary numbers */}
-      <dl className="mt-4 grid grid-cols-3 divide-x divide-gray-100 rounded-xl bg-gray-50">
+      <dl className="mt-4 grid grid-cols-1 divide-y divide-gray-100 rounded-xl bg-gray-50 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
         <div className="px-4 py-3">
           <dt className="text-xs text-gray-500">Paid</dt>
           <dd className="mt-0.5 text-xl font-semibold tabular-nums text-[#1B1A2E]">

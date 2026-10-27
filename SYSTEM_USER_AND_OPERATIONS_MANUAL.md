@@ -47,12 +47,16 @@ Before check-in, open **Manage booking → Change dates**. Choose new dates and 
 
 ### Requesting a cancellation
 
-Before check-in, open **Manage booking → Cancel booking**. The page shows an estimate based on payments recorded and the platform's current timing calculation.
+Before check-in, open **Manage booking → Cancel booking**. The page shows an estimate based on successful payments recorded for the booking and the Africa/Nairobi calendar date.
 
 - Sending a cancellation request does not cancel the reservation immediately. The booking remains confirmed while the admin team reviews it.
 - An administrator decides whether to approve or decline the cancellation.
 - If the cancellation is declined, the booking remains confirmed and no refund is initiated through this workflow.
 - If cancellation is approved, the booking becomes cancelled. This is separate from refund approval.
+- At least 14 days before check-in, the standard refund is 100% of amounts paid; 7–13 days before check-in, it is 50%; fewer than 7 days before check-in, it is 0%, less any separately disclosed non-refundable transaction or processing charges where applicable.
+- No-shows forfeit 100% of the booking amount. Early departures and unused nights after check-in are not refundable.
+- If a host or Dominium BNB cancels a confirmed reservation, the guest is entitled to a full refund of amounts paid. Dominium BNB will make reasonable efforts to help arrange alternative accommodation where available.
+- Exceptional circumstances such as natural disasters, government travel restrictions, or security concerns can be submitted to support for case-by-case consideration; approval is not guaranteed.
 
 ### Understanding refund status
 
@@ -63,7 +67,7 @@ Cancellation approval and refund approval are two different decisions:
 3. The admin initiates the transfer; the refund is recorded only after a matching successful Safaricom result callback.
 4. The guest's booking page and in-app notifications update after confirmation. If a callback times out or the state is uncertain, the refund remains under reconciliation; do not assume it was sent or initiate another transfer.
 
-The refund estimate uses the successful payments recorded when the guest submits the cancellation request: 100% at least 14 calendar days before check-in, 50% 7–13 days before check-in, and 0% fewer than 7 days before check-in. The Africa/Nairobi calendar date is used. Listing-specific cancellation or refund notes do not change this schedule. No cancellation processing fee or travel credit is applied. Eligible amounts are sent only after cancellation and refund approval; a refund is recorded as complete only after Safaricom confirms the transfer. Contact support if the displayed status or amount appears incorrect.
+The refund estimate uses successful payments recorded when the guest submits the cancellation request and the Africa/Nairobi calendar date. Any separately disclosed non-refundable transaction or processing charge may be excluded. Listing-specific cancellation or refund notes do not change the platform schedule. Approved refunds are returned through the original payment method (currently M-Pesa) and may take 5–14 business days after processing to appear. An eligible refund is sent only after cancellation and refund approval, and is recorded as complete only after Safaricom confirms the transfer. Contact support if the displayed status or amount appears incorrect.
 
 ### After the stay
 
@@ -118,7 +122,7 @@ Open **Admin → Cancellation Requests**. Confirm the booking reference, guest, 
 - If an eligible estimate exists, approval routes the refund case to **Admin → Refunds**. This does not approve or send the refund.
 - If the request is stale because the booking dates/status changed or check-in has started, do not override the guard; investigate the booking and contact the guest.
 
-The Admin → Bookings detail also has a direct cancel control for pending or confirmed bookings. That is an admin-initiated booking cancellation, not a guest cancellation request, and it does not automatically create a refund case in Admin → Refunds. The confirmation prompt warns that any eligible refund must be handled separately. For a guest-requested cancellation, use the Cancellation Requests workflow. For an admin-initiated cancellation, document the reason and separately coordinate any refund through the approved finance process; do not assume a refund queue item was created.
+The Admin → Bookings detail has a direct cancel control for pending or confirmed bookings. Cancelling an unpaid pending booking does not create a refund. If a pending booking has a recorded successful payment, or a confirmed booking has an unrefunded balance, that amount is routed to full-refund review in Admin → Refunds; active or completed payment refunds are accounted for to avoid duplicate transfers. This does not send money: approve and process the refund through the normal refund workflow. For a guest-requested cancellation, use the Cancellation Requests workflow.
 
 ### 3. Decide a refund
 
@@ -126,7 +130,7 @@ Open **Admin → Refunds**. The queue separates cases into **Needs decision**, *
 
 Each case links to the relevant booking and shows the guest, host, property, dates, original payment records/references, amount paid, estimate, cancellation terms, and guest note. Check these details before deciding.
 
-- **Approve refund**: authorizes processing up to the approved estimate. The admin then initiates a Safaricom B2C transfer to the guest's booking phone; approval itself does not send money.
+- **Approve refund**: authorizes processing up to the amount due under the policy/review. For Dominium BNB cancellations, the full remaining amount paid is due. The admin then initiates a Safaricom B2C transfer to the guest's booking phone; approval itself does not send money.
 - **Decline refund**: requires a written reason. The cancellation remains in effect if it was already approved.
 - Refunds are marked processed only after the matching Safaricom B2C result callback succeeds. Do not treat request acceptance as proof of transfer; ambiguous/time-out transfers must be reconciled before retrying.
 - A partial refund is recorded on the refund case and does not mark the entire original payment refunded. A full refund marks related paid payment records refunded.
@@ -165,8 +169,8 @@ The requested amount remains reserved until Safaricom sends a matching successfu
 
 ## Policy and Operational Notes
 
-- **Cancellation/refund policy:** the platform-wide schedule is 100% of successful payments recorded when the guest submits the request at least 14 calendar days before check-in, 50% 7–13 days before check-in, and 0% fewer than 7 days before check-in, using the Africa/Nairobi calendar date. It applies to every listing, without a cancellation processing fee or travel credit. Cancellation and refund approvals are separate; no refund is marked complete until Safaricom confirms the transfer.
-- **Refunds:** administrators approve eligible refunds and initiate Safaricom B2C to the guest's booking phone. A matching successful result callback is required before the refund is recorded as processed.
+- **Cancellation/refund policy:** the platform-wide schedule is 100% at least 14 days before check-in, 50% 7–13 days before check-in, and 0% fewer than 7 days before check-in, using the Africa/Nairobi calendar date. Separately disclosed non-refundable transaction or processing charges may be excluded. No-shows forfeit the booking amount; early departures and unused nights are not refundable. Host or Dominium BNB cancellations of confirmed bookings are eligible for a full refund. Exceptional circumstances may be reviewed case by case.
+- **Refunds:** administrators approve eligible refunds and initiate Safaricom B2C to the guest's booking phone. Approved refunds are returned through the original payment method (currently M-Pesa) and may take 5–14 business days after processing to appear. A matching successful result callback is required before the refund is recorded as processed.
 - **Host payouts:** admins initiate Safaricom B2C from Host Payout Requests. The request remains reserved until a successful result callback; the initiation response alone does not mean the host was paid.
 - **Fee handling:** hosts can request part or all of their available earnings without waiting for per-payment STK fee reconciliation. When sending a host payout, admins enter the aggregate STK collection fee for that request using Safaricom records. Reconcile actual B2C transfer fees after Safaricom confirms host payouts and refunds.
 - **Booking confirmation email:** email delivery requires `RESEND_API_KEY` and `BOOKING_CONFIRMATION_FROM`. Without those settings, the confirmation page is the status source of truth.

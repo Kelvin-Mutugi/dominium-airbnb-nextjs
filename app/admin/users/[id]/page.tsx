@@ -93,7 +93,7 @@ export default async function AdminUserDetailPage({
         <dl className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <DetailField label="Full name" value={profile.full_name} />
           <DetailField label="Email" value={authUser?.user?.email} />
-          <DetailField label="Phone" value={profile.phone} />
+          <DetailField label="Mobile number" value={profile.phone} />
           <DetailField label="Role" value={profile.role} />
           <DetailField label="Status" value={profile.status} />
           <DetailField label="Business name" value={profile.business_name} />

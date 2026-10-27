@@ -55,12 +55,13 @@ export default async function AdminUsersPage({
       <AdminSearchInput placeholder="Search by name, phone, business, or ID" />
       <UserTabs />
 
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="overflow-hidden rounded-lg bg-white shadow-sm">
+        <div className="hidden overflow-x-auto md:block">
+        <table className="w-full min-w-[640px] text-sm">
           <thead className="bg-gray-50 text-left text-gray-500">
             <tr>
               <th className="p-3">Name</th>
-              <th className="p-3">Phone</th>
+              <th className="p-3">Mobile number</th>
               {role === "host" && <th className="p-3">Business</th>}
               {role === "host" && <th className="p-3">Verified</th>}
               <th className="p-3">Status</th>
@@ -80,7 +81,7 @@ export default async function AdminUsersPage({
                     {p.full_name ?? "Unnamed user"}
                   </Link>
                 </td>
-                <td className="p-3 text-[#1B1A2E]">{p.phone}</td>
+                <td className="p-3 text-[#1B1A2E]">{p.phone ?? "—"}</td>
                 {role === "host" && (
                   <td className="p-3 text-[#1B1A2E]">{p.business_name ?? "—"}</td>
                 )}
@@ -121,6 +122,58 @@ export default async function AdminUsersPage({
             )}
           </tbody>
         </table>
+        </div>
+        <div className="divide-y divide-gray-100 md:hidden">
+          {(profiles ?? []).map((p) => (
+            <article key={p.id} className="space-y-3 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <Link
+                  href={`/admin/users/${p.id}`}
+                  className="min-w-0 break-words font-semibold text-[#1B1A2E] hover:text-[#E23E85]"
+                >
+                  {p.full_name ?? "Unnamed user"}
+                </Link>
+                <span
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium capitalize ${
+                    p.status === "suspended"
+                      ? "bg-red-50 text-red-700"
+                      : "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  {p.status}
+                </span>
+              </div>
+              <dl className="grid grid-cols-2 gap-3 text-sm">
+                <div className="min-w-0">
+                  <dt className="text-xs text-gray-500">Mobile number</dt>
+                  <dd className="break-words text-[#1B1A2E]">{p.phone ?? "—"}</dd>
+                </div>
+                {role === "host" && (
+                  <div className="min-w-0">
+                    <dt className="text-xs text-gray-500">Business</dt>
+                    <dd className="break-words text-[#1B1A2E]">
+                      {p.business_name ?? "—"}
+                    </dd>
+                  </div>
+                )}
+                {role === "host" && (
+                  <div>
+                    <dt className="text-xs text-gray-500">Verification</dt>
+                    <dd className={p.host_verified_at ? "text-green-700" : "text-gray-500"}>
+                      {p.host_verified_at ? "Verified" : "Unverified"}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+              <UserRowActions userId={p.id} status={p.status} />
+            </article>
+          ))}
+          {(profiles ?? []).length === 0 && (
+            <p className="p-6 text-center text-sm text-gray-400">
+              No {role}s found.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { normalizePhone } from "@/app/lib/format";
 import { supabase } from "@/app/lib/supabase/client";
 
 const heroImages = [
@@ -23,7 +24,12 @@ const heroImages = [
 
 export default function SignupPage() {
   const router = useRouter();
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({
+    fullName: "",
+    phone: "",
+    email: "",
+    password: "",
+  });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,9 +39,23 @@ export default function SignupPage() {
     return requested?.startsWith("/") && !requested.startsWith("//") ? requested : "/";
   }
 
-  async function handleEmailSignup(event: React.FormEvent) {
+  async function handleEmailSignup(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    if (!event.currentTarget.reportValidity()) return;
+
+    const fullName = form.fullName.trim();
+    if (fullName.length < 2 || fullName.length > 80) {
+      setError("Enter your full name (2 to 80 characters).");
+      return;
+    }
+
+    const phone = normalizePhone(form.phone);
+    if (!phone) {
+      setError("Enter a valid phone number, e.g. 0712 345 678.");
+      return;
+    }
 
     if (form.password.length < 8) {
       setError("Password must be at least 8 characters long.");
@@ -49,6 +69,10 @@ export default function SignupPage() {
       email: form.email,
       password: form.password,
       options: {
+        data: {
+          full_name: fullName,
+          phone,
+        },
         emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
       },
     });
@@ -209,6 +233,38 @@ export default function SignupPage() {
               noValidate
               className="space-y-[18px] text-left"
             >
+              <label className="flex flex-col gap-1.5 text-[13px] text-[#4b5850]">
+                <span>Full name</span>
+                <input
+                  type="text"
+                  autoComplete="name"
+                  required
+                  minLength={2}
+                  maxLength={80}
+                  value={form.fullName}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, fullName: e.target.value }))
+                  }
+                  placeholder="Your full name"
+                  className="text-[15px] px-3 py-2.5 rounded-[3px] border border-[#cfd3c9] bg-white text-[#12231d] focus:outline-none focus:ring-2 focus:ring-[#12231d] focus:ring-offset-1"
+                />
+              </label>
+
+              <label className="flex flex-col gap-1.5 text-[13px] text-[#4b5850]">
+                <span>Mobile number</span>
+                <input
+                  type="tel"
+                  autoComplete="tel"
+                  required
+                  value={form.phone}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, phone: e.target.value }))
+                  }
+                  placeholder="0712 345 678"
+                  className="text-[15px] px-3 py-2.5 rounded-[3px] border border-[#cfd3c9] bg-white text-[#12231d] focus:outline-none focus:ring-2 focus:ring-[#12231d] focus:ring-offset-1"
+                />
+              </label>
+
               <label className="flex flex-col gap-1.5 text-[13px] text-[#4b5850]">
                 <span>Email</span>
                 <input

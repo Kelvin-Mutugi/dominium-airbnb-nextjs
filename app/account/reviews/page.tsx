@@ -16,7 +16,7 @@ export default async function ReviewsPage() {
 
   const { data, error } = await supabase
     .from('reviews')
-    .select('id, rating, comment, created_at, moderation_status, listing:listings ( title, slug )')
+    .select('id, rating, comment, created_at, moderation_status, listing:listings ( id, title )')
     .eq('guest_id', user.id)
     .order('created_at', { ascending: false });
 
@@ -87,7 +87,7 @@ export default async function ReviewsPage() {
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <p className="font-medium text-neutral-900">
                     {r.listing ? (
-                      <Link href={routes.listing(r.listing.slug)} className="hover:underline">
+                      <Link href={`/apartments/${encodeURIComponent(r.listing.id)}`} className="hover:underline">
                         {r.listing.title}
                       </Link>
                     ) : (

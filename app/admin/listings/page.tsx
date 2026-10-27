@@ -53,9 +53,9 @@ export default async function AdminListingsPage({
         Review submissions, and manage whats live on the site.
       </p>
 
-      <div className="mb-4 flex items-center justify-between gap-4">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-4">
         <AdminSearchInput placeholder="Search by title, town, county, or ID" />
-        <Link href="/admin/listings/new" className="inline-flex items-center rounded-lg bg-[#E23E85] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#c93075]">
+        <Link href="/admin/listings/new" className="inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-[#E23E85] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#c93075] sm:w-auto">
           Add listing
         </Link>
       </div>
@@ -74,13 +74,13 @@ export default async function AdminListingsPage({
           return (
             <div
               key={l.id}
-              className="bg-white rounded-lg shadow-sm p-4 flex gap-4 items-center"
+              className="flex flex-col items-stretch gap-3 rounded-lg bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:gap-4"
             >
               <Link
                 href={`/admin/listings/${l.id}`}
-                className="flex flex-1 min-w-0 gap-4 items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E23E85]"
+                className="flex min-w-0 flex-1 items-center gap-3 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E23E85] sm:gap-4"
               >
-                <div className="w-24 h-24 bg-gray-100 rounded overflow-hidden shrink-0">
+                <div className="size-20 shrink-0 overflow-hidden rounded bg-gray-100 sm:size-24">
                   {cover?.url && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -93,7 +93,7 @@ export default async function AdminListingsPage({
 
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-[#1B1A2E] hover:text-[#E23E85]">{l.title}</p>
-                  <p className="text-sm text-gray-500">
+                  <p className="break-words text-sm text-gray-500">
                     {l.town}, {l.county} · KES {Number(l.price_per_night).toLocaleString()}/night
                   </p>
                   <p className="text-xs text-gray-400 mt-1">

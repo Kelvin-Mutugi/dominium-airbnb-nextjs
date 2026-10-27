@@ -19,7 +19,8 @@ export function ListingTabs() {
   const active = searchParams.get("status") ?? "pending_review";
 
   return (
-    <div className="flex border-b mb-4">
+    <div className="-mx-1 mb-4 overflow-x-auto">
+      <div className="flex min-w-max border-b">
       {STATUSES.map((s) => (
         <Link
           key={s.value}
@@ -27,7 +28,7 @@ export function ListingTabs() {
             status: s.value,
             ...(searchParams.get("q") ? { q: searchParams.get("q") ?? "" } : {}),
           }).toString()}`}
-          className={`px-4 py-2 text-sm font-medium border-b-2 ${
+          className={`min-h-11 whitespace-nowrap px-3 py-2 text-sm font-medium border-b-2 sm:px-4 ${
             active === s.value
               ? "border-gray-900 text-gray-900"
               : "border-transparent text-gray-500 hover:text-gray-700"
@@ -36,6 +37,7 @@ export function ListingTabs() {
           {s.label}
         </Link>
       ))}
+      </div>
     </div>
   );
 }

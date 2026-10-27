@@ -26,8 +26,10 @@ import {
   ChartNoAxesCombined,
   CircleHelp,
   ChevronDown,
+  Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  X,
 } from "lucide-react";
 
 type AdminNavLink = {
@@ -216,30 +218,79 @@ export function AdminSidebar() {
   const searchParams = useSearchParams();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const compact = isCollapsed && !isMobileOpen;
 
   return (
-    <aside
-      className={`flex h-full shrink-0 flex-col overflow-hidden border-r border-gray-200 bg-white transition-[width] duration-200 ${
-        isCollapsed ? "w-16" : "w-64"
-      }`}
-    >
+    <>
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4 md:hidden">
+        <span className="text-base font-semibold text-[#1B1A2E]">
+          Dominium <span className="text-[#E23E85]">Admin</span>
+        </span>
+        <button
+          type="button"
+          onClick={() => setIsMobileOpen((open) => !open)}
+          aria-label={isMobileOpen ? "Close admin navigation" : "Open admin navigation"}
+          aria-expanded={isMobileOpen}
+          aria-controls="admin-sidebar"
+          className="flex size-10 items-center justify-center rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500"
+        >
+          {isMobileOpen ? (
+            <X size={20} aria-hidden="true" />
+          ) : (
+            <Menu size={20} aria-hidden="true" />
+          )}
+        </button>
+      </header>
+
+      {isMobileOpen && (
+        <button
+          type="button"
+          aria-label="Close admin navigation"
+          onClick={() => setIsMobileOpen(false)}
+          className="fixed inset-0 z-40 bg-gray-950/40 md:hidden"
+        />
+      )}
+
+      <aside
+        id="admin-sidebar"
+        role={isMobileOpen ? "dialog" : undefined}
+        aria-label={isMobileOpen ? "Admin navigation" : undefined}
+        aria-modal={isMobileOpen ? true : undefined}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") setIsMobileOpen(false);
+        }}
+        className={`flex shrink-0 flex-col overflow-hidden border-r border-gray-200 bg-white transition-[width] duration-200 ${
+          isMobileOpen
+            ? "fixed inset-y-0 left-0 z-50 h-dvh w-[min(20rem,85vw)] shadow-xl md:relative md:z-auto md:h-full md:shadow-none"
+            : "hidden md:relative md:flex md:h-full"
+        } ${isCollapsed ? "md:w-16" : "md:w-64"}`}
+      >
       <div
         className={`flex min-h-[73px] items-center border-b border-gray-200 bg-white ${
-          isCollapsed ? "justify-center px-2" : "justify-between px-5"
+          compact ? "justify-center px-2" : "justify-between px-5"
         }`}
       >
-        {!isCollapsed && (
+        {!compact && (
           <span className="whitespace-nowrap text-lg font-semibold text-[#1B1A2E]">
             Dominium <span className="text-[#E23E85]">Admin</span>
           </span>
         )}
         <button
           type="button"
+          onClick={() => setIsMobileOpen(false)}
+          aria-label="Close admin navigation"
+          className="flex size-9 shrink-0 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 md:hidden"
+        >
+          <X size={18} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
           onClick={() => setIsCollapsed((collapsed) => !collapsed)}
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           aria-expanded={!isCollapsed}
           title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="flex size-9 shrink-0 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500"
+          className="hidden size-9 shrink-0 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 md:flex"
         >
           {isCollapsed ? (
             <PanelLeftOpen size={18} aria-hidden="true" />
@@ -252,7 +303,7 @@ export function AdminSidebar() {
       <nav
         aria-label="Admin navigation"
         className={`flex-1 space-y-1 overflow-x-hidden overflow-y-auto bg-gray-50 ${
-          isCollapsed ? "p-2" : "p-3"
+          compact ? "p-2" : "p-3"
         }`}
       >
         {NAV_GROUPS.map((group) => {
@@ -280,17 +331,17 @@ export function AdminSidebar() {
             >
               <div
                 className={`flex min-h-10 items-center ${
-                  isCollapsed ? "justify-center" : "gap-1 px-2"
+                  compact ? "justify-center" : "gap-1 px-2"
                 }`}
               >
                 <button
                   type="button"
-                  title={isCollapsed ? group.heading : undefined}
+                  title={compact ? group.heading : undefined}
                   aria-label={group.heading}
-                  aria-expanded={!isCollapsed && groupIsOpen}
+                  aria-expanded={!compact && groupIsOpen}
                   aria-controls={groupContentId}
                   onClick={() => {
-                    if (isCollapsed) {
+                    if (compact) {
                       setIsCollapsed(false);
                       setExpandedGroup(group.heading);
                     } else {
@@ -298,7 +349,7 @@ export function AdminSidebar() {
                     }
                   }}
                   className={`flex min-h-10 cursor-pointer list-none items-center rounded-lg text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 [&::-webkit-details-marker]:hidden ${
-                    isCollapsed
+                    compact
                       ? "justify-center px-0"
                       : "flex-1 justify-between gap-2 px-1"
                   } ${
@@ -307,8 +358,8 @@ export function AdminSidebar() {
                       : "text-gray-600 hover:bg-white hover:text-gray-900"
                   }`}
                 >
-                  {!isCollapsed && <span>{group.heading}</span>}
-                  {isCollapsed ? (
+                  {!compact && <span>{group.heading}</span>}
+                  {compact ? (
                     <span className="flex size-8 items-center justify-center rounded-md text-gray-500">
                       <GroupIcon size={17} aria-hidden="true" />
                     </span>
@@ -322,7 +373,7 @@ export function AdminSidebar() {
                     />
                   )}
                 </button>
-                {!isCollapsed && (
+                {!compact && (
                   <div className="group/help relative flex shrink-0 items-center">
                     <button
                       type="button"
@@ -351,7 +402,7 @@ export function AdminSidebar() {
                   </div>
                 )}
               </div>
-              {!isCollapsed && groupIsOpen && (
+              {!compact && groupIsOpen && (
                 <div id={groupContentId} className="space-y-1 px-2 pb-2">
                   {group.links.map((link) => {
                     const Icon = link.icon;
@@ -366,7 +417,10 @@ export function AdminSidebar() {
                         key={link.href}
                         href={link.href}
                         aria-current={isActive ? "page" : undefined}
-                        onClick={() => setExpandedGroup(group.heading)}
+                        onClick={() => {
+                          setExpandedGroup(group.heading);
+                          setIsMobileOpen(false);
+                        }}
                         className={`flex min-h-10 items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
                           isActive
                             ? "bg-gray-100 font-semibold text-gray-950 ring-1 ring-inset ring-gray-200"
@@ -387,21 +441,23 @@ export function AdminSidebar() {
 
       <div
         className={`border-t border-gray-200 bg-white ${
-          isCollapsed ? "p-2" : "p-3"
+          compact ? "p-2" : "p-3"
         }`}
       >
         <Link
           href="/"
-          title={isCollapsed ? "Back to site" : undefined}
-          aria-label={isCollapsed ? "Back to site" : undefined}
+          title={compact ? "Back to site" : undefined}
+          aria-label={compact ? "Back to site" : undefined}
+          onClick={() => setIsMobileOpen(false)}
           className={`flex min-h-10 items-center rounded-md py-2 text-sm text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900 ${
-            isCollapsed ? "justify-center px-0" : "gap-3 px-3"
+            compact ? "justify-center px-0" : "gap-3 px-3"
           }`}
         >
-          {!isCollapsed && "← Back to site"}
-          {isCollapsed && <span aria-hidden="true">←</span>}
+          {!compact && "← Back to site"}
+          {compact && <span aria-hidden="true">←</span>}
         </Link>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

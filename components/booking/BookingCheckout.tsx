@@ -920,7 +920,8 @@ export default function BookingCheckout({
             className="mt-0.5 size-5 shrink-0 accent-[#1769AA]"
           />
           <span>
-            I agree to the{" "}
+            By confirming this reservation, I confirm that I have read,
+            understood, and agree to the{" "}
             <Link
               href={`${policiesUrl}#house-rules`}
               className="font-medium text-[#1769AA] underline"

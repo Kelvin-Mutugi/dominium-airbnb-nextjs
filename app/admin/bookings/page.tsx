@@ -118,8 +118,9 @@ export default async function AdminBookingsPage({
       <AdminSearchInput placeholder="Search by guest, host, listing, email, date, or booking ID" />
       <BookingTabs />
 
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="overflow-hidden rounded-lg bg-white shadow-sm">
+        <div className="hidden overflow-x-auto xl:block">
+        <table className="w-full min-w-[900px] text-sm">
           <thead className="bg-gray-50 text-left text-gray-500">
             <tr>
               <th className="p-3">Listing</th>
@@ -184,6 +185,75 @@ export default async function AdminBookingsPage({
             )}
           </tbody>
         </table>
+        </div>
+        <div className="divide-y divide-gray-100 xl:hidden">
+          {(bookings ?? []).map((b: AdminBooking) => {
+            const listing = Array.isArray(b.listing) ? b.listing[0] : b.listing;
+            const guest = Array.isArray(b.guest) ? b.guest[0] : b.guest;
+            const host = Array.isArray(b.host) ? b.host[0] : b.host;
+
+            return (
+              <article key={b.id} className="space-y-3 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link
+                      href={`/admin/bookings/${b.id}`}
+                      className="break-words font-semibold text-[#1B1A2E] hover:text-[#E23E85]"
+                    >
+                      {listing?.title ?? "Listing"}
+                    </Link>
+                    <p className="mt-1 break-all font-mono text-xs text-gray-500">
+                      {b.booking_reference}
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium capitalize text-gray-700">
+                    {b.status}
+                  </span>
+                </div>
+
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+                  <div className="min-w-0">
+                    <dt className="text-xs text-gray-500">Guest</dt>
+                    <dd className="break-words font-medium text-[#1B1A2E]">
+                      {b.guest_name ?? guest?.full_name ?? "Guest checkout"}
+                    </dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="text-xs text-gray-500">Host</dt>
+                    <dd className="break-words text-[#1B1A2E]">
+                      {host?.business_name ?? host?.full_name ?? "—"}
+                    </dd>
+                  </div>
+                  <div className="col-span-2">
+                    <dt className="text-xs text-gray-500">Stay dates</dt>
+                    <dd className="text-[#1B1A2E]">
+                      {b.check_in} → {b.check_out}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-gray-500">Guests</dt>
+                    <dd className="text-[#1B1A2E]">
+                      {b.guests_count} guests · {b.children_count} kids · {b.pets_count} pets
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-gray-500">Total</dt>
+                    <dd className="font-semibold text-[#1B1A2E]">
+                      KES {Number(b.total_amount).toLocaleString()}
+                    </dd>
+                  </div>
+                </dl>
+
+                <BookingRowActions bookingId={b.id} status={b.status} />
+              </article>
+            );
+          })}
+          {(bookings ?? []).length === 0 && (
+            <p className="p-6 text-center text-sm text-gray-400">
+              No {activeStatus} bookings.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

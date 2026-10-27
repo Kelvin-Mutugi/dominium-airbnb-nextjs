@@ -75,6 +75,15 @@ export default function HostSidebar() {
   const moreOpen = openMenuPath === pathname;
 
   useEffect(() => {
+    if (!moreOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpenMenuPath(null);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [moreOpen]);
+
+  useEffect(() => {
     let active = true;
     getHostPanelAccessStatus()
       .then((status) => {
@@ -165,7 +174,16 @@ export default function HostSidebar() {
       </aside>
 
       {/* Mobile Header */}
-      <div className="fixed inset-x-0 top-0 z-30 flex items-center justify-between bg-[#F7F7F9] px-4 py-3 text-[#1B1A2E] shadow-[0_3px_12px_rgba(27,26,46,0.055)] md:hidden">
+      {isVerified && moreOpen && (
+        <button
+          type="button"
+          aria-label="Close more host destinations"
+          onClick={() => setOpenMenuPath(null)}
+          className="fixed inset-0 z-10 bg-[#1B1A2E]/20 md:hidden"
+        />
+      )}
+
+      <div className="fixed inset-x-0 top-0 z-30 flex items-center justify-between bg-[#F7F7F9] px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] text-[#1B1A2E] shadow-[0_3px_12px_rgba(27,26,46,0.055)] md:hidden">
         <span className="font-bold">
           Host <span className="text-[#E23E85]">Panel</span>
         </span>
@@ -176,7 +194,7 @@ export default function HostSidebar() {
           </Link>
         )}
         {isVerified && moreOpen && (
-          <nav id="host-mobile-more-menu" aria-label="More host destinations" className="account-neu-surface fixed bottom-16 right-2 z-40 w-56 rounded-2xl p-2 text-[#1B1A2E]">
+          <nav id="host-mobile-more-menu" aria-label="More host destinations" className="account-neu-surface fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-2 z-40 max-h-[min(70dvh,32rem)] w-[min(18rem,calc(100vw-1rem))] overflow-y-auto rounded-2xl p-2 text-[#1B1A2E]">
             {MORE_NAV.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href);
@@ -230,7 +248,7 @@ export default function HostSidebar() {
           <button
             type="button"
             aria-expanded={moreOpen}
-            aria-controls="host-mobile-more-menu"
+            aria-controls={moreOpen ? "host-mobile-more-menu" : undefined}
             onClick={() => setOpenMenuPath(moreOpen ? null : pathname)}
             className="mx-0.5 my-1 flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[10px] font-medium text-gray-600 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E23E85]"
           >
