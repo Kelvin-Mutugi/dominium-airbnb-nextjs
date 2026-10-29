@@ -3,7 +3,7 @@ export default function HostListingAgreement() {
     <div className="max-w-3xl mx-auto px-6 py-16 text-gray-800">
       <header className="mb-10 border-b border-gray-200 pb-8">
         <p className="text-sm font-semibold text-pink-600 mb-2">
-          Dominium Airbnb
+          Dominium bnb
         </p>
         <h1 className="text-3xl font-bold text-gray-900">
           Host Listing Agreement &amp; Terms of Service
@@ -30,7 +30,7 @@ export default function HostListingAgreement() {
           1. Purpose &amp; Appointment
         </h2>
         <p className="leading-relaxed">
-          By listing a accommodation or rental property on Dominium&rsquo;s
+          By listing an accommodation or rental property on Dominium&rsquo;s
           platform or website, the Host appoints Dominium to market,
           display, and facilitate guest bookings for the property.
         </p>
@@ -120,7 +120,9 @@ export default function HostListingAgreement() {
             <li>
               If the defect cannot be resolved promptly, Dominium reserves
               the right to issue a 100% full refund to the guest at the
-              Host&rsquo;s direct expense.
+              Host&rsquo;s direct expense. Dominium may recover the refunded
+              amount from the Host&rsquo;s payouts or, if no payouts are
+              pending, by invoicing the Host (see clause 5.6).
             </li>
           </ul>
         </div>
@@ -144,7 +146,8 @@ export default function HostListingAgreement() {
             <li>
               The Host will incur a cancellation administrative fee of
               [e.g., 20% of the booking value or KES 5,000] to cover
-              re-accommodation costs.
+              re-accommodation costs, which Dominium may deduct from any
+              future payout (see clause 5.6).
             </li>
             <li>
               Dominium reserves the right to unlist or terminate the
@@ -182,7 +185,7 @@ export default function HostListingAgreement() {
           </li>
           <li>Misrepresentation of property features or ownership rights.</li>
         </ol>
-        <p className="leading-relaxed">
+        <p className="leading-relaxed mb-4">
           <span className="font-semibold text-gray-900">Platform Role:</span>{" "}
           Dominium acts solely as a venue/broker facilitating reservations
           between guests and hosts. Dominium does not own, inspect daily,
@@ -190,28 +193,98 @@ export default function HostListingAgreement() {
           for physical property defects, guest misconduct, or host
           negligence.
         </p>
+        <p className="leading-relaxed">
+          <span className="font-semibold text-gray-900">
+            Limitation of Liability:
+          </span>{" "}
+          To the fullest extent permitted by law, Dominium&rsquo;s total
+          liability to the Host in connection with any booking is limited to
+          the fees (markup and payout processing fees) that Dominium
+          actually received for that booking.
+        </p>
       </section>
 
       <section className="mb-10">
         <h2 className="text-xl font-bold text-gray-900 mb-4">
-          5. Payments, Commissions &amp; Refunds
+          5. Pricing, Markup, Payments &amp; Payouts
         </h2>
-        <ul className="list-disc pl-5 space-y-3 leading-relaxed">
-          <li>
-            Dominium will collect rental payments from guests on behalf of
-            the Host.
-          </li>
-          <li>
-            Dominium will deduct its agreed platform/commission fee of
-            [e.g., 10%&ndash;15%] prior to remitting payouts to the Host.
-          </li>
-          <li>
-            Payouts to the Host will be disbursed [e.g., 24 to 48 hours]
-            after successful guest check-in, provided no valid guest
-            complaints regarding property condition or access have been
-            lodged.
-          </li>
-        </ul>
+
+        <div className="space-y-4 leading-relaxed">
+          <p>
+            <span className="font-semibold text-gray-900">
+              5.1 Host&rsquo;s Nightly Rate.
+            </span>{" "}
+            The Host sets a base nightly rate for the property. This is the
+            amount the Host will be paid for each night booked, less the
+            payout processing fee described in clause 5.4.
+          </p>
+          <p>
+            <span className="font-semibold text-gray-900">
+              5.2 Dominium Service Fee (Fixed Markup).
+            </span>{" "}
+            Dominium adds a fixed amount in Kenya Shillings per night on top
+            of the Host&rsquo;s base nightly rate when showing the price to
+            guests. For example, if the Host&rsquo;s base rate is KES 2,500
+            and Dominium&rsquo;s fixed amount is KES 400, the guest sees KES
+            2,900 and the Host receives KES 2,500 per night. The amount is
+            set by Dominium for each property and is shown to the Host in
+            the price preview before the listing is published. The
+            Host&rsquo;s acceptance of that preview, together with this
+            Agreement, confirms the amount. The markup belongs to Dominium
+            and is not deducted from the Host&rsquo;s base rate.
+          </p>
+          <p>
+            <span className="font-semibold text-gray-900">
+              5.3 Collection of Payment.
+            </span>{" "}
+            Dominium collects the full booking amount from the guest on the
+            Host&rsquo;s behalf.
+          </p>
+          <p>
+            <span className="font-semibold text-gray-900">
+              5.4 Payout Processing Fee.
+            </span>{" "}
+            Dominium deducts a fixed processing fee from each payout to
+            cover the cost of sending the money to the Host (mobile money,
+            bank transfer, or similar). The current fee is shown in the
+            Host&rsquo;s dashboard and in the price preview.
+          </p>
+          <p>
+            <span className="font-semibold text-gray-900">
+              5.5 Payout Timing.
+            </span>{" "}
+            Payouts are sent 24 to 48 hours after the guest checks out,
+            unless a guest complaint about the property&rsquo;s condition or
+            access was lodged within [24 hours] of check-in and is still
+            being resolved.
+          </p>
+          <p>
+            <span className="font-semibold text-gray-900">
+              5.6 Deductions &amp; Refunds.
+            </span>{" "}
+            Dominium may deduct from any payout the amounts the Host owes
+            under Section 3, including guest refunds, emergency alternative
+            accommodation costs, and cancellation fees. If no payout is
+            pending, Dominium may invoice the Host for the amount owed.
+          </p>
+          <p>
+            <span className="font-semibold text-gray-900">
+              5.7 Changes to Fees.
+            </span>{" "}
+            Dominium may change the service fee or payout processing fee by
+            giving the Host at least [14] days&rsquo; notice through the
+            Host&rsquo;s dashboard, email, or SMS. Changes apply only to
+            bookings made after the notice period ends. A Host who does not
+            agree to a change may unlist their property before it takes
+            effect.
+          </p>
+          <p>
+            <span className="font-semibold text-gray-900">5.8 Taxes.</span>{" "}
+            The Host is responsible for their own taxes on income received
+            through Dominium. Dominium&rsquo;s fees are stated [inclusive /
+            exclusive] of any applicable taxes.
+          </p>
+        </div>
       </section>
 
       <section className="mb-10">
@@ -231,6 +304,34 @@ export default function HostListingAgreement() {
             communication. The Host shall not sell, lease, or use guest
             contact data for unsolicited personal marketing.
           </li>
+          <li>
+            <span className="font-semibold text-gray-900">
+              Off-Platform Dealings:
+            </span>{" "}
+            The Host shall not accept bookings, payments, or rebookings from
+            guests introduced through Dominium outside the platform, and
+            shall not encourage guests to do so. If the Host breaches this
+            clause, Dominium may remove the listing, terminate the
+            Host&rsquo;s account, and recover the fees it would have earned
+            on those bookings.
+          </li>
+          <li>
+            Read more in our{" "}
+            <a
+              className="text-[blue] underline"
+              href="/legal/host-privacy-policy"
+            >
+              Host Privacy Policy
+            </a>{" "}
+            or{" "}
+            <a
+              className="text-[blue] underline"
+              href="/legal/guest-privacy-policy"
+            >
+              Guest Privacy Policy
+            </a>
+            .
+          </li>
         </ul>
       </section>
 
@@ -247,13 +348,13 @@ export default function HostListingAgreement() {
         </p>
       </section>
 
-      <section className="border-t border-gray-200 pt-8">
+      {/* <section className="border-t border-gray-200 pt-8">
         <h2 className="text-xl font-bold text-gray-900 mb-1">
           Electronic Acceptance / Opt-In Declaration
         </h2>
         <p className="text-sm text-gray-500 mb-4">
           (To be placed next to a required checkbox on your Host Onboarding
-          Portal/Form)
+          Portal/Form, below the price preview)
         </p>
         <label className="flex items-start gap-3 leading-relaxed">
           <input
@@ -265,16 +366,18 @@ export default function HostListingAgreement() {
               I ACCEPT AND AGREE TO THE HOST LISTING AGREEMENT
             </span>{" "}
             &mdash; By checking this box, I certify that I am the legal
-            owner or authorized manager of the listed property. I agree to
-            keep availability accurate, honor all confirmed bookings,
-            maintain high property standards, and abide by the terms of
-            this Agreement. I acknowledge that Dominium Consultancy acts as
-            a platform agent and I agree to fully indemnify Dominium
-            against any guest claims, double-bookings, property defects, or
-            operational damages resulting from my property.
+            owner or authorized manager of the listed property. I have
+            reviewed the price preview showing the amount I will receive
+            and the fees Dominium charges. I agree to keep availability
+            accurate, honor all confirmed bookings, maintain high property
+            standards, and abide by the terms of this Agreement. I
+            acknowledge that Dominium Consultancy acts as a platform agent
+            and I agree to fully indemnify Dominium against any guest
+            claims, double-bookings, property defects, or operational
+            damages resulting from my property.
           </span>
         </label>
-      </section>
+      </section> */}
     </div>
   );
 }
