@@ -11,7 +11,7 @@ export function HostVerificationActions({ hostId }: { hostId: string }) {
   const [error, setError] = useState<string | null>(null);
 
   function review(decision: "approved" | "rejected") {
-    if (decision === "approved" && !window.confirm("Approve this host? This confirms the identity documents and enables host access.")) return;
+    if (decision === "approved" && !window.confirm("Approve this host and enable host access?")) return;
     if (decision === "rejected" && !window.confirm("Reject this host application and request changes?")) return;
 
     const formData = new FormData();

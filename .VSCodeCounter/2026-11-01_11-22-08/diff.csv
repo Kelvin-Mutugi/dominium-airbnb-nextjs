@@ -1,0 +1,61 @@
+"filename", "language", "TypeScript", "Markdown", "TypeScript JSX", "MS SQL", "JavaScript", "comment", "blank", "total"
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/BOOKINGSETUP.md", "Markdown", 0, 4, 0, 0, 0, 0, 4, 8
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/CANCELLATION_AND_REFUNDS_GUIDE.md", "Markdown", 0, 42, 0, 0, 0, 0, 7, 49
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/REFUND_WORKFLOW.md", "Markdown", 0, 33, 0, 0, 0, 0, 0, 33
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/SYSTEM_USER_AND_OPERATIONS_MANUAL.md", "Markdown", 0, 4, 0, 0, 0, 0, 0, 4
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/account/bookings/change-actions.ts", "TypeScript", 11, 0, 0, 0, 0, 0, 1, 12
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/bookings/actions.ts", "TypeScript", 19, 0, 0, 0, 0, 0, 1, 20
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/bookings/page.tsx", "TypeScript JSX", 0, 0, 67, 0, 0, 0, 3, 70
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/layout.tsx", "TypeScript JSX", 0, 0, 2, 0, 0, 0, 0, 2
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/sales/[id]/edit/page.tsx", "TypeScript JSX", 0, 0, 93, 0, 0, 0, 4, 97
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/sales/actions.ts", "TypeScript", 626, 0, 0, 0, 0, 0, 42, 668
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/sales/inquiries/page.tsx", "TypeScript JSX", 0, 0, 4, 0, 0, 0, 2, 6
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/sales/leads/page.tsx", "TypeScript JSX", 0, 0, 164, 0, 0, 0, 12, 176
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/sales/locations/page.tsx", "TypeScript JSX", 0, 0, 87, 0, 0, 0, 5, 92
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/sales/new/page.tsx", "TypeScript JSX", 0, 0, 6, 0, 0, 0, 2, 8
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/sales/page.tsx", "TypeScript JSX", 0, 0, 74, 0, 0, 1, 7, 82
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/users/page.tsx", "TypeScript JSX", 0, 0, 53, 0, 0, 0, 0, 53
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/verification/actions.ts", "TypeScript", 9, 0, 0, 0, 0, 0, 0, 9
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/verification/page.tsx", "TypeScript JSX", 0, 0, 33, 0, 0, 0, 1, 34
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/api/property-events/route.ts", "TypeScript", 98, 0, 0, 0, 0, 0, 11, 109
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/api/sale-inquiries/route.ts", "TypeScript", 128, 0, 0, 0, 0, 0, 14, 142
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/complete-profile/page.tsx", "TypeScript JSX", 0, 0, 46, 0, 0, 0, 7, 53
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/for-sale/[slug]/page.tsx", "TypeScript JSX", 0, 0, 167, 0, 0, 2, 10, 179
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/for-sale/page.tsx", "TypeScript JSX", 0, 0, 132, 0, 0, 1, 10, 143
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/host/onboarding/page.tsx", "TypeScript JSX", 0, 0, 38, 0, 0, 0, 0, 38
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/legal/guest-privacy-policy/page.tsx", "TypeScript JSX", 0, 0, 6, 0, 0, 0, 0, 6
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/lib/cancellation-policy.ts", "TypeScript", 12, 0, 0, 0, 0, 0, 2, 14
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/lib/host-auth.ts", "TypeScript", 8, 0, 0, 0, 0, 0, 0, 8
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/lib/host/actions.ts", "TypeScript", 57, 0, 0, 0, 0, 0, 6, 63
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/lib/request-body.ts", "TypeScript", 29, 0, 0, 0, 0, 0, 3, 32
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/lib/sale-marketplace.ts", "TypeScript", 229, 0, 0, 0, 0, 0, 22, 251
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/lib/sale-properties.ts", "TypeScript", 409, 0, 0, 0, 0, 0, 28, 437
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/lib/sale-rate-limit.ts", "TypeScript", 45, 0, 0, 0, 0, 0, 4, 49
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/signup/page.tsx", "TypeScript JSX", 0, 0, 51, 0, 0, 0, 5, 56
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/account/BookingChangeActions.tsx", "TypeScript JSX", 0, 0, 25, 0, 0, 0, 1, 26
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/admin/bookings/tabs.tsx", "TypeScript JSX", 0, 0, 2, 0, 0, 0, 0, 2
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/admin/listings/tabs.tsx", "TypeScript JSX", 0, 0, 2, 0, 0, 0, 0, 2
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/admin/sidebar.tsx", "TypeScript JSX", 0, 0, 65, 0, 0, 0, 2, 67
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/admin/users/tabs.tsx", "TypeScript JSX", 0, 0, 2, 0, 0, 0, 0, 2
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/admin/verification/host-id-document-viewer.tsx", "TypeScript JSX", 0, 0, 200, 0, 0, 0, 12, 212
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/booking/BookingCheckout.tsx", "TypeScript JSX", 0, 0, 1, 0, 0, 0, 0, 1
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/homeData.ts", "TypeScript", -19, 0, 0, 0, 0, 0, 0, -19
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/host/sidebar.tsx", "TypeScript JSX", 0, 0, 52, 0, 0, 0, 5, 57
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/navigationBar.tsx", "TypeScript JSX", 0, 0, 1, 0, 0, 0, 0, 1
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/policies/HostListingAgreement.tsx", "TypeScript JSX", 0, 0, 72, 0, 0, 30, 1, 103
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/policies/RefundPolicy.tsx", "TypeScript JSX", 0, 0, 44, 0, 0, 0, 3, 47
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/refunds/RefundProgressPanel.tsx", "TypeScript JSX", 0, 0, 1, 0, 0, 0, 0, 1
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/sales/PropertyEventTracker.tsx", "TypeScript JSX", 0, 0, 38, 0, 0, 0, 9, 47
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/sales/SaleInquiryForm.tsx", "TypeScript JSX", 0, 0, 144, 0, 0, 0, 7, 151
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/sales/SalePropertyForm.tsx", "TypeScript JSX", 0, 0, 791, 0, 0, 1, 30, 822
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/sales/upload-sale-property-image.ts", "TypeScript", 31, 0, 0, 0, 0, 0, 4, 35
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/custom-worker.mjs", "JavaScript", 0, 0, 0, 0, 5, 0, 0, 5
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/proxy.ts", "TypeScript", 21, 0, 0, 0, 0, 0, 3, 24
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/supabase/migrations/20261024130000_host_id_document_back.sql", "MS SQL", 0, 0, 0, 4, 0, 0, 2, 6
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/supabase/migrations/20261027100000_admin_platform_cancellation_full_refund.sql", "MS SQL", 0, 0, 0, 186, 0, 0, 18, 204
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/supabase/migrations/20261031100000_property_sales_marketplace.sql", "MS SQL", 0, 0, 0, 101, 0, 0, 17, 118
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/supabase/migrations/20261101100000_sale_marketplace_enrichment.sql", "MS SQL", 0, 0, 0, 508, 0, 0, 43, 551
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/supabase/migrations/20261101110000_sale_marketplace_operations.sql", "MS SQL", 0, 0, 0, 184, 0, 0, 17, 201
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/tests/cancellation-policy.test.ts", "TypeScript", 6, 0, 0, 0, 0, 0, 1, 7
+"/home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/tests/sale-marketplace.test.ts", "TypeScript", 145, 0, 0, 0, 0, 0, 8, 153
+"Total", "-", 1864, 83, 2463, 983, 5, 35, 396, 5829

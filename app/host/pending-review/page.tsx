@@ -22,7 +22,7 @@ export default async function PendingReviewPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-rose-700">Changes requested</p>
         <h1 className="mt-2 text-2xl font-semibold text-[#12231d]">Your application needs an update</h1>
         <p className="mt-3 leading-7 text-gray-600">
-          {profile.kyc_rejection_reason ?? "Please review your host details and upload a clear identity document."}
+          {profile.kyc_rejection_reason ?? "Please review and update your host details."}
         </p>
         <Link href="/host/onboarding" className="mt-6 inline-flex rounded-lg bg-[#12231d] px-4 py-3 font-medium text-white hover:bg-[#243c34]">
           Update and resubmit

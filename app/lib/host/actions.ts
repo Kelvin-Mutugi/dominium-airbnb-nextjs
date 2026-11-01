@@ -153,10 +153,6 @@ export async function submitHostOnboarding(formData: FormData) {
     | "individual"
     | "company";
   const businessName = String(formData.get("businessName") ?? "").trim();
-  const idType = String(formData.get("idType") ?? "national_id") as
-    | "national_id"
-    | "passport";
-  const idNumber = String(formData.get("idNumber") ?? "").trim();
   const dateOfBirth = String(formData.get("dateOfBirth") ?? "");
   const county = String(formData.get("county") ?? "").trim();
   const residentialAddress = String(
@@ -166,18 +162,11 @@ export async function submitHostOnboarding(formData: FormData) {
   const mpesaNumber = String(formData.get("mpesaNumber") ?? "").trim();
   const hostBio = String(formData.get("hostBio") ?? "").trim();
   const agreedToHostTerms = formData.get("agreedToHostTerms") === "true";
-  const idDocumentFront = formData.get("idDocumentFront");
-  const idDocumentBack = formData.get("idDocumentBack");
-  const frontDocument = idDocumentFront instanceof File ? idDocumentFront : null;
-  const backDocument = idDocumentBack instanceof File ? idDocumentBack : null;
 
   if (!fullName) throw new Error("Full legal name is required.");
   if (!MPESA_REGEX.test(phone))
     throw new Error("Enter a valid phone number, e.g. 0712345678.");
   if (!email.includes("@")) throw new Error("Enter a valid email address.");
-  if (idType !== "national_id" && idType !== "passport")
-    throw new Error("Choose a valid ID document type.");
-  if (!idNumber) throw new Error("National ID / passport number is required.");
   if (!dateOfBirth) throw new Error("Date of birth is required.");
   if (!isAdult(dateOfBirth))
     throw new Error("You must be at least 18 years old to host.");
@@ -185,10 +174,6 @@ export async function submitHostOnboarding(formData: FormData) {
   if (!residentialAddress) throw new Error("Residential address is required.");
   if (hostType === "company" && !businessName)
     throw new Error("Company name is required for company hosts.");
-  if (!frontDocument || frontDocument.size === 0)
-    throw new Error("Please upload the front of your ID or your passport.");
-  if (idType === "national_id" && (!backDocument || backDocument.size === 0))
-    throw new Error("Please upload the back of your national ID.");
   if (payoutMethod !== "mpesa") {
     throw new Error("Host payouts are currently sent to M-Pesa numbers.");
   }
@@ -200,29 +185,6 @@ export async function submitHostOnboarding(formData: FormData) {
       "You must accept the Host Listing Agreement and Terms of Service.",
     );
 
-  // ---- upload identity documents to a private, user-scoped folder ----
-  const submittedAt = Date.now();
-  const frontExtension = frontDocument.name.split(".").pop() ?? "jpg";
-  const frontPath = `${user.id}/id-document-front-${submittedAt}.${frontExtension}`;
-  const { error: uploadError } = await supabase.storage
-    .from("host-documents")
-    .upload(frontPath, frontDocument, {
-      upsert: true,
-    });
-  if (uploadError)
-    throw new Error(`Could not upload the front of your ID: ${uploadError.message}`);
-
-  let backPath: string | null = null;
-  if (idType === "national_id" && backDocument) {
-    const backExtension = backDocument.name.split(".").pop() ?? "jpg";
-    backPath = `${user.id}/id-document-back-${submittedAt}.${backExtension}`;
-    const { error: backUploadError } = await supabase.storage
-      .from("host-documents")
-      .upload(backPath, backDocument, { upsert: true });
-    if (backUploadError)
-      throw new Error(`Could not upload the back of your ID: ${backUploadError.message}`);
-  }
-
   // ---- upsert the profile row ----
   const { error: upsertError } = await supabase.from("profiles").upsert({
     id: user.id,
@@ -233,10 +195,6 @@ export async function submitHostOnboarding(formData: FormData) {
     role: "host",
     host_type: hostType,
     business_name: hostType === "company" ? businessName : null,
-    id_number: idNumber,
-    id_document_type: idType,
-    id_document_url: frontPath,
-    id_document_back_url: backPath,
     date_of_birth: dateOfBirth,
     county,
     residential_address: residentialAddress,
@@ -266,7 +224,7 @@ export async function getHostOnboardingStatus() {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "role, kyc_status, kyc_submitted_at, host_verified_at, kyc_rejection_reason, full_name, phone, alternate_phone, email, host_type, business_name, id_document_type, id_number, date_of_birth, county, residential_address, payout_method, payout_details, host_bio",
+      "role, kyc_status, kyc_submitted_at, host_verified_at, kyc_rejection_reason, full_name, phone, alternate_phone, email, host_type, business_name, date_of_birth, county, residential_address, payout_method, payout_details, host_bio",
     )
     .eq("id", user.id)
     .maybeSingle();

@@ -54,8 +54,6 @@ export default async function ProfilePage() {
         isHost={profile.role === 'host'}
         businessName={profile.business_name}
         hostBio={profile.host_bio}
-        // Only the last four digits ever reach the browser.
-        idNumberLast4={profile.id_number ? profile.id_number.slice(-4) : null}
       />
     </>
   );

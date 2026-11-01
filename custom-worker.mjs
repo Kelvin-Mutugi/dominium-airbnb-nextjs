@@ -20,23 +20,28 @@ const worker = {
         }
       }
 
-      const job = event.cron === '0 0 * * *'
-        ? { name: 'checkout completion', rpc: 'complete_due_host_bookings', args: { p_grace_hours: 24 } }
+      const jobs = event.cron === '0 0 * * *'
+        ? [
+            { name: 'checkout completion', rpc: 'complete_due_host_bookings', args: { p_grace_hours: 24 } },
+            { name: 'sale data retention', rpc: 'apply_sale_data_retention', args: undefined },
+          ]
         : event.cron === '*/5 * * * *'
-          ? { name: 'date-change decisions', rpc: 'auto_decide_due_date_change_requests', args: undefined }
+          ? [{ name: 'date-change decisions', rpc: 'auto_decide_due_date_change_requests', args: undefined }]
           : null;
 
-      if (!job) {
+      if (!jobs) {
         console.warn('Ignoring unrecognized Cloudflare cron schedule:', event.cron);
         return;
       }
 
-      const { data, error } = await supabase.rpc(job.rpc, job.args);
-      if (error) {
-        console.error(`Scheduled ${job.name} failed:`, error);
-        return;
+      for (const job of jobs) {
+        const { data, error } = await supabase.rpc(job.rpc, job.args);
+        if (error) {
+          console.error(`Scheduled ${job.name} failed:`, error);
+          continue;
+        }
+        console.info(`Scheduled ${job.name} completed:`, data);
       }
-      console.info(`Scheduled ${job.name} completed:`, data);
     })());
   },
 };

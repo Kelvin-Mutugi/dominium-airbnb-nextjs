@@ -1,0 +1,136 @@
+Date : 2026-11-01 11:22:08
+Directory : /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app
+Total : 59 files,  5398 codes, 35 comments, 396 blanks, all 5829 lines
+
+Languages
++----------------+------------+------------+------------+------------+------------+
+| language       | files      | code       | comment    | blank      | total      |
++----------------+------------+------------+------------+------------+------------+
+| TypeScript JSX |         31 |      2,463 |         35 |        138 |      2,636 |
+| TypeScript     |         18 |      1,864 |          0 |        150 |      2,014 |
+| MS SQL         |          5 |        983 |          0 |         97 |      1,080 |
+| Markdown       |          4 |         83 |          0 |         11 |         94 |
+| JavaScript     |          1 |          5 |          0 |          0 |          5 |
++----------------+------------+------------+------------+------------+------------+
+
+Directories
++------------------------------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                                                                                 | files      | code       | comment    | blank      | total      |
++------------------------------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                                                                                    |         59 |      5,398 |         35 |        396 |      5,829 |
+| . (Files)                                                                                                                                            |          6 |        109 |          0 |         14 |        123 |
+| app                                                                                                                                                  |         29 |      2,703 |          4 |        202 |      2,909 |
+| app/account                                                                                                                                          |          1 |         11 |          0 |          1 |         12 |
+| app/account/bookings                                                                                                                                 |          1 |         11 |          0 |          1 |         12 |
+| app/admin                                                                                                                                            |         13 |      1,237 |          1 |         79 |      1,317 |
+| app/admin (Files)                                                                                                                                    |          1 |          2 |          0 |          0 |          2 |
+| app/admin/bookings                                                                                                                                   |          2 |         86 |          0 |          4 |         90 |
+| app/admin/sales                                                                                                                                      |          7 |      1,054 |          1 |         74 |      1,129 |
+| app/admin/sales (Files)                                                                                                                              |          2 |        700 |          1 |         49 |        750 |
+| app/admin/sales/[id]                                                                                                                                 |          1 |         93 |          0 |          4 |         97 |
+| app/admin/sales/[id]/edit                                                                                                                            |          1 |         93 |          0 |          4 |         97 |
+| app/admin/sales/inquiries                                                                                                                            |          1 |          4 |          0 |          2 |          6 |
+| app/admin/sales/leads                                                                                                                                |          1 |        164 |          0 |         12 |        176 |
+| app/admin/sales/locations                                                                                                                            |          1 |         87 |          0 |          5 |         92 |
+| app/admin/sales/new                                                                                                                                  |          1 |          6 |          0 |          2 |          8 |
+| app/admin/users                                                                                                                                      |          1 |         53 |          0 |          0 |         53 |
+| app/admin/verification                                                                                                                               |          2 |         42 |          0 |          1 |         43 |
+| app/api                                                                                                                                              |          2 |        226 |          0 |         25 |        251 |
+| app/api/property-events                                                                                                                              |          1 |         98 |          0 |         11 |        109 |
+| app/api/sale-inquiries                                                                                                                               |          1 |        128 |          0 |         14 |        142 |
+| app/complete-profile                                                                                                                                 |          1 |         46 |          0 |          7 |         53 |
+| app/for-sale                                                                                                                                         |          2 |        299 |          3 |         20 |        322 |
+| app/for-sale (Files)                                                                                                                                 |          1 |        132 |          1 |         10 |        143 |
+| app/for-sale/[slug]                                                                                                                                  |          1 |        167 |          2 |         10 |        179 |
+| app/host                                                                                                                                             |          1 |         38 |          0 |          0 |         38 |
+| app/host/onboarding                                                                                                                                  |          1 |         38 |          0 |          0 |         38 |
+| app/legal                                                                                                                                            |          1 |          6 |          0 |          0 |          6 |
+| app/legal/guest-privacy-policy                                                                                                                       |          1 |          6 |          0 |          0 |          6 |
+| app/lib                                                                                                                                              |          7 |        789 |          0 |         65 |        854 |
+| app/lib (Files)                                                                                                                                      |          6 |        732 |          0 |         59 |        791 |
+| app/lib/host                                                                                                                                         |          1 |         57 |          0 |          6 |         63 |
+| app/signup                                                                                                                                           |          1 |         51 |          0 |          5 |         56 |
+| components                                                                                                                                           |         17 |      1,452 |         31 |         74 |      1,557 |
+| components (Files)                                                                                                                                   |          2 |        -18 |          0 |          0 |        -18 |
+| components/account                                                                                                                                   |          1 |         25 |          0 |          1 |         26 |
+| components/admin                                                                                                                                     |          5 |        271 |          0 |         14 |        285 |
+| components/admin (Files)                                                                                                                             |          1 |         65 |          0 |          2 |         67 |
+| components/admin/bookings                                                                                                                            |          1 |          2 |          0 |          0 |          2 |
+| components/admin/listings                                                                                                                            |          1 |          2 |          0 |          0 |          2 |
+| components/admin/users                                                                                                                               |          1 |          2 |          0 |          0 |          2 |
+| components/admin/verification                                                                                                                        |          1 |        200 |          0 |         12 |        212 |
+| components/booking                                                                                                                                   |          1 |          1 |          0 |          0 |          1 |
+| components/host                                                                                                                                      |          1 |         52 |          0 |          5 |         57 |
+| components/policies                                                                                                                                  |          2 |        116 |         30 |          4 |        150 |
+| components/refunds                                                                                                                                   |          1 |          1 |          0 |          0 |          1 |
+| components/sales                                                                                                                                     |          4 |      1,004 |          1 |         50 |      1,055 |
+| supabase                                                                                                                                             |          5 |        983 |          0 |         97 |      1,080 |
+| supabase/migrations                                                                                                                                  |          5 |        983 |          0 |         97 |      1,080 |
+| tests                                                                                                                                                |          2 |        151 |          0 |          9 |        160 |
++------------------------------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++------------------------------------------------------------------------------------------------------------------------------------------------------+----------------+------------+------------+------------+------------+
+| filename                                                                                                                                             | language       | code       | comment    | blank      | total      |
++------------------------------------------------------------------------------------------------------------------------------------------------------+----------------+------------+------------+------------+------------+
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/BOOKINGSETUP.md                                                                | Markdown       |          4 |          0 |          4 |          8 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/CANCELLATION_AND_REFUNDS_GUIDE.md                                              | Markdown       |         42 |          0 |          7 |         49 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/REFUND_WORKFLOW.md                                                             | Markdown       |         33 |          0 |          0 |         33 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/SYSTEM_USER_AND_OPERATIONS_MANUAL.md                                           | Markdown       |          4 |          0 |          0 |          4 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/account/bookings/change-actions.ts                                         | TypeScript     |         11 |          0 |          1 |         12 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/bookings/actions.ts                                                  | TypeScript     |         19 |          0 |          1 |         20 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/bookings/page.tsx                                                    | TypeScript JSX |         67 |          0 |          3 |         70 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/layout.tsx                                                           | TypeScript JSX |          2 |          0 |          0 |          2 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/sales/[id]/edit/page.tsx                                             | TypeScript JSX |         93 |          0 |          4 |         97 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/sales/actions.ts                                                     | TypeScript     |        626 |          0 |         42 |        668 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/sales/inquiries/page.tsx                                             | TypeScript JSX |          4 |          0 |          2 |          6 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/sales/leads/page.tsx                                                 | TypeScript JSX |        164 |          0 |         12 |        176 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/sales/locations/page.tsx                                             | TypeScript JSX |         87 |          0 |          5 |         92 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/sales/new/page.tsx                                                   | TypeScript JSX |          6 |          0 |          2 |          8 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/sales/page.tsx                                                       | TypeScript JSX |         74 |          1 |          7 |         82 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/users/page.tsx                                                       | TypeScript JSX |         53 |          0 |          0 |         53 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/verification/actions.ts                                              | TypeScript     |          9 |          0 |          0 |          9 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/admin/verification/page.tsx                                                | TypeScript JSX |         33 |          0 |          1 |         34 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/api/property-events/route.ts                                               | TypeScript     |         98 |          0 |         11 |        109 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/api/sale-inquiries/route.ts                                                | TypeScript     |        128 |          0 |         14 |        142 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/complete-profile/page.tsx                                                  | TypeScript JSX |         46 |          0 |          7 |         53 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/for-sale/[slug]/page.tsx                                                   | TypeScript JSX |        167 |          2 |         10 |        179 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/for-sale/page.tsx                                                          | TypeScript JSX |        132 |          1 |         10 |        143 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/host/onboarding/page.tsx                                                   | TypeScript JSX |         38 |          0 |          0 |         38 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/legal/guest-privacy-policy/page.tsx                                        | TypeScript JSX |          6 |          0 |          0 |          6 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/lib/cancellation-policy.ts                                                 | TypeScript     |         12 |          0 |          2 |         14 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/lib/host-auth.ts                                                           | TypeScript     |          8 |          0 |          0 |          8 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/lib/host/actions.ts                                                        | TypeScript     |         57 |          0 |          6 |         63 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/lib/request-body.ts                                                        | TypeScript     |         29 |          0 |          3 |         32 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/lib/sale-marketplace.ts                                                    | TypeScript     |        229 |          0 |         22 |        251 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/lib/sale-properties.ts                                                     | TypeScript     |        409 |          0 |         28 |        437 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/lib/sale-rate-limit.ts                                                     | TypeScript     |         45 |          0 |          4 |         49 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/app/signup/page.tsx                                                            | TypeScript JSX |         51 |          0 |          5 |         56 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/account/BookingChangeActions.tsx                                    | TypeScript JSX |         25 |          0 |          1 |         26 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/admin/bookings/tabs.tsx                                             | TypeScript JSX |          2 |          0 |          0 |          2 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/admin/listings/tabs.tsx                                             | TypeScript JSX |          2 |          0 |          0 |          2 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/admin/sidebar.tsx                                                   | TypeScript JSX |         65 |          0 |          2 |         67 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/admin/users/tabs.tsx                                                | TypeScript JSX |          2 |          0 |          0 |          2 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/admin/verification/host-id-document-viewer.tsx                      | TypeScript JSX |        200 |          0 |         12 |        212 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/booking/BookingCheckout.tsx                                         | TypeScript JSX |          1 |          0 |          0 |          1 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/homeData.ts                                                         | TypeScript     |        -19 |          0 |          0 |        -19 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/host/sidebar.tsx                                                    | TypeScript JSX |         52 |          0 |          5 |         57 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/navigationBar.tsx                                                   | TypeScript JSX |          1 |          0 |          0 |          1 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/policies/HostListingAgreement.tsx                                   | TypeScript JSX |         72 |         30 |          1 |        103 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/policies/RefundPolicy.tsx                                           | TypeScript JSX |         44 |          0 |          3 |         47 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/refunds/RefundProgressPanel.tsx                                     | TypeScript JSX |          1 |          0 |          0 |          1 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/sales/PropertyEventTracker.tsx                                      | TypeScript JSX |         38 |          0 |          9 |         47 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/sales/SaleInquiryForm.tsx                                           | TypeScript JSX |        144 |          0 |          7 |        151 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/sales/SalePropertyForm.tsx                                          | TypeScript JSX |        791 |          1 |         30 |        822 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/components/sales/upload-sale-property-image.ts                                 | TypeScript     |         31 |          0 |          4 |         35 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/custom-worker.mjs                                                              | JavaScript     |          5 |          0 |          0 |          5 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/proxy.ts                                                                       | TypeScript     |         21 |          0 |          3 |         24 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/supabase/migrations/20261024130000_host_id_document_back.sql                   | MS SQL         |          4 |          0 |          2 |          6 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/supabase/migrations/20261027100000_admin_platform_cancellation_full_refund.sql | MS SQL         |        186 |          0 |         18 |        204 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/supabase/migrations/20261031100000_property_sales_marketplace.sql              | MS SQL         |        101 |          0 |         17 |        118 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/supabase/migrations/20261101100000_sale_marketplace_enrichment.sql             | MS SQL         |        508 |          0 |         43 |        551 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/supabase/migrations/20261101110000_sale_marketplace_operations.sql             | MS SQL         |        184 |          0 |         17 |        201 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/tests/cancellation-policy.test.ts                                              | TypeScript     |          6 |          0 |          1 |          7 |
+| /home/kelvinmutugi/projects/mpesa test/dominium_airbnb_next_js/my-app/tests/sale-marketplace.test.ts                                                 | TypeScript     |        145 |          0 |          8 |        153 |
+| Total                                                                                                                                                |                |      5,398 |         35 |        396 |      5,829 |
++------------------------------------------------------------------------------------------------------------------------------------------------------+----------------+------------+------------+------------+------------+

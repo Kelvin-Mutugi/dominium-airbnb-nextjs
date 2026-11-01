@@ -28,7 +28,6 @@ export interface Profile {
   avatar_url: string | null;
   created_at: string;
   business_name: string | null;
-  id_number: string | null;
   payout_method: PayoutMethod | null;
   payout_details: Record<string, string> | null;
   host_verified_at: string | null;
