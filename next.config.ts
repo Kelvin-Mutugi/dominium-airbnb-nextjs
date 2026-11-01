@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  allowedDevOrigins: ["10.224.83.99", "*.trycloudflare.com"],
+  allowedDevOrigins: ["10.224.83.99", "*.trycloudflare.com", "192.168.1.180"],
 };
 
 export default nextConfig;

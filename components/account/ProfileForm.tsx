@@ -18,7 +18,6 @@ type Props = {
   isHost: boolean;
   businessName: string | null;
   hostBio: string | null;
-  idNumberLast4: string | null;
 };
 
 export function ProfileForm(props: Props) {
@@ -98,16 +97,6 @@ export function ProfileForm(props: Props) {
                   maxLength={1000}
                   aria-describedby="host_bio-hint"
                   placeholder="How long you’ve been hosting, what guests can expect, what you love about the area."
-                />
-              </Field>
-              <Field label="ID number" htmlFor="id_number" hint="Verified during host onboarding. Contact support to change it.">
-                <input
-                  id="id_number"
-                  className={inputClass}
-                  value={props.idNumberLast4 ? `••••${props.idNumberLast4}` : 'Not provided'}
-                  readOnly
-                  disabled
-                  aria-describedby="id_number-hint"
                 />
               </Field>
             </div>

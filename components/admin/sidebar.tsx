@@ -18,6 +18,7 @@ import {
   ClipboardCheck,
   MessageSquareText,
   Mail,
+  MapPin,
   BadgeDollarSign,
   CreditCard,
   Banknote,
@@ -69,6 +70,16 @@ const NAV_GROUPS: {
         label: "Property Visit Requests",
         icon: ClipboardList,
       },
+    ],
+  },
+  {
+    heading: "Property Sales",
+    explanation:
+      "Manage sale inventory, buyer leads, and the location catalogue.",
+    links: [
+      { href: "/admin/sales", label: "Sales Inventory", icon: Home },
+      { href: "/admin/sales/leads", label: "Sales Leads", icon: Mail },
+      { href: "/admin/sales/locations", label: "Sale Locations", icon: MapPin },
     ],
   },
   {

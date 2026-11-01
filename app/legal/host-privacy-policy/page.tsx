@@ -38,7 +38,6 @@ const sections: Section[] = [
         type: "ul",
         items: [
           "Full Name",
-          "National ID or Passport",
           "KRA PIN Certificate",
           "Email Address",
           "Phone Number",

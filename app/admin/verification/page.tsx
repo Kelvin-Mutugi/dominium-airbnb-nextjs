@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { formatDate, humanize } from '@/app/lib/format';
 import { getSupabaseAdmin } from '@/app/lib/supabase/admin';
-import { HostIdDocumentViewer } from '@/components/admin/verification/host-id-document-viewer';
 import { HostVerificationActions } from '@/components/admin/verification/host-verification-actions';
 
 type HostApplication = {
@@ -11,10 +10,6 @@ type HostApplication = {
   email: string | null;
   host_type: string | null;
   business_name: string | null;
-  id_number: string | null;
-  id_document_type: string | null;
-  id_document_url: string | null;
-  id_document_back_url: string | null;
   date_of_birth: string | null;
   county: string | null;
   residential_address: string | null;
@@ -40,13 +35,6 @@ function statusTone(status: string | null) {
   return 'bg-amber-50 text-amber-800';
 }
 
-function documentPreviewKind(path: string | null): 'image' | 'pdf' | 'other' {
-  const extension = path?.split('.').pop()?.toLowerCase();
-  if (extension === 'pdf') return 'pdf';
-  if (['jpg', 'jpeg', 'png', 'webp'].includes(extension ?? '')) return 'image';
-  return 'other';
-}
-
 export default async function HostVerificationPage({
   searchParams,
 }: {
@@ -59,7 +47,7 @@ export default async function HostVerificationPage({
 
   let applicationsQuery = admin
     .from('profiles')
-    .select('id, full_name, phone, email, host_type, business_name, id_number, id_document_type, id_document_url, id_document_back_url, date_of_birth, county, residential_address, payout_method, payout_details, host_bio, kyc_status, kyc_submitted_at, kyc_rejection_reason, host_verified_at')
+    .select('id, full_name, phone, email, host_type, business_name, date_of_birth, county, residential_address, payout_method, payout_details, host_bio, kyc_status, kyc_submitted_at, kyc_rejection_reason, host_verified_at')
     .eq('role', 'host')
     .order('kyc_submitted_at', { ascending: false, nullsFirst: false })
     .limit(200);
@@ -67,14 +55,6 @@ export default async function HostVerificationPage({
 
   const { data, error } = await applicationsQuery;
   if (error) {
-    const missingBackDocumentColumn =
-      ['42703', 'PGRST204'].includes(error.code) &&
-      error.message.includes('id_document_back_url');
-    if (missingBackDocumentColumn) {
-      throw new Error(
-        'The database is missing profiles.id_document_back_url. Apply supabase/migrations/20261024130000_host_id_document_back.sql in the Supabase SQL Editor, then refresh this page.',
-      );
-    }
     throw new Error(
       `Unable to load host applications (database error ${error.code}). Apply all pending host verification migrations and try again.`,
     );
@@ -88,27 +68,12 @@ export default async function HostVerificationPage({
       .toLowerCase()
       .includes(query),
   );
-  const documentLinks = await Promise.all(visibleRows.map(async (host) => {
-    const front = host.id_document_url
-      ? await admin.storage.from('host-documents').createSignedUrl(host.id_document_url, 300)
-      : null;
-    if (front?.error) throw new Error(`Unable to load the front ID document for ${host.full_name ?? host.id}.`);
-    const back = host.id_document_back_url
-      ? await admin.storage.from('host-documents').createSignedUrl(host.id_document_back_url, 300)
-      : null;
-    if (back?.error) throw new Error(`Unable to load the back ID document for ${host.full_name ?? host.id}.`);
-    return [host.id, {
-      frontUrl: front?.data.signedUrl ?? null,
-      backUrl: back?.data.signedUrl ?? null,
-    }] as const;
-  }));
-  const documentUrlByHost = new Map(documentLinks);
 
   return (
     <div className="max-w-6xl space-y-6">
       <header>
         <h1 className="text-2xl font-semibold text-[#E23E85]">Host Verification</h1>
-        <p className="mt-1 text-sm text-gray-600">Review submitted identity and payout details before approving a host.</p>
+        <p className="mt-1 text-sm text-gray-600">Review host, residence, and payout details before approving an application.</p>
       </header>
 
       <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-3">
@@ -144,7 +109,6 @@ export default async function HostVerificationPage({
       ) : (
         <div className="divide-y border-y bg-white">
           {visibleRows.map((host) => {
-            const documents = documentUrlByHost.get(host.id);
             const payoutDetails = host.payout_details ?? {};
             const payoutValue = host.payout_method === 'mpesa'
               ? masked(payoutDetails.mpesa_number ?? payoutDetails.phone)
@@ -166,7 +130,6 @@ export default async function HostVerificationPage({
                   <dl className="mt-5 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
                     <div><dt className="text-xs text-gray-500">Email</dt><dd className="mt-1 break-all text-sm text-[#1B1A2E]">{host.email ?? 'Not provided'}</dd></div>
                     <div><dt className="text-xs text-gray-500">Phone</dt><dd className="mt-1 text-sm text-[#1B1A2E]">{host.phone ?? 'Not provided'}</dd></div>
-                    <div><dt className="text-xs text-gray-500">ID type / last digits</dt><dd className="mt-1 text-sm text-[#1B1A2E]">{humanize(host.id_document_type ?? 'ID')} · {masked(host.id_number)}</dd></div>
                     <div><dt className="text-xs text-gray-500">Date of birth</dt><dd className="mt-1 text-sm text-[#1B1A2E]">{host.date_of_birth ? formatDate(host.date_of_birth, 'long') : 'Not provided'}</dd></div>
                     <div><dt className="text-xs text-gray-500">Residence</dt><dd className="mt-1 text-sm text-[#1B1A2E]">{[host.residential_address, host.county].filter(Boolean).join(', ') || 'Not provided'}</dd></div>
                     <div><dt className="text-xs text-gray-500">Payout destination</dt><dd className="mt-1 text-sm text-[#1B1A2E]">{humanize(host.payout_method ?? 'not set')} · {payoutValue}</dd></div>
@@ -174,20 +137,6 @@ export default async function HostVerificationPage({
 
                   {host.host_bio && <p className="mt-5 max-w-3xl whitespace-pre-wrap text-sm leading-6 text-gray-600">{host.host_bio}</p>}
                   {host.kyc_rejection_reason && <p className="mt-4 border-l-2 border-rose-400 bg-rose-50 px-3 py-2 text-sm text-rose-800">Previous rejection: {host.kyc_rejection_reason}</p>}
-
-                  {documents?.frontUrl ? (
-                    <HostIdDocumentViewer
-                      frontUrl={documents.frontUrl}
-                      backUrl={documents.backUrl}
-                      documentType={humanize(host.id_document_type ?? 'ID')}
-                      hostName={host.full_name ?? 'Unnamed host'}
-                      isPassport={host.id_document_type === 'passport'}
-                      frontPreviewKind={documentPreviewKind(host.id_document_url)}
-                      backPreviewKind={documentPreviewKind(host.id_document_back_url)}
-                    />
-                  ) : (
-                    <p className="mt-5 text-sm text-rose-700">ID document unavailable. Ask the host to resubmit it.</p>
-                  )}
                 </div>
 
                 {canReview && (

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { MapPin, Share2, ShieldCheck, Star } from "lucide-react";
+import { ChevronDown, MapPin, Share2, ShieldCheck, Star } from "lucide-react";
 import { Listing, RelatedListingSummary } from "./homeData";
 import { Avatar } from "@/components/account/ui";
 import AmenitiesGrid from "./appartmentDetails/amenities";
@@ -336,12 +336,24 @@ export default function ApartmentDetails({
                   {/* <div className="mb-3 text-[12px] font-semibold uppercase tracking-[1px] text-[#3A3856]/70">
                   Price and availability
                 </div> */}
-                  <p className="text-sm leading-5 text-[#3A3856]/80 lg:text-[#3A3856]">
-                    <span className="font-semibold text-[#1B1A2E]">
-                      Cancellation:{" "}
-                    </span>
-                    {PLATFORM_CANCELLATION_POLICY}
-                  </p>
+                  <details className="group mt-4 min-w-0 border-y border-[#EDEBE4] py-3 md:mt-5 md:py-4">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm [&::-webkit-details-marker]:hidden">
+                      <span className="font-semibold text-[#1B1A2E]">
+                        Cancellation policy
+                      </span>
+                      <span className="inline-flex shrink-0 items-center gap-1.5 text-[#3A3856]/75">
+                        View details
+                        <ChevronDown
+                          size={16}
+                          aria-hidden="true"
+                          className="transition-transform duration-200 group-open:rotate-180"
+                        />
+                      </span>
+                    </summary>
+                    <p className="mt-3 text-sm leading-5 text-[#3A3856]/80 lg:text-[#3A3856]">
+                      {PLATFORM_CANCELLATION_POLICY}
+                    </p>
+                  </details>
 
                   <div className="mt-4 min-w-0">
                     <div className="mb-3 grid grid-cols-3 gap-2 sm:mb-4 sm:gap-3">

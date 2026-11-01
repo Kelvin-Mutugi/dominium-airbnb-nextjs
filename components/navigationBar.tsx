@@ -7,6 +7,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import {
   CalendarDays,
+  Heart,
   Home,
   LayoutGrid,
   LogOut,
@@ -36,6 +37,8 @@ const MAX_GUESTS = 16;
 // Main ways to browse: these stay prominent inside the menu
 const EXPLORE_LINKS = [
   { label: "All Listings", href: "/allListings", icon: LayoutGrid },
+  { label: "Properties for Sale", href: "/for-sale", icon: Home },
+  { label: "My Shortlist", href: "/shortlist", icon: Heart },
   { label: "Explore by County", href: "/explore-by-county", icon: MapPin },
 ];
 

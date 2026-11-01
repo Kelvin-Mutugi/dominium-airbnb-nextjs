@@ -9,20 +9,15 @@ import {
 } from "@/app/lib/host/actions";
 
 type HostType = "individual" | "company";
-type IdType = "national_id" | "passport";
 
 type FormState = {
-  // Identity & KYC
+  // Host details
   fullName: string;
   phone: string;
   alternatePhone: string;
   email: string;
   hostType: HostType;
   businessName: string;
-  idType: IdType;
-  idNumber: string;
-  idDocumentFront: File | null;
-  idDocumentBack: File | null;
   dateOfBirth: string;
   county: string;
   residentialAddress: string;
@@ -41,10 +36,6 @@ const initialState: FormState = {
   email: "",
   hostType: "individual",
   businessName: "",
-  idType: "national_id",
-  idNumber: "",
-  idDocumentFront: null,
-  idDocumentBack: null,
   dateOfBirth: "",
   county: "",
   residentialAddress: "",
@@ -102,7 +93,7 @@ export default function HostOnboardingPage() {
           return;
         }
         if (status.kyc_status === "rejected") {
-          setRejectionReason(status.kyc_rejection_reason ?? "Please review your details and upload a clear identity document.");
+          setRejectionReason(status.kyc_rejection_reason ?? "Please review and update your host details.");
           const payoutDetails = status.payout_details as Record<string, string> | null;
           setForm((current) => ({
             ...current,
@@ -112,8 +103,6 @@ export default function HostOnboardingPage() {
             email: status.email ?? current.email,
             hostType: status.host_type === "company" ? "company" : "individual",
             businessName: status.business_name ?? current.businessName,
-            idType: status.id_document_type === "passport" ? "passport" : "national_id",
-            idNumber: status.id_number ?? current.idNumber,
             dateOfBirth: status.date_of_birth ?? current.dateOfBirth,
             county: status.county ?? current.county,
             residentialAddress: status.residential_address ?? current.residentialAddress,
@@ -150,11 +139,6 @@ export default function HostOnboardingPage() {
       return "Alternate mobile number looks invalid — use e.g. 0712345678.";
     }
     if (!/^\S+@\S+\.\S+$/.test(form.email)) return "Enter a valid email address.";
-    if (!form.idNumber.trim()) return `${form.idType === "passport" ? "Passport" : "National ID"} number is required.`;
-    if (!form.idDocumentFront) return "Please upload the front of your ID or your passport.";
-    if (form.idType === "national_id" && !form.idDocumentBack) {
-      return "Please upload the back of your national ID.";
-    }
     if (!form.dateOfBirth) return "Date of birth is required.";
     const age = calculateAge(form.dateOfBirth);
     if (age !== null && age < 18) return "You must be at least 18 years old to host.";
@@ -185,12 +169,6 @@ export default function HostOnboardingPage() {
     payload.set("email", form.email);
     payload.set("hostType", form.hostType);
     payload.set("businessName", form.businessName);
-    payload.set("idType", form.idType);
-    payload.set("idNumber", form.idNumber);
-    if (form.idDocumentFront) payload.set("idDocumentFront", form.idDocumentFront);
-    if (form.idType === "national_id" && form.idDocumentBack) {
-      payload.set("idDocumentBack", form.idDocumentBack);
-    }
     payload.set("dateOfBirth", form.dateOfBirth);
     payload.set("county", form.county);
     payload.set("residentialAddress", form.residentialAddress);
@@ -226,22 +204,22 @@ export default function HostOnboardingPage() {
         <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-900">
           <p className="font-semibold">Changes needed before we can verify your host account</p>
           <p className="mt-1 leading-6">{rejectionReason}</p>
-          <p className="mt-2 text-rose-800">Your saved details are filled in below. Update what is needed and upload the corrected ID document.</p>
+          <p className="mt-2 text-rose-800">Your saved details are filled in below. Update any information that needs changing.</p>
         </div>
       )}
       <div>
         <h1 className="text-2xl font-bold text-[#12231d]">Set up your host account</h1>
-        <p className="text-gray-500">We use these details to verify your identity and process payouts.</p>
+        <p className="text-gray-500">We use these details to set up your host account and process payouts.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Identity & KYC */}
+        {/* Host details */}
         <section className="space-y-5 rounded-2xl bg-white p-6 shadow-sm">
-          <h2 className="font-semibold text-[#12231d]">Identity verification</h2>
+          <h2 className="font-semibold text-[#12231d]">Your details</h2>
 
           <label className={labelClass}>
             Full legal name
-            <input required className={inputClass} value={form.fullName} onChange={(e) => update("fullName", e.target.value)} placeholder="As it appears on your ID" />
+            <input required className={inputClass} value={form.fullName} onChange={(e) => update("fullName", e.target.value)} autoComplete="name" />
           </label>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -276,63 +254,6 @@ export default function HostOnboardingPage() {
               <input required className={inputClass} value={form.businessName} onChange={(e) => update("businessName", e.target.value)} />
             </label>
           )}
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <fieldset className="space-y-2 text-sm text-[#12231d]">
-              <legend className="font-medium">ID type</legend>
-              <label className="mr-5 inline-flex items-center gap-2">
-                <input type="radio" checked={form.idType === "national_id"} onChange={() => update("idType", "national_id")} /> National ID
-              </label>
-              <label className="inline-flex items-center gap-2">
-                <input type="radio" checked={form.idType === "passport"} onChange={() => update("idType", "passport")} /> Passport
-              </label>
-            </fieldset>
-            <label className={labelClass}>
-              {form.idType === "passport" ? "Passport number" : "National ID number"}
-              <input required className={inputClass} value={form.idNumber} onChange={(e) => update("idNumber", e.target.value)} />
-            </label>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className={labelClass}>
-              {form.idType === "passport" ? "Upload passport" : "Upload national ID — front"}
-              <span className="mt-1 block text-xs font-normal text-gray-500">
-                Clear photo, scan, or PDF
-              </span>
-              <input
-                required
-                type="file"
-                accept="image/*,.pdf"
-                className="mt-2 block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#12231d] file:px-3 file:py-2 file:text-sm file:font-medium file:text-white"
-                onChange={(e) => update("idDocumentFront", e.target.files?.[0] ?? null)}
-              />
-              {form.idDocumentFront && (
-                <span className="mt-1 block truncate text-xs font-normal text-gray-500">
-                  Selected: {form.idDocumentFront.name}
-                </span>
-              )}
-            </label>
-            {form.idType === "national_id" && (
-              <label className={labelClass}>
-                Upload national ID — back
-                <span className="mt-1 block text-xs font-normal text-gray-500">
-                  Clear photo, scan, or PDF
-                </span>
-                <input
-                  required
-                  type="file"
-                  accept="image/*,.pdf"
-                  className="mt-2 block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#12231d] file:px-3 file:py-2 file:text-sm file:font-medium file:text-white"
-                  onChange={(e) => update("idDocumentBack", e.target.files?.[0] ?? null)}
-                />
-                {form.idDocumentBack && (
-                  <span className="mt-1 block truncate text-xs font-normal text-gray-500">
-                    Selected: {form.idDocumentBack.name}
-                  </span>
-                )}
-              </label>
-            )}
-          </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={labelClass}>
@@ -387,7 +308,7 @@ export default function HostOnboardingPage() {
                 Host Listing Agreement and Terms of Service
               </Link>
               . I confirm that I am the legal owner or authorized manager of the properties I list, and that the
-              identity information provided above is accurate.
+              information provided above is accurate.
             </span>
           </label>
 
