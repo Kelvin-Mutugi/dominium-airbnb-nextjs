@@ -202,8 +202,15 @@ const NAV_GROUPS: {
   {
     heading: "System",
     explanation:
-      "Use the Audit Log to review administrative actions and when they happened.",
-    links: [{ href: "/admin/audit-log", label: "Audit Log", icon: History }],
+      "Review platform engagement metrics and administrative activity.",
+    links: [
+      {
+        href: "/admin/recommendation-metrics",
+        label: "Recommendation Metrics",
+        icon: ChartNoAxesCombined,
+      },
+      { href: "/admin/audit-log", label: "Audit Log", icon: History },
+    ],
   },
 ];
 

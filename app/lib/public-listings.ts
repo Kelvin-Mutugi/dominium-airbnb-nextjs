@@ -166,6 +166,31 @@ function toCardListing(row: ListingRow): Listing {
   };
 }
 
+export async function getPublicListingsByIds(ids: string[]) {
+  const uniqueIds = [...new Set(ids)];
+  if (uniqueIds.length === 0) return [];
+
+  const { data, error } = await getPublicSupabaseClient()
+    .from("listings")
+    .select(CARD_SELECT)
+    .in("id", uniqueIds)
+    .eq("status", "published")
+    .order("position", { foreignTable: "listing_images", ascending: true });
+
+  if (error) throw new Error("Unable to load recommended stays.");
+
+  const listingsById = new Map(
+    ((data ?? []) as unknown as ListingRow[]).map((row) => [
+      row.id,
+      toCardListing(row),
+    ]),
+  );
+  return uniqueIds.flatMap((id) => {
+    const listing = listingsById.get(id);
+    return listing ? [listing] : [];
+  });
+}
+
 async function fetchCountyListingPage(
   county: string,
   from: number,

@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { unsplashCardImageLoader } from "./unsplash-image-loader";
 import { useEffect, useState } from "react";
-import type { KeyboardEvent, MouseEvent } from "react";
+import type { MouseEvent } from "react";
 import {
   CarFront,
   Heart,
@@ -15,6 +15,7 @@ import {
   Wifi,
 } from "lucide-react";
 import { supabase } from "@/app/lib/supabase/client";
+import ListingPhotoCarousel from "@/components/listings/ListingPhotoCarousel";
 import { LISTINGS, type Amenity, type Listing } from "./homeData";
 
 function normalizeAmenities(value: unknown): Amenity[] {
@@ -52,9 +53,7 @@ interface ListingCardProps {
 export default function ListingCard({ item, id, loading = false }: ListingCardProps) {
   const [dbListing, setDbListing] = useState<Listing | null>(null);
   const [isSaved, setIsSaved] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
-  const [imageIndex, setImageIndex] = useState(0);
-  const [imageError, setImageError] = useState(false);
+  const [failedImageUrls, setFailedImageUrls] = useState<string[]>([]);
 
   const listing = item ?? dbListing;
 
@@ -155,27 +154,10 @@ export default function ListingCard({ item, id, loading = false }: ListingCardPr
     };
   }, [id, item]);
 
-  useEffect(() => {
-    if (!isHovered || !listing || (listing.gallery?.length ?? 0) <= 1) return;
-
-    const interval = setInterval(() => {
-      setImageIndex((current) => (current + 1) % listing.gallery.length);
-    }, 1200);
-
-    return () => clearInterval(interval);
-  }, [isHovered, listing]);
-
   const handleSaveClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
     setIsSaved((current) => !current);
-  };
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLAnchorElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      event.currentTarget.click();
-    }
   };
 
   if (loading) {
@@ -199,7 +181,6 @@ export default function ListingCard({ item, id, loading = false }: ListingCardPr
   const galleryImages = (listing.gallery && listing.gallery.length > 0
     ? listing.gallery
     : [listing.img || "/placeholder.svg"]).filter(Boolean);
-  const activeImage = imageError ? "/placeholder.svg" : galleryImages[imageIndex] ?? "/placeholder.svg";
   const ratingValue = formatRating(listing.rating);
   const amenityChips = (listing.amenities ?? []).slice(0, 3);
   const extraAmenityCount = Math.max((listing.amenities?.length ?? 0) - amenityChips.length, 0);
@@ -211,28 +192,42 @@ export default function ListingCard({ item, id, loading = false }: ListingCardPr
   ].filter(Boolean) as string[];
 
   return (
-    <Link
-      href={`/apartments/${listing.id}`}
-      onKeyDown={handleKeyDown}
-      aria-label={`View details for ${listing.name}`}
-      className="group block max-w-[320px] overflow-hidden rounded-[24px] border border-[#E9E6DD] bg-white text-left shadow-[0_10px_30px_rgba(27,26,46,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_rgba(27,26,46,0.12)] focus:outline-none focus:ring-2 focus:ring-[#E89A1C] focus:ring-offset-2"
-    >
-      <article className="relative overflow-hidden">
-        <div className="relative h-[220px] w-full overflow-hidden rounded-b-[18px]">
-          <Image
-            src={activeImage}
-            alt={listing.name}
-            loader={activeImage.includes("images.unsplash.com") ? unsplashCardImageLoader : undefined}
-            fill
-            sizes="(max-width: 320px) 100vw, 320px"
-            quality={85}
-            unoptimized={activeImage.includes("placehold.co") || activeImage === "/placeholder.svg"}
-            onError={() => setImageError(true)}
-            className={`listing-image object-cover transition-transform duration-700 ${isHovered ? "scale-105" : "scale-100"}`}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-          />
-
+    <article className="group relative block max-w-[320px] overflow-hidden rounded-[24px] border border-[#E9E6DD] bg-white text-left shadow-[0_10px_30px_rgba(27,26,46,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_rgba(27,26,46,0.12)]">
+      <ListingPhotoCarousel
+        images={galleryImages}
+        listingName={listing.name}
+        href={`/apartments/${listing.id}`}
+        className="h-[220px] w-full rounded-b-[18px]"
+        renderImage={(src, index) => {
+          const imageSrc = failedImageUrls.includes(src)
+            ? "/placeholder.svg"
+            : src;
+          return (
+            <Image
+              src={imageSrc}
+              alt={`${listing.name}, photo ${index + 1}`}
+              loader={
+                imageSrc.includes("images.unsplash.com")
+                  ? unsplashCardImageLoader
+                  : undefined
+              }
+              fill
+              sizes="(max-width: 320px) 100vw, 320px"
+              quality={85}
+              unoptimized={
+                imageSrc.includes("placehold.co") ||
+                imageSrc === "/placeholder.svg"
+              }
+              onError={() => {
+                setFailedImageUrls((current) =>
+                  current.includes(src) ? current : [...current, src],
+                );
+              }}
+              className="listing-image object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+          );
+        }}
+      >
           <button
             type="button"
             aria-label={isSaved ? "Remove from saved listings" : "Save listing"}
@@ -244,9 +239,14 @@ export default function ListingCard({ item, id, loading = false }: ListingCardPr
               className={isSaved ? "fill-[#E23E85] text-[#E23E85]" : "text-[#1B1A2E]"}
             />
           </button>
-        </div>
+      </ListingPhotoCarousel>
 
-        <div className="space-y-3 p-[16px]">
+      <Link
+        href={`/apartments/${listing.id}`}
+        aria-label={`View details for ${listing.name}`}
+        className="block p-[16px] text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#E89A1C]"
+      >
+        <div className="space-y-3">
           <div className="flex items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-1.5 text-[12px] text-[#36454F]/70">
               <span className="truncate font-medium text-[#36454F]">{listing.loc}</span>
@@ -305,10 +305,9 @@ export default function ListingCard({ item, id, loading = false }: ListingCardPr
               </div>
             </div>
           </div>
-          
         </div>
-      </article>
-    </Link>
+      </Link>
+    </article>
   );
 }
 

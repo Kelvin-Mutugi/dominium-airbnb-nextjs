@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Star } from "lucide-react";
 
 import { supabase } from "@/app/lib/supabase/client";
+import ListingPhotoCarousel from "@/components/listings/ListingPhotoCarousel";
 import SaveListingButton from "@/components/listings/SaveListingButton";
 import { LISTINGS, type Listing } from "./homeData";
 
@@ -170,49 +171,63 @@ export default function FeaturedListingCard({
       ? listing.gallery
       : [listing.img || "/placeholder.svg"];
 
-  const currentSrc = galleryImages[0] ?? "/placeholder.svg";
-  const activeImage = failedSrcs.includes(currentSrc)
-    ? "/placeholder.svg"
-    : currentSrc;
-
   const rating =
     typeof listing.rating === "number" ? listing.rating.toFixed(1) : null;
 
   return (
     <article className="group relative w-full">
+      <ListingPhotoCarousel
+        images={galleryImages}
+        listingName={listing.name}
+        href={`/apartments/${listing.id}`}
+        target="_blank"
+        linkClassName={focusRing}
+        className="aspect-[20/19] w-full rounded-xl bg-neutral-100"
+        renderImage={(src, index) => {
+          const imageSrc = failedSrcs.includes(src)
+            ? "/placeholder.svg"
+            : src;
+          return (
+            <Image
+              src={imageSrc}
+              alt={`${listing.name}, photo ${index + 1}`}
+              loader={
+                imageSrc.includes("images.unsplash.com")
+                  ? unsplashCardImageLoader
+                  : undefined
+              }
+              fill
+              sizes={CARD_IMAGE_SIZES}
+              quality={85}
+              unoptimized={
+                imageSrc.includes("placehold.co") ||
+                imageSrc === "/placeholder.svg"
+              }
+              onError={() =>
+                setFailedSrcs((current) =>
+                  current.includes(src) ? current : [...current, src],
+                )
+              }
+              className="listing-image object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+            />
+          );
+        }}
+      >
+        {showSave && (
+          <SaveListingButton
+            listingId={listing.id}
+            iconSize={24}
+            className={`absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.45)] transition hover:scale-110 ${focusRing}`}
+          />
+        )}
+      </ListingPhotoCarousel>
+
       <Link
         href={`/apartments/${listing.id}`}
         target="_blank"
         aria-label={`${listing.name}, ${listing.loc}, ${listing.price} per night`}
         className={`block rounded-xl text-left no-underline active:transform-none active:transition-none [-webkit-tap-highlight-color:transparent] ${focusRing}`}
       >
-        {/* Image */}
-        <div className="relative aspect-[20/19] w-full overflow-hidden rounded-xl bg-neutral-100">
-          <Image
-            src={activeImage}
-            alt={listing.name}
-            loader={
-              activeImage.includes("images.unsplash.com")
-                ? unsplashCardImageLoader
-                : undefined
-            }
-            fill
-            sizes={CARD_IMAGE_SIZES}
-            quality={85}
-            unoptimized={
-              activeImage.includes("placehold.co") ||
-              activeImage === "/placeholder.svg"
-            }
-            onError={() =>
-              setFailedSrcs((prev) =>
-                prev.includes(currentSrc) ? prev : [...prev, currentSrc],
-              )
-            }
-            className="listing-image object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
-          />
-        </div>
-
-        {/* Content: three lines, nothing more */}
         <div className="pt-3">
           {/* Location + rating */}
           <div className="flex items-start justify-between gap-2">
@@ -240,15 +255,6 @@ export default function FeaturedListingCard({
           </p>
         </div>
       </Link>
-
-      {/* Save button stays a sibling of the link (no button inside an <a>) */}
-      {showSave && (
-        <SaveListingButton
-          listingId={listing.id}
-          iconSize={24}
-          className={`absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.45)] transition hover:scale-110 ${focusRing}`}
-        />
-      )}
     </article>
   );
 }

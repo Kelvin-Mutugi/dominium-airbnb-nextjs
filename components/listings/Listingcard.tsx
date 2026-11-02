@@ -1,15 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import Image from "next/image";
 import {
   BedDouble,
-  ChevronLeft,
-  ChevronRight,
   MapPin,
   Star,
   Users,
 } from "lucide-react";
 import type { Listing } from "@/types/types";
+import ListingPhotoCarousel from "@/components/listings/ListingPhotoCarousel";
 import SaveListingButton from "@/components/listings/SaveListingButton";
 
 interface ListingCardProps {
@@ -29,15 +28,11 @@ export default function ListingCard({
   comparing = false,
   onToggleCompare,
 }: ListingCardProps) {
-  const [imageIndex, setImageIndex] = useState(0);
-
   const images = listing.imageUrls?.length
     ? listing.imageUrls
     : listing.imageUrl
       ? [listing.imageUrl]
       : [];
-  const activeImageIndex = images.length ? imageIndex % images.length : 0;
-  const activeImage = images[activeImageIndex];
 
   const extraAmenities = Math.max(0, listing.amenities.length - MAX_AMENITIES);
   const bedLabel =
@@ -51,11 +46,6 @@ export default function ListingCard({
   const imageRadius = soft ? "rounded-[18px]" : "rounded-2xl";
   const chip = "rounded-lg bg-ink/5 px-2.5 py-1 text-ink/70";
 
-  const arrowBase =
-    "absolute top-1/2 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 text-ink shadow-sm transition-opacity hover:bg-white hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-ink sm:size-9 " +
-    // Always visible on touch screens, revealed on hover/focus on desktop.
-    "opacity-75 lg:opacity-0 lg:group-hover:opacity-90 lg:group-focus-within:opacity-90";
-
   return (
     <article
       className={`group relative grid grid-cols-1 gap-4 sm:grid-cols-[260px_1fr] sm:gap-5 lg:grid-cols-[320px_1fr] xl:grid-cols-[360px_1fr] ${
@@ -65,63 +55,31 @@ export default function ListingCard({
       } ${soft ? radius : ""}`}
     >
       {/* Photo */}
-      <div
-        className={`relative aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-[#eeeeee] to-[#d6d6d6] sm:aspect-auto sm:min-h-[200px] ${imageRadius}`}
-      >
-        {activeImage ? (
-          <img
-            src={activeImage}
-            alt={`${listing.title}, photo ${activeImageIndex + 1} of ${images.length}`}
+      <ListingPhotoCarousel
+        images={images}
+        listingName={listing.title}
+        className={`aspect-[4/3] w-full bg-gradient-to-br from-[#eeeeee] to-[#d6d6d6] sm:aspect-auto sm:min-h-[200px] ${imageRadius}`}
+        emptyMessage="No photos yet"
+        renderImage={(src, index) => (
+          <Image
+            src={src}
+            alt={`${listing.title}, photo ${index + 1} of ${images.length}`}
+            fill
             loading="lazy"
             decoding="async"
+            unoptimized
             draggable={false}
-            className="absolute inset-0 h-full w-full object-cover"
+            sizes="(min-width: 1280px) 360px, (min-width: 640px) 320px, 100vw"
+            className="h-full w-full object-cover"
           />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-sm text-ink/40">
-            No photos yet
-          </div>
         )}
-
-        {images.length > 1 && (
-          <>
-            <button
-              type="button"
-              aria-label={`Previous photo of ${listing.title}`}
-              onClick={() =>
-                setImageIndex(
-                  (current) => (current - 1 + images.length) % images.length
-                )
-              }
-              className={`${arrowBase} left-2`}
-            >
-              <ChevronLeft size={18} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              aria-label={`Next photo of ${listing.title}`}
-              onClick={() =>
-                setImageIndex((current) => (current + 1) % images.length)
-              }
-              className={`${arrowBase} right-2`}
-            >
-              <ChevronRight size={18} aria-hidden="true" />
-            </button>
-            <span
-              aria-live="polite"
-              className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white"
-            >
-              {activeImageIndex + 1} / {images.length}
-            </span>
-          </>
-        )}
-
+      >
         <SaveListingButton
           listingId={listing.id}
           iconSize={21}
           className="absolute right-3 top-3 z-10 flex size-9 items-center justify-center rounded-full border border-white/90 bg-black/55 text-white shadow-sm transition-opacity hover:opacity-85 focus:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-70"
         />
-      </div>
+      </ListingPhotoCarousel>
 
       {/* Details */}
       <div className="flex min-w-0 flex-col">

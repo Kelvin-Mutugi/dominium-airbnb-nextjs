@@ -6,6 +6,7 @@ import { unsplashCardImageLoader } from "./unsplash-image-loader";
 import { useEffect, useState } from "react";
 import { Star } from "lucide-react";
 import { supabase } from "@/app/lib/supabase/client";
+import ListingPhotoCarousel from "@/components/listings/ListingPhotoCarousel";
 import SaveListingButton from "@/components/listings/SaveListingButton";
 import type { Amenity, Listing } from "./homeData";
 
@@ -70,15 +71,17 @@ interface ListingCardProps {
   item?: Listing;
   id?: string;
   loading?: boolean;
+  onClick?: () => void;
 }
 
 export default function MinimalListingCard({
   item,
   id,
   loading = false,
+  onClick,
 }: ListingCardProps) {
   const [dbListing, setDbListing] = useState<Listing | null>(null);
-  const [imageError, setImageError] = useState(false);
+  const [failedSrcs, setFailedSrcs] = useState<string[]>([]);
 
   const listing = item ?? dbListing;
 
@@ -232,10 +235,6 @@ export default function MinimalListingCard({
     (url) => trustedImageUrl(url) ?? "/placeholder.svg",
   );
 
-  const activeImage = imageError
-    ? "/placeholder.svg"
-    : galleryImages[0] ?? "/placeholder.svg";
-
   const ratingValue = formatRating(listing.rating);
 
   // Some listings store the price as "Ksh 5,000 / night"; strip the suffix
@@ -246,35 +245,53 @@ export default function MinimalListingCard({
 
   return (
     <article className="group relative w-full">
+      <ListingPhotoCarousel
+        images={galleryImages}
+        listingName={listing.name}
+        href={`/apartments/${listing.id}`}
+        target="_blank"
+        onImageClick={onClick}
+        linkClassName={focusRing}
+        className="aspect-[20/19] w-full rounded-xl bg-neutral-100"
+        renderImage={(src, index) => {
+          const imageSrc = failedSrcs.includes(src)
+            ? "/placeholder.svg"
+            : src;
+          return (
+            <Image
+              src={imageSrc}
+              alt={`${listing.name}, photo ${index + 1}`}
+              loader={
+                imageSrc.includes("images.unsplash.com")
+                  ? unsplashCardImageLoader
+                  : undefined
+              }
+              fill
+              sizes={CARD_IMAGE_SIZES}
+              quality={85}
+              unoptimized={
+                imageSrc.includes("placehold.co") ||
+                imageSrc === "/placeholder.svg"
+              }
+              onError={() =>
+                setFailedSrcs((current) =>
+                  current.includes(src) ? current : [...current, src],
+                )
+              }
+              className="listing-image object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+            />
+          );
+        }}
+      >
+      </ListingPhotoCarousel>
+
       <Link
         href={`/apartments/${listing.id}`}
         target="_blank"
+        onClick={onClick}
         aria-label={`${listing.name}, ${listing.loc}, ${pricePerNight} per night`}
         className={`block rounded-xl text-left no-underline active:transform-none active:transition-none [-webkit-tap-highlight-color:transparent] ${focusRing}`}
       >
-        {/* Image */}
-        <div className="relative aspect-[20/19] w-full overflow-hidden rounded-xl bg-neutral-100">
-          <Image
-            src={activeImage}
-            alt={listing.name}
-            loader={
-              activeImage.includes("images.unsplash.com")
-                ? unsplashCardImageLoader
-                : undefined
-            }
-            fill
-            sizes={CARD_IMAGE_SIZES}
-            quality={85}
-            unoptimized={
-              activeImage.includes("placehold.co") ||
-              activeImage === "/placeholder.svg"
-            }
-            onError={() => setImageError(true)}
-            className="listing-image object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
-          />
-        </div>
-
-        {/* Content: three lines, nothing more */}
         <div className="pt-3">
           {/* Location + rating */}
           <div className="flex items-start justify-between gap-2">

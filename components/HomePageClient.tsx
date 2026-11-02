@@ -9,6 +9,7 @@ import FeaturedListings from "@/components/listings/Feartured/FeaturedListings";
 import CategoryBar from "@/components/home/CategoryBar";
 import BookingProcess from "@/components/BookingProcess";
 import PopularDestinations, { type Home } from "@/components/Populardestinations";
+import HomeRecommendationRows from "@/components/recs/HomeRecommendationRows";
 import WhyBookUs from "@/components/WhyBookUs";
 import MagicalKenya from "@/components/MagicalKenya";
 import { ROUTES, type Listing } from "@/components/homeData";
@@ -72,11 +73,12 @@ export default function HomePageClient({
       /> */}
       
       <MagicalKenya />
-      <CategoryBar activeCategory="all" onChange={selectCategory} />
+      <CategoryBar activeCategory={null} onChange={selectCategory} />
       <FeaturedListings
         listings={featuredListings}
         isLoading={isLoading}
       />
+      <HomeRecommendationRows />
       {children}
       {/* <PopularDestinations
         homes={homes}

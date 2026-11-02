@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/navigationBar";
@@ -28,8 +28,16 @@ import {
   type BrowseCategory,
 } from "@/app/lib/listing-categories";
 import CategoryBar from "@/components/home/CategoryBar";
+import {
+  getActiveFilterCount,
+  useTrackEvent,
+} from "@/app/lib/recs/useTrackEvent";
+import { recommendationsResponseSchema } from "@/app/lib/recs/ui-schema";
+import { useRecommendationImpressions } from "@/app/lib/recs/useRecommendationImpressions";
+import SavedSearchForm from "@/components/recs/SavedSearchForm";
 
 const PAGE_SIZE = 6;
+const EMPTY_RECOMMENDATION_RANKS: Record<string, number> = {};
 
 const ListingResultsMap = dynamic(
   () => import("@/components/listings/ListingResultsMap"),
@@ -123,6 +131,8 @@ async function fetchListingPage(
 function AllListingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const trackEvent = useTrackEvent();
+  const trackedSearchKeyRef = useRef("");
   const categoryParam = searchParams.get("category");
   const locationParam = searchParams.get("location") ?? "";
   const checkInParam = searchParams.get("checkIn") ?? "";
@@ -146,6 +156,14 @@ function AllListingsContent() {
   const searchKey = JSON.stringify(searchQuery);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [sort, setSort] = useState<SortOption>("recommended");
+  const [recommendationRankState, setRecommendationRankState] = useState<{
+    searchKey: string;
+    ranks: Record<string, number>;
+  }>({ searchKey: "", ranks: EMPTY_RECOMMENDATION_RANKS });
+  const recommendationRanks =
+    recommendationRankState.searchKey === searchKey
+      ? recommendationRankState.ranks
+      : EMPTY_RECOMMENDATION_RANKS;
   const [view, setView] = useState<ViewMode>("list");
   const [comparison, setComparison] = useState<Listing[]>([]);
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
@@ -221,6 +239,75 @@ function AllListingsContent() {
       controller.abort();
     };
   }, [searchKey, searchQuery]);
+
+  useEffect(() => {
+    if (
+      isLoading ||
+      catalogState.searchKey !== searchKey ||
+      trackedSearchKeyRef.current === searchKey
+    ) {
+      return;
+    }
+
+    trackedSearchKeyRef.current = searchKey;
+    trackEvent({
+      eventType: "search",
+      metadata: {
+        surface: "search",
+        hasDates: Boolean(searchQuery.checkIn || searchQuery.checkOut),
+        guestCount: searchQuery.guests,
+      },
+    });
+  }, [
+    catalogState.searchKey,
+    databaseListings,
+    isLoading,
+    searchKey,
+    searchQuery.checkIn,
+    searchQuery.checkOut,
+    searchQuery.guests,
+    trackEvent,
+  ]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const params = new URLSearchParams({ surface: "search", limit: "20" });
+    if (searchQuery.checkIn) params.set("checkIn", searchQuery.checkIn);
+    if (searchQuery.checkOut) params.set("checkOut", searchQuery.checkOut);
+
+    async function loadRecommendationRanks() {
+      try {
+        const response = await fetch(`/api/recs?${params.toString()}`, {
+          signal: controller.signal,
+          credentials: "same-origin",
+        });
+        if (!response.ok) {
+          throw new Error(`Recommendations returned ${response.status}.`);
+        }
+        const payload: unknown = await response.json();
+        const parsed = recommendationsResponseSchema.safeParse(payload);
+        if (!parsed.success) {
+          throw new Error("Recommendations returned an invalid response.");
+        }
+        setRecommendationRankState({
+          searchKey,
+          ranks: Object.fromEntries(
+            parsed.data.recommendations.map((listing, index) => [
+              listing.id,
+              index,
+            ]),
+          ),
+        });
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.warn("Search recommendation tie-breaker unavailable:", error);
+        }
+      }
+    }
+
+    void loadRecommendationRanks();
+    return () => controller.abort();
+  }, [searchKey, searchQuery.checkIn, searchQuery.checkOut]);
 
   const loadMoreListings = async () => {
     if (isLoadingMore || !hasMore) return false;
@@ -324,19 +411,45 @@ function AllListingsContent() {
     });
 
     return [...filtered].sort((first, second) => {
-      if (sort === "price_asc") return first.pricePerNight - second.pricePerNight;
-      if (sort === "price_desc") return second.pricePerNight - first.pricePerNight;
-      if (sort === "rating") return second.rating - first.rating;
-      return 0;
+      let primaryDifference = 0;
+      if (sort === "price_asc") {
+        primaryDifference = first.pricePerNight - second.pricePerNight;
+      } else if (sort === "price_desc") {
+        primaryDifference = second.pricePerNight - first.pricePerNight;
+      } else if (sort === "rating") {
+        primaryDifference = second.rating - first.rating;
+      }
+      if (primaryDifference !== 0) return primaryDifference;
+
+      return (
+        (recommendationRanks[first.id] ?? Number.MAX_SAFE_INTEGER) -
+        (recommendationRanks[second.id] ?? Number.MAX_SAFE_INTEGER)
+      );
     });
-  }, [databaseListings, filters, sort]);
+  }, [databaseListings, filters, recommendationRanks, sort]);
 
   const totalPages = Math.max(1, Math.ceil(listings.length / PAGE_SIZE));
   const visibleListings = listings.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const searchResultsRef = useRef<HTMLDivElement>(null);
+  const trackSearchClick = useRecommendationImpressions(
+    searchResultsRef,
+    "search",
+    !isLoading && view !== "map" && visibleListings.length > 0,
+    `${searchKey}:${page}:${view}:${visibleListings.map((listing) => listing.id).join(",")}`,
+  );
 
   const updateFilters = (patch: Partial<FilterState>) => {
-    setFilters((current) => ({ ...current, ...patch }));
+    const nextFilters = { ...filters, ...patch };
+    setFilters(nextFilters);
     setPage(1);
+    trackEvent({
+      listingId: databaseListings[0]?.id,
+      eventType: "filter_apply",
+      metadata: {
+        surface: "search",
+        activeFilterCount: getActiveFilterCount(nextFilters),
+      },
+    });
   };
 
   const activeFilters: ActiveFilter[] = [];
@@ -378,6 +491,11 @@ function AllListingsContent() {
   const resetFilters = () => {
     setFilters(DEFAULT_FILTERS);
     setPage(1);
+    trackEvent({
+      listingId: databaseListings[0]?.id,
+      eventType: "filter_apply",
+      metadata: { surface: "search", activeFilterCount: 0 },
+    });
     if (searchQuery.category !== "all") updateCategory("all");
   };
 
@@ -492,6 +610,14 @@ function AllListingsContent() {
           onClearAll={resetFilters}
           soft
         />
+        <SavedSearchForm
+          location={searchQuery.location}
+          checkIn={searchQuery.checkIn}
+          checkOut={searchQuery.checkOut}
+          guests={searchQuery.guests}
+          category={searchQuery.category}
+          filters={filters}
+        />
 
         <div>
           <section>
@@ -557,16 +683,31 @@ function AllListingsContent() {
                 onResetFilters={resetFilters}
               />
             ) : (
-              <div className={view === "list" ? "divide-y divide-[#E9E6DD]" : "grid gap-5 sm:grid-cols-2"}>
-                {visibleListings.map((listing) => (
-                  <ListingCard
+              <div
+                ref={searchResultsRef}
+                className={view === "list" ? "divide-y divide-[#E9E6DD]" : "grid gap-5 sm:grid-cols-2"}
+              >
+                {visibleListings.map((listing, index) => (
+                  <div
                     key={listing.id}
-                    listing={listing}
-                    soft
-                    comparing={comparison.some((selected) => selected.id === listing.id)}
-                    onToggleCompare={toggleCompare}
-                    onView={(id) => router.push(`/apartments/${id}`)}
-                  />
+                    data-rec-card
+                    data-listing-id={listing.id}
+                    data-position={(page - 1) * PAGE_SIZE + index + 1}
+                  >
+                    <ListingCard
+                      listing={listing}
+                      soft
+                      comparing={comparison.some((selected) => selected.id === listing.id)}
+                      onToggleCompare={toggleCompare}
+                      onView={(id) => {
+                        trackSearchClick(
+                          id,
+                          (page - 1) * PAGE_SIZE + index + 1,
+                        );
+                        router.push(`/apartments/${id}`);
+                      }}
+                    />
+                  </div>
                 ))}
               </div>
             )}

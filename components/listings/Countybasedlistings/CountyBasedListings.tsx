@@ -20,6 +20,10 @@ import ViewAllCard from "@/components/listings/ViewAllCard";
 
 import { DEFAULT_FILTERS, type FilterState, type Listing } from "@/types/types";
 import ViewAllTile from "../ViewAllTile";
+import {
+  getActiveFilterCount,
+  useTrackEvent,
+} from "@/app/lib/recs/useTrackEvent";
 
 type ListingsClientProps = {
   county: string;
@@ -33,6 +37,7 @@ export default function CountyBasedListings({
   pageSize,
 }: ListingsClientProps) {
   const router = useRouter();
+  const trackEvent = useTrackEvent();
 
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
@@ -161,12 +166,17 @@ export default function CountyBasedListings({
   !isLoadingMore;
 
   const updateFilters = (patch: Partial<FilterState>) => {
-    setFilters((current) => ({
-      ...current,
-      ...patch,
-    }));
-
+    const nextFilters = { ...filters, ...patch };
+    setFilters(nextFilters);
     setPage(1);
+    trackEvent({
+      listingId: databaseListings[0]?.id,
+      eventType: "filter_apply",
+      metadata: {
+        surface: "search",
+        activeFilterCount: getActiveFilterCount(nextFilters),
+      },
+    });
   };
 
   const activeFilters: ActiveFilter[] = [];
@@ -239,6 +249,11 @@ export default function CountyBasedListings({
   const resetFilters = () => {
     setFilters(DEFAULT_FILTERS);
     setPage(1);
+    trackEvent({
+      listingId: databaseListings[0]?.id,
+      eventType: "filter_apply",
+      metadata: { surface: "search", activeFilterCount: 0 },
+    });
   };
 
   const handleNextPage = async () => {

@@ -4,6 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Heart } from "lucide-react";
 import { supabase } from "@/app/lib/supabase/client";
+import { useTrackEvent } from "@/app/lib/recs/useTrackEvent";
 
 const PENDING_SAVE_KEY = "dominium-pending-saved-listing";
 const subscribeToHydration = () => () => {};
@@ -25,6 +26,7 @@ export default function SaveListingButton({
   showLabel = false,
   labelClassName = "",
 }: SaveListingButtonProps) {
+  const trackEvent = useTrackEvent();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -82,6 +84,7 @@ export default function SaveListingButton({
       } else {
         setIsSaved(true);
         sessionStorage.removeItem(PENDING_SAVE_KEY);
+        trackEvent({ listingId, eventType: "save" });
       }
     }
 
@@ -89,7 +92,7 @@ export default function SaveListingButton({
     return () => {
       active = false;
     };
-  }, [listingId]);
+  }, [listingId, trackEvent]);
 
   async function toggleSaved() {
     if (isSaving || isLoading) return;
@@ -122,7 +125,12 @@ export default function SaveListingButton({
       console.error("Failed to update saved listing:", result.error);
       setError("We couldn’t update saved stays. Apply the saved-listings migration and try again.");
     } else {
-      setIsSaved(!isSaved);
+      const nextIsSaved = !isSaved;
+      setIsSaved(nextIsSaved);
+      trackEvent({
+        listingId,
+        eventType: nextIsSaved ? "save" : "unsave",
+      });
     }
     setIsSaving(false);
   }

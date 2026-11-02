@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, MapPin, Share2, ShieldCheck, Star } from "lucide-react";
 import { Listing, RelatedListingSummary } from "./homeData";
 import { Avatar } from "@/components/account/ui";
@@ -18,6 +18,9 @@ import { RelatedListings } from "./appartmentDetails/RelatedListings";
 import SaveListingButton from "@/components/listings/SaveListingButton";
 import { calculateBookingPrice } from "@/app/lib/booking/pricing";
 import { PLATFORM_CANCELLATION_POLICY } from "@/app/lib/cancellation-policy";
+import { useTrackEvent } from "@/app/lib/recs/useTrackEvent";
+import RecommendationShelf from "@/components/recs/RecommendationShelf";
+import ListingAlertForm from "@/components/recs/ListingAlertForm";
 
 function parseCalendarDate(value?: string): Date | null {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
@@ -28,6 +31,13 @@ function parseCalendarDate(value?: string): Date | null {
     parsed.getDate() === day
     ? parsed
     : null;
+}
+
+function formatCalendarDate(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 interface ApartmentDetailsProps {
@@ -65,6 +75,8 @@ export default function ApartmentDetails({
   onReserve,
   onSelectListing,
 }: ApartmentDetailsProps) {
+  const trackEvent = useTrackEvent();
+  const viewedListingIdRef = useRef<string | null>(null);
   const guestCapacity = Math.max(1, listing?.maxGuests ?? initialGuests);
   const safeInitialChildren = Math.max(
     0,
@@ -95,6 +107,63 @@ export default function ApartmentDetails({
   const [datePrompt, setDatePrompt] = useState(false);
   const [shareMessage, setShareMessage] = useState("");
 
+  useEffect(() => {
+    const listingId = listing?.id;
+    if (!listingId) return;
+
+    if (viewedListingIdRef.current !== listingId) {
+      viewedListingIdRef.current = listingId;
+      trackEvent({
+        listingId,
+        eventType: "view",
+        metadata: { surface: "listing" },
+      });
+    }
+
+    const startedAt = Date.now();
+    let dwellTracked = false;
+    const dwellEvent = () =>
+      trackEvent({
+        listingId,
+        eventType: "long_dwell",
+        metadata: { surface: "listing" },
+      });
+    const dwellTimer = window.setTimeout(() => {
+      dwellTracked = true;
+      dwellEvent();
+    }, 15_000);
+    const handlePageHide = () => {
+      if (!dwellTracked && Date.now() - startedAt >= 15_000) {
+        dwellTracked = true;
+        trackEvent(
+          {
+            listingId,
+            eventType: "long_dwell",
+            metadata: { surface: "listing" },
+          },
+          { unload: true },
+        );
+      }
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+    return () => {
+      window.clearTimeout(dwellTimer);
+      window.removeEventListener("pagehide", handlePageHide);
+      if (!dwellTracked && Date.now() - startedAt >= 15_000) {
+        dwellTracked = true;
+        trackEvent(
+          {
+            listingId,
+            eventType: "long_dwell",
+            metadata: { surface: "listing" },
+          },
+          { unload: true },
+        );
+      }
+    };
+  }, [listing?.id, trackEvent]);
+
   async function shareListing() {
     const shareData = {
       title: listing?.name ?? "Stay on Dominium",
@@ -108,15 +177,24 @@ export default function ApartmentDetails({
       if (navigator.share) {
         await navigator.share(shareData);
         setShareMessage("");
+        if (listing) {
+          trackEvent({ listingId: listing.id, eventType: "share" });
+        }
         return;
       }
       await navigator.clipboard.writeText(shareData.url);
       setShareMessage("Link copied");
+      if (listing) {
+        trackEvent({ listingId: listing.id, eventType: "share" });
+      }
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       try {
         await navigator.clipboard.writeText(shareData.url);
         setShareMessage("Link copied");
+        if (listing) {
+          trackEvent({ listingId: listing.id, eventType: "share" });
+        }
       } catch {
         setShareMessage("Unable to share this link");
       }
@@ -203,6 +281,13 @@ export default function ApartmentDetails({
                     listingName={listing.name}
                     photos={listing.galleryPhotos}
                     legacyGallery={listing.gallery}
+                    onGalleryOpen={() =>
+                      trackEvent({
+                        listingId: listing.id,
+                        eventType: "gallery_open",
+                        metadata: { surface: "listing" },
+                      })
+                    }
                   />
                 </div>
               </div>
@@ -549,6 +634,18 @@ export default function ApartmentDetails({
           </div>
         </div>
       </div>
+
+      <ListingAlertForm
+        listingId={listing.id}
+        checkIn={stayRange ? formatCalendarDate(stayRange.checkIn) : undefined}
+        checkOut={stayRange ? formatCalendarDate(stayRange.checkOut) : undefined}
+      />
+
+      <RecommendationShelf
+        listingId={listing.id}
+        checkIn={stayRange ? formatCalendarDate(stayRange.checkIn) : undefined}
+        checkOut={stayRange ? formatCalendarDate(stayRange.checkOut) : undefined}
+      />
 
       <StickyPriceBar
         price={formatPrice(listing.pricePerNight)}

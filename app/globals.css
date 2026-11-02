@@ -28,18 +28,22 @@ body {
   font-family: var(--font-plex), "IBM Plex Sans", sans-serif;
 }
 
-.sale-card-carousel-control {
+.sale-card-carousel-control,
+.listing-card-carousel-control {
   transition: opacity 160ms ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .sale-card-carousel-control {
+  .sale-card-carousel-control,
+  .listing-card-carousel-control {
     opacity: 0;
     pointer-events: none;
   }
 
   .group:hover .sale-card-carousel-control,
-  .group:focus-within .sale-card-carousel-control {
+  .group:focus-within .sale-card-carousel-control,
+  .group:hover .listing-card-carousel-control,
+  .group:focus-within .listing-card-carousel-control {
     opacity: 1;
     pointer-events: auto;
   }
@@ -123,6 +127,63 @@ body {
   }
 }
 
+@keyframes host-application-success-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.94);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.015);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes host-application-success-icon {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) rotate(-12deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.12) rotate(4deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes host-application-success-check {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.host-application-success-card {
+  animation: host-application-success-pop 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.host-application-success-icon {
+  animation: host-application-success-icon 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: 80ms;
+}
+
+.host-application-success-circle {
+  stroke-dasharray: 145;
+  stroke-dashoffset: 145;
+  animation: host-application-success-check 420ms ease-out 180ms forwards;
+}
+
+.host-application-success-check {
+  stroke-dasharray: 34;
+  stroke-dashoffset: 34;
+  animation: host-application-success-check 300ms ease-out 350ms forwards;
+}
+
 .sale-inquiry-success-card {
   animation: sale-inquiry-success-pop 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
@@ -149,6 +210,14 @@ body {
   .sale-inquiry-success-icon,
   .sale-inquiry-success-circle,
   .sale-inquiry-success-check {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+
+  .host-application-success-card,
+  .host-application-success-icon,
+  .host-application-success-circle,
+  .host-application-success-check {
     animation-duration: 1ms;
     animation-delay: 0ms;
   }
@@ -281,6 +350,12 @@ body {
   box-shadow:
     0 1px 4px rgb(27 26 46 / 0.08),
     inset 1px 1px 2px rgb(27 26 46 / 0.025);
+}
+
+.host-panel > main form.host-onboarding-form :is(input:not([type="checkbox"]):not([type="radio"]), textarea) {
+  border-color: #c9c4ce;
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgb(27 26 46 / 0.08);
 }
 
 .host-panel > main :is(input, select, textarea):focus-visible {
