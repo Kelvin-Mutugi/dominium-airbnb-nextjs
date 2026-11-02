@@ -24,7 +24,7 @@ export default function FeaturedListings({
       {/* Title + arrows */}
       <div className="mb-[18px] flex items-center justify-between">
         <h2 className="text-[20px] font-semibold text-[#36454F]">
-          Our Top Unique Properties
+          New on Dominium BnB
         </h2>
 
         {/* Carousel arrows */}
@@ -65,7 +65,7 @@ export default function FeaturedListings({
         </HorizontalListingCarousel>
       ) : listings.length === 0 ? (
         <p className="text-[15px] text-[#3A3856]/70">
-          No listings match that location yet — try a different town.
+          New stays will appear here as hosts join Dominium BnB.
         </p>
       ) : (
         <HorizontalListingCarousel

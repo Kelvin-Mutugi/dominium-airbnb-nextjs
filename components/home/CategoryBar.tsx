@@ -57,7 +57,7 @@ export default function CategoryBar({
   location = "",
   guests = 0,
 }: {
-  activeCategory: BrowseCategory;
+  activeCategory: BrowseCategory | null;
   onChange: (category: BrowseCategory) => void;
   location?: string;
   guests?: number;
@@ -75,7 +75,7 @@ export default function CategoryBar({
   const counts =
     countsState?.key === countsKey ? countsState.counts : undefined;
   const visibleCategories = useMemo(
-    () => getVisibleBarCategories(counts, activeCategory),
+    () => getVisibleBarCategories(counts, activeCategory ?? undefined),
     [counts, activeCategory],
   );
 
@@ -140,7 +140,10 @@ export default function CategoryBar({
   }, []);
 
   useEffect(() => {
-    if (!window.matchMedia("(max-width: 639px)").matches) {
+    if (
+      activeCategory === null ||
+      !window.matchMedia("(max-width: 639px)").matches
+    ) {
       return;
     }
     buttonRefs.current[activeCategory]?.scrollIntoView({

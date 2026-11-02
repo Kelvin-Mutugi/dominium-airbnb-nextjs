@@ -104,6 +104,27 @@ export default async function AdminUserDetailPage({
         </dl>
       </section>
 
+      {(profile.role === "guest" ||
+        (profile.role === "host" &&
+          !profile.host_verified_at &&
+          profile.kyc_status !== "pending" &&
+          profile.kyc_status !== "approved")) && (
+        <section className="mt-6 rounded-lg border border-[#F4D6E2] bg-[#FDF0F5] p-5 sm:flex sm:items-center sm:justify-between sm:gap-6">
+          <div>
+            <h2 className="text-base font-semibold text-[#1B1A2E]">Host onboarding</h2>
+            <p className="mt-1 text-sm leading-6 text-[#6B6A78]">
+              Enter host details on this user&apos;s behalf. The application will remain pending until it is reviewed.
+            </p>
+          </div>
+          <Link
+            href={`/admin/verification/new?userId=${encodeURIComponent(profile.id)}`}
+            className="mt-4 inline-flex shrink-0 rounded-md bg-[#E23E85] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#c93075] sm:mt-0"
+          >
+            Enter host details
+          </Link>
+        </section>
+      )}
+
       {profile.role === "host" && (
         <section className="mt-6 rounded-lg bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between gap-4">

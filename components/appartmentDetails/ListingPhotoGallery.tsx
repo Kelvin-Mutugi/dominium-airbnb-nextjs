@@ -159,10 +159,12 @@ export function ListingPhotoGallery({
   listingName,
   photos: sourcePhotos,
   legacyGallery,
+  onGalleryOpen,
 }: {
   listingName: string;
   photos?: ListingPhoto[];
   legacyGallery: string[];
+  onGalleryOpen?: () => void;
 }) {
   const photos = useMemo(
     () => normalizeListingPhotos(sourcePhotos, legacyGallery),
@@ -216,6 +218,7 @@ export function ListingPhotoGallery({
   function openGallery(trigger: HTMLButtonElement) {
     galleryTriggerRef.current = trigger;
     setGalleryOpen(true);
+    onGalleryOpen?.();
   }
 
   function updateMobileIndex(element: HTMLDivElement) {

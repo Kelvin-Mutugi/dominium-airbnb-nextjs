@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Heart, MapPin, Star, Users } from 'lucide-react';
 import { createClient } from '@/app/lib/supabase/client';
+import { useTrackEvent } from '@/app/lib/recs/useTrackEvent';
 import type { Listing } from '@/types/types';
 
 export default function SavedListings({
@@ -13,6 +14,7 @@ export default function SavedListings({
   listings: Listing[];
   loadError: boolean;
 }) {
+  const trackEvent = useTrackEvent();
   const [saved, setSaved] = useState(listings);
   const [error, setError] = useState(loadError ? 'Saved stays could not be loaded. Please refresh the page.' : '');
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -39,6 +41,7 @@ export default function SavedListings({
       setError('We couldn’t remove that stay. Please try again.');
     } else {
       setSaved((current) => current.filter((listing) => listing.id !== listingId));
+      trackEvent({ listingId, eventType: 'unsave' });
     }
     setRemovingId(null);
   }

@@ -26,7 +26,7 @@ export default async function AdminUsersPage({
   let profilesQuery = admin
     .from("profiles")
     .select(
-      "id, full_name, phone, role, status, business_name, host_verified_at, created_at"
+      "id, full_name, phone, email, role, status, business_name, host_verified_at, kyc_status, created_at"
     )
     .eq("role", role);
 
@@ -69,17 +69,35 @@ export default async function AdminUsersPage({
             </tr>
           </thead>
           <tbody className="divide-y">
-            {(profiles ?? []).map((p) => (
-              <tr key={p.id}>
+            {(profiles ?? []).map((p) => {
+              const canEnterHostDetails =
+                p.role === "guest" ||
+                (p.role === "host" &&
+                  !p.host_verified_at &&
+                  p.kyc_status !== "pending" &&
+                  p.kyc_status !== "approved");
+
+              return (
+                <tr key={p.id}>
                 <td className="p-3">
-                  <Link
-                    href={`/admin/users/${p.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium text-[#1B1A2E] hover:text-[#E23E85]"
-                  >
-                    {p.full_name ?? "Unnamed user"}
-                  </Link>
+                  <div className="flex flex-col items-start gap-1">
+                    <Link
+                      href={`/admin/users/${p.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-[#1B1A2E] hover:text-[#E23E85]"
+                    >
+                      {p.full_name ?? "Unnamed user"}
+                    </Link>
+                    {canEnterHostDetails && (
+                      <Link
+                        href={`/admin/verification/new?userId=${encodeURIComponent(p.id)}`}
+                        className="text-xs font-medium text-[#9C2454] hover:underline"
+                      >
+                        Enter host details
+                      </Link>
+                    )}
+                  </div>
                 </td>
                 <td className="p-3 text-[#1B1A2E]">{p.phone ?? "—"}</td>
                 {role === "host" && (
@@ -112,7 +130,8 @@ export default async function AdminUsersPage({
                   />
                 </td>
               </tr>
-            ))}
+            );
+          })}
             {(profiles ?? []).length === 0 && (
               <tr>
                 <td colSpan={6} className="p-6 text-center text-gray-400">
@@ -124,15 +143,33 @@ export default async function AdminUsersPage({
         </table>
         </div>
         <div className="divide-y divide-gray-100 md:hidden">
-          {(profiles ?? []).map((p) => (
+          {(profiles ?? []).map((p) => {
+            const canEnterHostDetails =
+              p.role === "guest" ||
+              (p.role === "host" &&
+                !p.host_verified_at &&
+                p.kyc_status !== "pending" &&
+                p.kyc_status !== "approved");
+
+            return (
             <article key={p.id} className="space-y-3 p-4">
               <div className="flex items-start justify-between gap-3">
-                <Link
-                  href={`/admin/users/${p.id}`}
-                  className="min-w-0 break-words font-semibold text-[#1B1A2E] hover:text-[#E23E85]"
-                >
-                  {p.full_name ?? "Unnamed user"}
-                </Link>
+                <div className="min-w-0">
+                  <Link
+                    href={`/admin/users/${p.id}`}
+                    className="break-words font-semibold text-[#1B1A2E] hover:text-[#E23E85]"
+                  >
+                    {p.full_name ?? "Unnamed user"}
+                  </Link>
+                  {canEnterHostDetails && (
+                    <Link
+                      href={`/admin/verification/new?userId=${encodeURIComponent(p.id)}`}
+                      className="mt-1 block text-sm font-medium text-[#9C2454] hover:underline"
+                    >
+                      Enter host details
+                    </Link>
+                  )}
+                </div>
                 <span
                   className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium capitalize ${
                     p.status === "suspended"
@@ -167,7 +204,8 @@ export default async function AdminUsersPage({
               </dl>
               <UserRowActions userId={p.id} status={p.status} />
             </article>
-          ))}
+            );
+          })}
           {(profiles ?? []).length === 0 && (
             <p className="p-6 text-center text-sm text-gray-400">
               No {role}s found.

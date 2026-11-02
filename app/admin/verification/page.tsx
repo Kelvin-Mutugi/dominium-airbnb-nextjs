@@ -20,6 +20,7 @@ type HostApplication = {
   kyc_submitted_at: string | null;
   kyc_rejection_reason: string | null;
   host_verified_at: string | null;
+  host_onboarding_source: string | null;
 };
 
 const FILTERS = ['pending', 'rejected', 'approved', 'all'];
@@ -38,7 +39,7 @@ function statusTone(status: string | null) {
 export default async function HostVerificationPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; submitted?: string }>;
 }) {
   const params = await searchParams;
   const status = FILTERS.includes(params.status ?? 'pending') ? params.status ?? 'pending' : 'pending';
@@ -47,7 +48,7 @@ export default async function HostVerificationPage({
 
   let applicationsQuery = admin
     .from('profiles')
-    .select('id, full_name, phone, email, host_type, business_name, date_of_birth, county, residential_address, payout_method, payout_details, host_bio, kyc_status, kyc_submitted_at, kyc_rejection_reason, host_verified_at')
+    .select('id, full_name, phone, email, host_type, business_name, date_of_birth, county, residential_address, payout_method, payout_details, host_bio, kyc_status, kyc_submitted_at, kyc_rejection_reason, host_verified_at, host_onboarding_source')
     .eq('role', 'host')
     .order('kyc_submitted_at', { ascending: false, nullsFirst: false })
     .limit(200);
@@ -72,8 +73,25 @@ export default async function HostVerificationPage({
   return (
     <div className="max-w-6xl space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold text-[#E23E85]">Host Verification</h1>
-        <p className="mt-1 text-sm text-gray-600">Review host, residence, and payout details before approving an application.</p>
+        {params.submitted === 'invited' && (
+          <p role="status" className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            Host application submitted for review. An invitation email has been sent to the new account.
+          </p>
+        )}
+        {params.submitted === 'existing' && (
+          <p role="status" className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            Host application submitted for review. It is awaiting an independent verification decision.
+          </p>
+        )}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold text-[#E23E85]">Host Verification</h1>
+            <p className="mt-1 text-sm text-gray-600">Review host, residence, and payout details before approving an application.</p>
+          </div>
+          <Link href="/admin/verification/new" className="rounded-md bg-[#E23E85] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#c93075]">
+            Enter details for a host
+          </Link>
+        </div>
       </header>
 
       <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-3">
@@ -125,7 +143,12 @@ export default async function HostVerificationPage({
                     <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusTone(host.kyc_status)}`}>{humanize(host.kyc_status ?? 'not submitted')}</span>
                     <Link href={`/admin/users/${host.id}`} className="text-xs font-medium text-[#CF2F74] hover:underline">Open user profile</Link>
                   </div>
-                  <p className="mt-1 text-sm text-gray-500">{host.business_name ?? humanize(host.host_type ?? 'individual')} · submitted {formatDate(host.kyc_submitted_at, 'long')}</p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {host.business_name ?? humanize(host.host_type ?? 'individual')} · submitted {formatDate(host.kyc_submitted_at, 'long')}
+                    {host.host_onboarding_source === 'admin_assisted' && (
+                      <span className="ml-2 inline-flex rounded-full bg-[#FDF0F5] px-2 py-0.5 text-xs font-medium text-[#9C2454]">Entered by admin</span>
+                    )}
+                  </p>
 
                   <dl className="mt-5 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
                     <div><dt className="text-xs text-gray-500">Email</dt><dd className="mt-1 break-all text-sm text-[#1B1A2E]">{host.email ?? 'Not provided'}</dd></div>

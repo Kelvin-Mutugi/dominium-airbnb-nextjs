@@ -207,6 +207,11 @@ export async function submitHostOnboarding(formData: FormData) {
     kyc_reviewed_by: null,
     kyc_rejection_reason: null,
     host_verified_at: null,
+    host_terms_accepted_at: new Date().toISOString(),
+    host_terms_version: "2026-11-01",
+    host_terms_acceptance_source: "host",
+    host_onboarding_source: "host",
+    host_onboarding_submitted_by: null,
   });
   if (upsertError)
     throw new Error(`Could not save your host details: ${upsertError.message}`);

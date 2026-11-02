@@ -13,6 +13,7 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import { List, Map as MapIcon, X } from "lucide-react";
+import ListingPhotoCarousel from "@/components/listings/ListingPhotoCarousel";
 import SaveListingButton from "@/components/listings/SaveListingButton";
 import type { Listing } from "@/types/types";
 
@@ -279,6 +280,29 @@ function StayCard({
       onMouseEnter={() => onHover(listing.id)}
       onMouseLeave={() => onHover(null)}
     >
+      <ListingPhotoCarousel
+        images={listing.imageUrls?.length
+          ? listing.imageUrls
+          : listing.imageUrl
+            ? [listing.imageUrl]
+            : []}
+        listingName={listing.title}
+        href={`/apartments/${encodeURIComponent(listing.id)}`}
+        onFocus={() => onHover(listing.id)}
+        onBlur={() => onHover(null)}
+        className={`aspect-[20/19] w-full rounded-xl bg-neutral-100 transition-shadow ${selected ? "ring-2 ring-[#1B1A2E] ring-offset-2" : ""}`}
+        linkClassName={focusRing}
+        emptyMessage="No photo available"
+        renderImage={(src, index) => (
+          <Image
+            src={src}
+            alt={`${listing.title}, photo ${index + 1}`}
+            fill
+            sizes="(min-width: 1024px) 24vw, (min-width: 640px) 45vw, 100vw"
+            className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+          />
+        )}
+      />
       <Link
         href={`/apartments/${encodeURIComponent(listing.id)}`}
         aria-label={`${listing.title}, ${listing.location}, ${formatMoney(listing.pricePerNight)} per night`}
@@ -286,25 +310,6 @@ function StayCard({
         onBlur={() => onHover(null)}
         className={`block rounded-xl text-left no-underline ${focusRing}`}
       >
-        <div
-          className={`relative aspect-[20/19] w-full overflow-hidden rounded-xl bg-neutral-100 transition-shadow ${selected ? "ring-2 ring-[#1B1A2E] ring-offset-2" : ""
-            }`}
-        >
-          {listing.imageUrl ? (
-            <Image
-              src={listing.imageUrl}
-              alt=""
-              fill
-              sizes="(min-width: 1024px) 24vw, (min-width: 640px) 45vw, 100vw"
-              className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
-            />
-          ) : (
-            <span className="flex h-full items-center justify-center px-2 text-center text-xs text-neutral-500">
-              No photo available
-            </span>
-          )}
-        </div>
-
         <div className="pt-3">
           <h3 className="truncate text-[15px] font-semibold leading-5 text-[#1B1A2E]">
             {listing.location}
@@ -499,31 +504,35 @@ export default function ListingResultsMap({
               className="absolute inset-x-3 bottom-3 z-[1000] sm:right-auto sm:w-[22rem]"
             >
               <div className="relative flex gap-3 rounded-2xl bg-white p-2.5 shadow-lg ring-1 ring-black/5">
-                <Link
+              <ListingPhotoCarousel
+                  images={
+                    selectedPoint.listing.imageUrls?.length
+                      ? selectedPoint.listing.imageUrls
+                      : selectedPoint.listing.imageUrl
+                        ? [selectedPoint.listing.imageUrl]
+                        : []
+                  }
+                  listingName={selectedPoint.listing.title}
                   href={`/apartments/${encodeURIComponent(selectedPoint.listing.id)}`}
-                  aria-label={`View ${selectedPoint.listing.title}`}
-                  className={`relative size-28 shrink-0 overflow-hidden rounded-xl bg-neutral-100 ${focusRing}`}
-                >
-                  {selectedPoint.listing.imageUrl ? (
+                  className="relative size-28 shrink-0 rounded-xl bg-neutral-100"
+                  linkClassName={focusRing}
+                  emptyMessage="No photo"
+                  renderImage={(src, index) => (
                     <Image
-                      src={selectedPoint.listing.imageUrl}
-                      alt=""
+                      src={src}
+                      alt={`${selectedPoint.listing.title}, photo ${index + 1}`}
                       fill
                       sizes="112px"
                       className="object-cover"
                     />
-                  ) : (
-                    <span className="flex h-full items-center justify-center px-2 text-center text-xs text-neutral-500">
-                      No photo available
-                    </span>
                   )}
-                </Link>
-
-                <SaveListingButton
-                  listingId={selectedPoint.listing.id}
-                  iconSize={20}
-                  className={`absolute left-[5.75rem] top-3.5 z-10 flex size-7 items-center justify-center text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] disabled:opacity-70 ${focusRing}`}
-                />
+                >
+                  <SaveListingButton
+                    listingId={selectedPoint.listing.id}
+                    iconSize={20}
+                    className={`absolute right-2 top-2 z-10 flex size-7 items-center justify-center rounded-full bg-black/35 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] disabled:opacity-70 ${focusRing}`}
+                  />
+                </ListingPhotoCarousel>
 
                 <div className="min-w-0 flex-1 py-1 pr-7">
                   <Link
